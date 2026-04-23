@@ -1,0 +1,10 @@
+{
+  "title": "Чтобы начать, отредактируйте файл page.tsx.",
+  "description": "Ищете отправную точку или дополнительные инструкции? Загляните в {templatesLink} или в {learningLink}.",
+  "templatesLink": "шаблоны",
+  "learningLink": "центр обучения",
+  "deploy": "Развернуть",
+  "docs": "Документация",
+  "vercelLogoAlt": "Логотип Vercel",
+  "nextLogoAlt": "Логотип Next.js"
+}

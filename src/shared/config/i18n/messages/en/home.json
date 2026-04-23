@@ -1,0 +1,10 @@
+{
+  "title": "To get started, edit the page.tsx file.",
+  "description": "Looking for a starting point or more instructions? Head over to {templatesLink} or the {learningLink}.",
+  "templatesLink": "Templates",
+  "learningLink": "Learning center",
+  "deploy": "Deploy Now",
+  "docs": "Documentation",
+  "vercelLogoAlt": "Vercel logomark",
+  "nextLogoAlt": "Next.js logo"
+}
