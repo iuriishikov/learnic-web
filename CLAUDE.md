@@ -415,6 +415,171 @@ Never hardcode a one-off color in a component — add a token.
 
 ---
 
+## Theming — Light & Dark
+
+**Every UI must support both light and dark themes, built and verified together in the same task.** Dark mode is not a follow-up phase — it ships at the same time as the feature. A component that only looks right in one theme is not done.
+
+### Initial theme = system preference
+
+- First load resolves to the user's OS setting via `prefers-color-scheme`. A visitor on a dark OS sees dark; on light — light. No hardcoded default that overrides the system.
+- Once the user picks a theme explicitly via the in-app toggle, persist that choice (handled by `next-themes` default behavior) and respect it on subsequent visits.
+- Mechanism: `next-themes` configured with `attribute="class"`, `defaultTheme="system"`, `enableSystem`. The `ThemeProvider` wraps the root layout (`app/[locale]/layout.tsx`). Add `suppressHydrationWarning` to the `<html>` element to avoid hydration mismatch on first paint.
+- The `.dark` class attaches to `<html>`, which activates the `.dark` block in `globals.css`. That's what makes tokens flip — don't reach for `data-theme` attributes or custom class names.
+
+### How to build for both themes
+
+- **Use design tokens, always.** `bg-background`, `text-foreground`, `text-muted-foreground`, `border-input`, `bg-card`, `bg-primary`, `text-company`, etc. These are defined for both `:root` and `.dark` in `globals.css` and flip automatically — you get dark mode for free when you follow the existing "Styling" rule.
+- **Reach for `dark:` only for non-color differences** or when the token system genuinely can't express what you need. Valid cases:
+  - Swapping an image/illustration/logo between themes (`block dark:hidden` / `hidden dark:block`).
+  - An SVG with hardcoded `fill`/`stroke` you don't control (prefer `currentColor` first; `dark:` as fallback).
+  - Shadows and glows whose intensity/color must differ (`shadow-lg dark:shadow-black/40`).
+  - Overlay opacities where the same token reads too strong/weak in the other theme.
+- **Do not write `dark:` on something already tokenized.** `bg-white dark:bg-black` is a bug — use `bg-background`. If you're tempted to add `dark:` to a color utility, that's the signal to use (or add) a token instead.
+
+### Adding a new token
+
+When you need a color that doesn't exist, extend the token system — don't inline it:
+
+1. Add the CSS variable to **both** `:root` and `.dark` in `globals.css`, picking values that work in each theme (sufficient contrast, intentional hierarchy).
+2. Map it in `tailwind.config`.
+3. Use the Tailwind utility (`bg-my-token`). The theme flip is automatic.
+
+### Contrast & readability
+
+- Text on every surface must meet at least WCAG AA (4.5:1 for body, 3:1 for large text) in both themes. If a token pair fails, fix the token, not the component.
+- Don't rely on pure black (`#000`) backgrounds in dark mode — use the shadcn dark `--background` token (dark gray). Pure black kills depth and makes shadows invisible.
+- Borders and dividers often disappear in one theme and scream in the other. If that happens, you're using the wrong token (use `border-border` / `border-input`, not a hardcoded gray).
+
+### Images, illustrations, screenshots
+
+- Content imagery (photos, user avatars): usually theme-agnostic — no action needed.
+- Brand/UI illustrations with embedded backgrounds: provide a light and dark variant and swap via `dark:` visibility utilities, or build them with `currentColor` so they inherit from `text-foreground`.
+- Next.js `<Image>`: no special treatment unless the asset itself is theme-specific.
+
+### Toggle UI
+
+- A visible theme toggle (light / dark / system) lives in the app chrome (header, user menu, or settings — depends on the surface). The "system" option must exist — don't force users into a binary choice.
+- Built with shadcn primitives (`DropdownMenu` + icon `Button`), with the `company` brand token on the active state.
+
+### Verification (reinforces Visual Verification)
+
+Dark mode is **not optional** in the "Before You Say Done" checklist. For every UI change:
+
+- Toggle to dark and walk the same flow again — states, forms, errors, hover/focus, animations.
+- Check the three viewports in **both** themes (so effectively 6 checkpoints, though most issues repro across widths).
+- Switch OS preference (or use DevTools' `prefers-color-scheme` emulation) and reload to confirm the system-default path works on first paint with no flash.
+
+### Forbidden
+
+- **No "dark mode later".** Ship both themes together or don't ship the feature.
+- **No hardcoded default theme** that ignores the OS on first visit. Initial = system.
+- **No `bg-white` / `bg-black` / `text-gray-900` / hex values** as stand-ins for tokens. Every color goes through a token.
+- **No `dark:` utilities layered on top of already-tokenized colors.** If you're writing `bg-white dark:bg-black`, use `bg-background`.
+- **No alternative theme libraries** (`@theme-ui`, custom context with `data-theme`, cookie-only toggles without `prefers-color-scheme` support). `next-themes` + shadcn tokens is the stack.
+
+---
+
+## Responsive Design — Mobile, Tablet, Desktop
+
+**Every screen must be designed and built for three viewports: mobile, tablet, desktop.** Ship nothing that works only on one. Responsive is not an afterthought — it's part of "done".
+
+### Breakpoints (three-tier model)
+
+Use Tailwind's default tokens, but commit to exactly three tiers:
+
+| Tier        | Width range          | Tailwind prefix | How to write it                  |
+| ----------- | -------------------- | --------------- | -------------------------------- |
+| **Mobile**  | `< 768px`            | *(no prefix)*   | base utilities — the default    |
+| **Tablet**  | `768px – 1023px`     | `md:`           | `md:grid-cols-2`                 |
+| **Desktop** | `≥ 1024px`           | `lg:`           | `lg:grid-cols-3`                 |
+
+- `sm:` (640px) is **not** part of the standard ladder — avoid it. Only reach for it as a narrow exception when the mobile layout genuinely needs a mid-mobile tweak (e.g. a large phone in landscape). Don't use it as "small tablet".
+- `xl:` / `2xl:` are for wide-screen polish only (e.g. increasing a max-width container, adding an extra column on ultrawide). They are never a required tier — a screen that only works starting at `xl:` is broken.
+
+### Mobile-first is mandatory
+
+- Base classes describe the **mobile** layout. Add `md:` / `lg:` utilities to scale *up*, never down.
+- Forbidden pattern: writing a desktop layout first and then undoing it with `max-md:` / negative overrides. Start small, add complexity at wider breakpoints.
+- No desktop-only components. If a feature renders on desktop, it has a mobile equivalent (even if it's a simpler stacked version or an alternative control like a sheet instead of a popover).
+
+### When a prompt describes only one viewport
+
+Design briefs and ad-hoc requests almost always describe **one** viewport — usually desktop (that's how Figma mockups are drawn, that's how users dictate specs). When the spec clearly doesn't translate 1:1 to the other viewports, **don't copy-paste the spec across sizes and don't skip mobile.** Extract the intent of the interaction and invent a viewport-appropriate equivalent.
+
+**Worked example.** User says:
+
+> *"I want a 700px menu sliding in from the right."*
+
+- **Desktop / tablet (≥ 768px):** apply as specified — `max-w-[700px]` side panel sliding from the right.
+- **Mobile (< 768px):** 700px doesn't fit in a 375px viewport. Substitute the pattern that carries the same intent — "a secondary surface that opens over the primary content and can be dismissed". Default answer: a full-height `Sheet` sliding from the bottom, or a full-screen modal with a close button. Pick based on content weight.
+
+**What "same intent" looks like — translation cheatsheet** (starting point, not exhaustive):
+
+| Desktop pattern                              | Mobile equivalent                                       |
+| -------------------------------------------- | ------------------------------------------------------- |
+| Side drawer / slide-out panel (fixed width)  | Full-height `Sheet` (bottom or side) or full-screen     |
+| Hover preview (`HoverCard`)                  | Tap opens the real target — no peek                     |
+| Multi-column layout                          | Single stacked column; tabs if genuinely separate views |
+| Right-click context menu                     | Visible kebab (`⋯`) → `Sheet`                           |
+| Wide form dialog                             | Full-screen `Sheet` or a dedicated route                |
+| Persistent sidebar navigation                | Hamburger / icon trigger → `Sheet`                      |
+| Resizable split pane                         | Tabs or stacked sections                                |
+| Data table with many columns                 | Card list showing primary 2–3 fields + tap for detail   |
+| Drag-to-reorder with grab handle             | Explicit "Reorder" mode + up/down buttons               |
+| Toolbar with 8 icons                         | Primary 2–3 icons + overflow `⋯` menu                   |
+| Large tooltip                                | Inline help text or a `?` popover triggered by tap      |
+
+**Rules for the translation:**
+
+1. **Always translate, never skip.** If the spec doesn't work on mobile, invent the mobile version. "Responsive" does **not** mean "hide on mobile" unless the user explicitly said so.
+2. **Tell the user what you translated — don't adapt silently.** In the handoff, surface it plainly: *"You asked for X. I applied X as-given for desktop and tablet (≥768px). For mobile (<768px) I substituted Y because X doesn't fit in 375px — [one-line reason]. Flag if you want a different pattern."* The user should never discover a mobile substitution by accident.
+3. **Decide when obvious, ask when ambiguous.** 700px side panel → bottom sheet on mobile: obvious, just do it and note it. Complex multi-column dashboard with custom drag-resize on mobile: ambiguous — ask what to prioritize (which columns matter most, should it become tabs, etc.) before committing.
+4. **Preserve the function, not the form.** The mobile pattern must deliver the same user outcome (see the detail, act on an item, compare two things). The rectangle doesn't have to look like the desktop rectangle.
+5. **Tablet usually rides with desktop, not mobile.** At 820px a 700px panel still fits (tightly). Default: apply the desktop pattern from `md:` up, and only escalate to the mobile substitution if even tablet runs out of room.
+6. **The substitution is still tokenized and motion-respecting.** A mobile `Sheet` still uses design tokens (`bg-background`, etc.), still animates via Framer Motion / shadcn's built-in transitions, still supports `Esc` / swipe-to-dismiss. Don't cut polish because it's "just the mobile version".
+
+### Layout rules
+
+- **No fixed pixel widths** on layout containers. Use `w-full` with `max-w-*` caps. Fixed widths (`w-[960px]`) are a bug on mobile.
+- **Grids & flex**: default to one column / stacked on mobile, grow columns at `md:` and `lg:`. Example: `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3`.
+- **Spacing scales with viewport**: tighter on mobile, looser on desktop — `px-4 md:px-6 lg:px-8`, `gap-4 md:gap-6`, `py-8 md:py-12 lg:py-16`.
+- **Typography scales**: `text-2xl md:text-3xl lg:text-4xl` for headings. Body copy usually stays constant.
+- **Navigation**: mobile = hamburger / sheet (shadcn `Sheet`). Tablet/desktop = inline nav. Don't cram a desktop nav onto mobile.
+- **Modals vs sheets**: on mobile prefer `Sheet` (bottom/side) over `Dialog` for anything non-trivial — it respects the viewport. On desktop, `Dialog` is fine.
+- **Tables**: tables don't fit on mobile. Either render a card/list view under `md:` and switch to a table at `md:`+, or make the table horizontally scrollable inside a container with `overflow-x-auto`.
+- **Images / media**: always `max-w-full h-auto` (or Next.js `<Image>` with `sizes` covering all three tiers). Never rely on intrinsic width.
+
+### Touch & input
+
+- **Tap targets ≥ 44×44 px** on mobile/tablet. shadcn defaults mostly cover this — don't shrink buttons below `h-10` / `h-11` for touch surfaces. Icon-only buttons need visible padding, not just a 16px icon.
+- **Hover states are not a replacement for tap behavior.** Anything discoverable on hover must also work via tap on touch devices — use `:focus-visible` and explicit tap affordances.
+- **Respect safe areas** on mobile: for fixed bottom bars, use `pb-[env(safe-area-inset-bottom)]` (or the Tailwind arbitrary variant) so iOS home-bar doesn't overlap content.
+
+### Testing — part of "done"
+
+Before marking any UI task complete, verify in the browser at all three widths:
+
+- **Mobile:** 375px (iPhone SE/12 baseline)
+- **Tablet:** 820px (iPad portrait)
+- **Desktop:** 1440px
+
+Check: layout doesn't overflow, nothing gets clipped, tap targets are usable, text doesn't wrap into awkward lines (remember: `/ru` is the layout reference — Cyrillic copy is the test case). If you can't open a browser, say so explicitly — don't claim responsive correctness from type-checking alone.
+
+### Container queries (optional)
+
+For self-contained components whose layout depends on their *own* width (e.g. a card that sits in a sidebar on desktop but full-width on mobile), use Tailwind's container queries (`@container` / `@md:`) instead of viewport breakpoints. Use sparingly — viewport breakpoints are the default.
+
+### Forbidden
+
+- **No desktop-first CSS.** No `max-md:` / `max-lg:` overrides to "undo" desktop styles for smaller screens. Mobile-first only.
+- **No `sm:` as the tablet breakpoint.** Tablet = `md:`.
+- **No fixed pixel widths** (`w-[1200px]`) on layout containers. Use `max-w-*`.
+- **No desktop-only features** without a mobile equivalent.
+- **No hover-only interactions** on elements that must be usable on touch.
+- **No horizontal scrolling on the page body** at any breakpoint (inside a scroll container like a table is fine).
+
+---
+
 ## Localization — next-intl
 
 **`next-intl` is the only i18n library in this codebase.** All user-facing strings — labels, buttons, headings, placeholders, validation messages, toast/alert text, meta titles & descriptions, alt text, aria-labels — must come from `next-intl` message catalogs. **No hardcoded strings in JSX.** This rule holds even when only one locale is shipped: every string is registered in next-intl from day one.
@@ -501,12 +666,214 @@ Never hardcode a one-off color in a component — add a token.
 
 ---
 
+## Keyboard Shortcuts — Keymaps for Primary Actions
+
+**Primary interactive actions must be bound to keyboard shortcuts, not just to clickable buttons.** This product is built to feel fast and pro — opinionated about keyboard-first flow (Linear / Superhuman / Figma territory). A user who prefers the keyboard should be able to complete core operations without touching the mouse, and a mouse user still sees the binding hinted in the UI.
+
+This is **not** "bind every button". It's "bind the primary action of each surface, consistently."
+
+### What counts as a primary action (bind it)
+
+Any action that is the main CTA of a surface, or performed frequently in the flow. Default mapping — use these exact combinations unless there's a real reason not to:
+
+| Action                                | Keybinding                   | Where                                                   |
+| ------------------------------------- | ---------------------------- | ------------------------------------------------------- |
+| Submit / Send / Save / primary CTA    | `Cmd/Ctrl + Enter`           | Forms, message composers, modals with a primary action  |
+| Explicit save (outside a submit flow) | `Cmd/Ctrl + S`               | Editors, documents, settings pages                      |
+| Create new item                       | `Cmd/Ctrl + N`               | List/collection surfaces with a "New …" CTA             |
+| Open command palette                  | `Cmd/Ctrl + K`               | Global — entry point to discover all other shortcuts    |
+| Search within surface                 | `/`                          | Lists, tables, long pages                               |
+| Close / cancel / dismiss              | `Esc`                        | Modals, sheets, popovers, drawers, command palette      |
+| Confirm in a dialog                   | `Enter`                      | Confirm dialogs with focus on the confirm button        |
+| Delete selected item                  | `Cmd/Ctrl + Backspace`       | Only with a confirm step for destructive actions        |
+| Attach / pick file                    | `Cmd/Ctrl + Shift + O`       | Surfaces where file attach is a primary action          |
+| List navigation                       | `↑` / `↓` / `j` / `k`        | Lists, tables, command palette                          |
+| Open focused row                      | `Enter`                      | Inside a navigable list                                 |
+| Show shortcuts overlay                | `?`                          | Global — lists all shortcuts active on the current view |
+
+### What NOT to bind
+
+- Tertiary / rarely-used actions. Noise kills discoverability of the bindings that matter.
+- Destructive actions without a confirm step. `Cmd+D` that silently deletes = bug.
+- Anything that conflicts with system/browser shortcuts users rely on (`Cmd+R`, `Cmd+T`, `Cmd+W`, `Cmd+L`, `Cmd+F` when it's useful as browser find, etc.).
+- Duplicates / aliases across the product for the same action — pick one, stay consistent.
+
+### Cross-platform
+
+- macOS shows `⌘` (the `metaKey`); Windows/Linux show `Ctrl`. Detect the platform once in `shared/lib/platform.ts` and render the correct symbol in tooltips / the shortcuts overlay / the command palette — don't hardcode `Ctrl` on macOS or vice versa.
+- On touch devices, hide the shortcut hint entirely — it's noise on mobile. The action itself (button / tap target) stays.
+
+### Implementation
+
+- **Library:** `react-hotkeys-hook` is the standard. Don't mix it with ad-hoc `useEffect(() => window.addEventListener('keydown'))` — pick one system and stay in it.
+- **Command palette:** build on shadcn's `Command` primitive (which uses `cmdk`). Every command in the palette displays its shortcut on the right.
+- **Scoping:** shortcuts must be scoped to the surface they belong to. A modal's `Esc` fires only while the modal is open; a list's `↑ ↓` fires only while the list is focused/active. Use `useHotkeys` scopes, not global listeners that guard themselves with conditionals.
+- **Inputs / textareas:** by default, letter-key shortcuts (`/`, `?`, `j`, `k`) do **not** fire while the user is typing in a field. Modifier combinations (`Cmd/Ctrl + Enter`, `Cmd/Ctrl + S`) **do** fire from inside inputs — that's the whole point. `react-hotkeys-hook` handles this via `enableOnFormTags`; be explicit per-binding.
+- **Forms:** `Cmd/Ctrl + Enter` must submit from **any** field in the form, not just from the button. Wire it at the form level, not per-input.
+
+### Discoverability — mandatory, not optional
+
+A shortcut nobody knows about is not a feature. Every primary binding ships with at least two of these three surfaces, preferably all three:
+
+1. **Tooltip on the button** — hovering the primary CTA shows the combination via shadcn `Tooltip` + a small `<Kbd>` element (built in `shared/ui/kbd.tsx` from shadcn primitives). Uses the correct OS modifier symbol.
+2. **Command palette entry** (`Cmd/Ctrl + K`) — the primary actions of the current surface appear in the palette with their shortcut displayed on the right.
+3. **Shortcuts overlay** (`?`) — a dialog listing all shortcuts active on the current screen, grouped by context (global / surface / list). This is the power-user's reference card.
+
+If you add a new shortcut, you also add it to at least one of (2) or (3). Otherwise it's a ghost binding.
+
+### Accessibility interplay
+
+- Shortcuts **extend**, they don't replace. The clickable `Button` always exists, is `Tab`-reachable, has visible focus, and fires on `Enter`/`Space`. Keyboard-first users get both paths: standard Tab-to-focus and the ergonomic shortcut.
+- Don't remove the mouse target "because there's a shortcut". The user chooses the path.
+- `aria-keyshortcuts` on the bound element is encouraged for screen-reader announcement of the binding.
+
+### Localization
+
+- Key symbols (`⌘`, `⌃`, `⇧`, `⌥`, `Enter`, `Esc`) are universal — not localized.
+- Text around them ("Press to send", "Shortcuts", "New message") goes through `next-intl` like any other copy.
+
+### Forbidden
+
+- **No primary CTA without a keyboard shortcut** on surfaces where primary action is the point (composers, forms, create/edit views, modals with an affirmative action).
+- **No ad-hoc `addEventListener('keydown')`** for shortcuts — use `react-hotkeys-hook`.
+- **No global listeners** that fire regardless of which surface is active. Scope everything.
+- **No hardcoded `Ctrl` on macOS** or `⌘` on Windows in tooltips. Detect the platform.
+- **No shortcut that overrides a core browser/OS binding** users depend on.
+- **No destructive shortcut without a confirm step.**
+- **No invisible shortcuts.** If it isn't in a tooltip, the command palette, or the `?` overlay, it doesn't exist for your users.
+
+---
+
+## Rich Interactions — Context Menus, DnD, Hover, Paste, Undo
+
+**This product is built to feel like a tool, not a form.** Interactions beyond "click button → thing happens" are part of the product's identity, not optional polish. Wherever a surface has enough affordance to support it, reach for the richer interaction — a right-click menu, a drag, a hover preview, a paste-aware field, an undo toast. Keyboard shortcuts + motion + theming are the caraccass; these interactions are what make it feel alive.
+
+This doesn't mean **every** screen needs every pattern. The rule is: **core surfaces get the full language; secondary surfaces keep at least the context menu on obvious entities.**
+
+### The default interaction language
+
+For any list, card, file, message, row, or similar "entity-like" element, ask: which of these apply? Use the ones that do.
+
+| Interaction                    | Primitive / lib                               | Use it for                                                                 |
+| ------------------------------ | --------------------------------------------- | -------------------------------------------------------------------------- |
+| **Right-click context menu**   | shadcn `ContextMenu`                          | Any entity with ≥ 2 actions — always paired with a visible `⋯` kebab menu |
+| **Hover preview**              | shadcn `HoverCard`                            | Internal links / mentions / references — show the target inline           |
+| **Drag & drop (reorder)**      | `dnd-kit` (with keyboard sensor)              | Reorderable lists, kanban columns, nested trees                            |
+| **Drop to upload**             | `react-dropzone` (or native `drop` events)    | File attach surfaces, import zones                                         |
+| **Inline edit**                | Double-click / `Enter`-to-edit on focus       | Titles, names, short fields — in place, not a modal                        |
+| **Multi-select**               | `Shift`-click (range) / `Cmd/Ctrl`-click (toggle) | Lists where bulk actions matter — surface a bulk-action bar on selection |
+| **Paste-aware input**          | `onPaste` handlers                            | Composers: paste image → upload, paste URL → detect, paste file → attach   |
+| **Undo toast (destructive)**   | shadcn `Toast` + action button, ~5s window    | Reversible deletes / archives — default over "Are you sure?" dialogs       |
+| **Shared-element transition** | Framer Motion `layoutId`                       | List item → detail view navigation. Card "expands" instead of cutting      |
+| **Skeleton loader matching layout** | `Skeleton` from shadcn                     | Every async surface. No generic spinners as page placeholders              |
+| **Branded empty state**        | Feature-owned component on top of shadcn      | Lists with zero items — illustration + 1–2 suggested actions, not "No data" |
+| **Optimistic update**          | TanStack Query optimistic mutations            | Mutations where the outcome is near-certain — rollback on error            |
+
+### Principles from experience
+
+These are the rules that separate "we added a context menu" from interactions that actually work:
+
+1. **Right-click is an accelerator, never the only path.** Every action reachable via context menu must also be reachable via a visible kebab (`⋯`) button. Keyboard users and mouse users without the habit don't get stranded.
+2. **Touch devices don't have right-click.** Don't try to fake a desktop context menu on iOS long-press — it's fragile. Either render a `Sheet` on long-press (when it's genuinely useful) or rely on the visible kebab. Don't fight the platform.
+3. **Drag requires affordances.** Grip handle icon, `cursor: grab` / `grabbing`, drop indicator, ghost preview. Without them, "drag" reads as "why is this thing moving."
+4. **Keyboard alternative is mandatory for every rich interaction.** `dnd-kit`'s `KeyboardSensor` for drag. `Enter`-on-focus to open the same menu the kebab opens. Inline edit reachable via `Enter`. Multi-select via `Space` with roving focus.
+5. **Don't steal the browser's native behavior where users want it.** `ContextMenu` goes on rows / cards / files — **not** on text content, inputs, textareas, or article bodies, where users still expect system copy/paste/spellcheck menus.
+6. **Undo beats Confirm for anything reversible.** A 5-second toast with `[Undo]` is a far better UX tax than a modal on every delete. Reserve confirm dialogs for genuinely irreversible / high-stakes operations.
+7. **Optimistic updates where the outcome is near-certain.** The UI responds instantly; TanStack Query rolls back on error with a toast. This is most of what makes apps feel fast.
+8. **Hover previews only on devices that hover.** Disable `HoverCard` on touch (`@media (hover: hover)` or a `useHasHover` hook). On touch the tap is already the action — don't double-trigger.
+9. **Shared-element transitions only for navigations that are conceptually the same element.** List card → its own detail = yes. List card → unrelated screen = no. Misuse looks disorienting.
+10. **Skeleton matches the layout.** A page with a sidebar, header, and 3 cards gets a skeleton with sidebar + header + 3 card-shaped blocks. A generic spinning circle is a regression.
+
+### Mobile / touch adaptation
+
+- On touch: `ContextMenu` → either omit (rely on kebab) or a `Sheet` on long-press — don't force desktop context menu semantics.
+- `HoverCard` → disabled. Primary tap = open the target fully.
+- `dnd-kit` → enable `TouchSensor` with a small activation delay so scrolling doesn't get eaten.
+- Multi-select on touch → explicit "Select" entry mode (long-press or a toolbar toggle). No Shift-click pretense.
+
+### Accessibility
+
+- Every rich interaction ships with a keyboard path (already itemized above).
+- Context menu trigger element: `aria-haspopup="menu"`, focus moves into the menu on open, `Esc` closes and returns focus.
+- Drag: announce pickup / over / drop via `dnd-kit`'s `announcements` API.
+- Inline edit: focus moves into the input on activation, `Esc` cancels without save, `Enter` / blur commits.
+- Undo toasts: `role="status"` or the equivalent so screen readers announce; the `[Undo]` button is reachable via `Tab`.
+
+### Scope — where to deploy this
+
+- **Core surfaces** (main list, composer, library, any "workspace" screen): full language — context menu, hover preview, DnD where applicable, paste-aware, undo, skeletons, shared-element on navigation.
+- **Secondary surfaces** (settings, admin, modal flows): minimum — context menu on entities, proper skeletons, undo for deletes. Skip DnD / hover previews unless there's a specific reason.
+- **Forms and single-purpose dialogs**: no context menu, no drag. Keyboard shortcuts + good validation + optimistic-where-safe is enough.
+
+### Forbidden
+
+- **Don't** ship a list or entity grid without a context menu. Right-click on a row must do something useful.
+- **Don't** make right-click the **only** way to reach an action. Always pair with a visible kebab.
+- **Don't** try to force desktop context menus on touch. Long-press is unreliable on iOS — use `Sheet` or kebab instead.
+- **Don't** wire drag without `dnd-kit`'s keyboard sensor, without announcements, or without visual affordances (handle, cursor, drop indicator, ghost).
+- **Don't** use a confirmation dialog for a reversible action when a 5-second undo toast would do.
+- **Don't** show hover previews on touch devices. Gate with a hover-capability check.
+- **Don't** use a generic spinner as a page loader. Skeletons match the layout.
+- **Don't** ship "No data." as an empty state. Branded illustration + suggested next action, or nothing.
+- **Don't** hijack right-click over text content, inputs, or article bodies. Users need the native menu there.
+- **Don't** introduce another DnD library (`react-beautiful-dnd`, `react-dnd`). `dnd-kit` is it.
+
+---
+
 ## Testing
 
 - Co-locate unit tests: `button.tsx` → `button.test.tsx`.
 - Test behavior, not implementation. Prefer RTL queries by role/text over `data-testid`.
 - e2e tests in `e2e/` at repo root.
 - Write tests for: Server Actions, zod schemas, critical user flows.
+
+---
+
+## Visual Verification — Before You Say "Done"
+
+**Every UI change must be opened in a browser and actually looked at before the task is marked complete.** Not "the code compiles." Not "the diff looks right." Opened. Navigated to. Interacted with. Eyes-on.
+
+`pnpm lint` and `pnpm typecheck` verify code correctness. They do **not** verify that the feature works — they won't catch broken motion, clipped layout on mobile, a missing empty state, a `dark:` variant with unreadable contrast, a form that type-checks but fails to submit, or a regression in a sibling screen that consumed the shared component you just edited. The only way to catch those is to run the app and check with your eyes.
+
+### The checklist — step by step, in order
+
+After any UI-affecting change, before declaring the task done:
+
+1. **Start the dev server** (`pnpm dev`) if it isn't running.
+2. **Navigate to the affected route on `/ru`** — that's the design reference. Use `/en` additionally only if you touched copy or layout sensitive to string length.
+3. **Walk the golden path end-to-end.** Enter input, submit, see the result. Not "the form renders" — actually submit it.
+4. **Cycle through UI states** visible on the screen:
+   - `initial` / `empty` / `loading` / `success` / `error`
+   - `hover` / `focus-visible` / `active` / `disabled`
+   - form validation errors (trigger them on purpose)
+5. **Resize through all three viewports** — ~375px, ~820px, ~1440px — and confirm no overflow, no clipped content, no broken stacking, tap targets still usable. (See the Responsive Design section.)
+6. **Watch the animations play.** Framer Motion effects are runtime-only — code review cannot confirm them. If the screen has `AnimatePresence`, mount/unmount the animated element and watch it. If there's a stagger, scroll it into view.
+7. **Toggle to dark mode and repeat the walk.** Not optional — every component consumes theme tokens, so every component must be verified in both themes. Walk the same states, forms, and animations in dark as you did in light. Also reload with OS preference set to dark to confirm the system-default path works on first paint with no flash.
+8. **Run the regression sweep.** If you edited `shared/ui/*`, a widget, or any component with multiple callers, open each major consumer screen and verify nothing else broke. Shared-component edits have the highest blast radius — don't skip this.
+9. **Check the console** — no unhandled exceptions, no React key warnings, no hydration mismatches, no 404s in the Network tab for assets you added.
+
+### Check as you build, not at the end
+
+Verify each block right after you build it. If you batch all the checking for the end, a regression introduced early will be hard to localize and you'll be tempted to skip steps to finish. Small, frequent eyes-on passes beat one big sweep.
+
+### Honesty gate — what to do when you can't look
+
+If you genuinely cannot open a browser (headless environment, no dev server available, CI-only context), **say so explicitly in the handoff**: list what you verified (lint, typecheck, unit tests) and what you did **not** verify (visual, interaction, responsive, motion, regression). Name the specific routes/flows that still need human eyes. Do **not** claim the UI works based on static checks alone. An honest "needs manual verification on /ru/posts at 375/820/1440" is far more useful than a confident "done" that ships a broken screen.
+
+### What counts as "looked at"
+
+- ✅ Opened the route, walked the flow, resized, watched animations, checked the console.
+- ❌ "The diff looks right." — not verification.
+- ❌ "Type-checks pass." — not verification.
+- ❌ "I updated the file the same way as last time." — not verification.
+- ❌ "Storybook renders it." — helpful, but not a replacement for the real route in the real app.
+
+### Forbidden
+
+- **Don't** declare a UI task done without having viewed it in a running browser session.
+- **Don't** skip the regression sweep after editing shared UI or widgets.
+- **Don't** rely solely on type-checking, linting, or unit tests to validate a visual change.
+- **Don't** claim "it works" when you haven't actually seen it work — say "unverified, needs manual QA" instead.
 
 ---
 
@@ -534,6 +901,27 @@ Never hardcode a one-off color in a component — add a token.
 - **Don't** use raw `next/link` or `next/navigation` redirects for in-app routes — use `next-intl`'s `Link` / `useRouter` / `redirect` so the locale prefix stays.
 - **Don't** install other i18n libraries (`react-i18next`, `next-i18next`, `lingui`, `paraglide`). `next-intl` is it.
 - **Don't** tune layouts to non-`/ru` locales by default. Design target is `/ru` unless explicitly stated otherwise.
+- **Don't** ship a screen that works on only one viewport. Every UI must be built for mobile, tablet, and desktop — verified in the browser at ~375/820/1440px before "done".
+- **Don't** apply a single-viewport spec (e.g. "700px side panel") literally across all sizes, and don't silently skip mobile when the spec doesn't fit there. Translate the intent to a viewport-appropriate equivalent (e.g. mobile → full-screen / bottom `Sheet`) **and tell the user what you substituted**. See "When a prompt describes only one viewport".
+- **Don't** write desktop-first CSS. Mobile-first only: base classes = mobile, scale up with `md:` / `lg:`. No `max-md:` overrides to undo desktop styles.
+- **Don't** use `sm:` as a tablet breakpoint. Tablet = `md:` (≥ 768px), Desktop = `lg:` (≥ 1024px). `sm:` / `xl:` / `2xl:` are narrow exceptions, not tiers.
+- **Don't** set fixed pixel widths (`w-[1200px]`) on layout containers. Use `w-full` + `max-w-*`.
+- **Don't** declare a UI task done without opening it in a running browser and walking through it. Lint + typecheck ≠ "it works". See Visual Verification — the checklist is mandatory.
+- **Don't** skip the regression sweep when editing `shared/ui/*` or widgets — open the main consumer screens and verify nothing else broke.
+- **Don't** claim "it works" when you haven't actually seen it run. If you couldn't open a browser, say "unverified, needs manual QA on X" — explicitly name the routes/flows that still need human eyes.
+- **Don't** ship a feature in one theme only. Light and dark are built and verified together in the same task — dark mode is never "later".
+- **Don't** hardcode a default theme that overrides the OS on first visit. Initial theme = system preference (`prefers-color-scheme`) via `next-themes` `defaultTheme="system"` + `enableSystem`.
+- **Don't** layer `dark:` on top of already-tokenized colors (`bg-white dark:bg-black` is a bug — use `bg-background`). Reach for `dark:` only for non-color differences (image swaps, shadow intensity, `currentColor` fallbacks).
+- **Don't** ship a primary CTA without a keyboard shortcut on surfaces where the primary action is the point (submit, send, save, create, search, close). Not every button — only the core operation of the surface. See Keyboard Shortcuts.
+- **Don't** add a shortcut and leave it undocumented. Every binding lives in a tooltip, the command palette (`Cmd/Ctrl + K`), or the `?` overlay — otherwise it's a ghost.
+- **Don't** use raw `addEventListener('keydown')` or scattered `useEffect` listeners for shortcuts. `react-hotkeys-hook` is the single system; use its `scopes` for surface-bound bindings.
+- **Don't** hardcode `Ctrl` on macOS (or `⌘` on Windows) in shortcut hints. Render the correct modifier per platform.
+- **Don't** ship a list / grid / entity view without a right-click context menu on its items. Pair every context menu with a visible kebab (`⋯`) — right-click is the accelerator, never the only path. See Rich Interactions.
+- **Don't** force desktop context menus onto touch. Long-press on iOS is unreliable — use a `Sheet` trigger or rely on the kebab. Same for hover previews — gate `HoverCard` behind a hover-capability check.
+- **Don't** install another DnD library (`react-beautiful-dnd`, `react-dnd`, `sortablejs`). `dnd-kit` is the single DnD stack — with its `KeyboardSensor` and `announcements` enabled for a11y.
+- **Don't** use a confirmation dialog for a reversible operation. Default to an undo toast (~5s window) for deletes/archives; reserve confirm dialogs for genuinely irreversible / high-stakes operations.
+- **Don't** use generic spinners as page loaders or ship `"No data."` as an empty state. Skeletons match the layout; empty states are branded and suggest 1–2 next actions.
+- **Don't** hijack right-click over text content, inputs, textareas, or article bodies. The native browser menu belongs there.
 - **Don't** write CSS outside Tailwind. No CSS Modules, no CSS-in-JS (styled-components, Emotion, vanilla-extract, etc.), no Sass, no `<style jsx>`, no standalone `.css` files beyond `globals.css`.
 - **Don't** hardcode colors (`#fff`, `rgb(...)`, `bg-gray-800`). Use design tokens (`bg-background`, `text-foreground`, etc.).
 - **Don't** use `!important` to force styles. Fix the cascade instead.

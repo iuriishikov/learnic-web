@@ -6,16 +6,16 @@
 
 :root {
 
-  --company-50: #f5f3ff;
-  --company-100: #ede9fe;
-  --company-200: #ddd6fe;
-  --company-300: #c4b5fd;
-  --company-400: #a78bfa;
-  --company-500: #8b5cf6;
-  --company-600: #7c3aed;
-  --company-700: #6d28d9;
-  --company-800: #5b21b6;
-  --company-900: #4c1d95;
+  --company-50: #f3f2fd;
+  --company-100: #e7e4fb;
+  --company-200: #d3cef8;
+  --company-300: #bbb4f4;
+  --company-400: #9f95ef;
+  --company-500: #887aeb;
+  --company-600: #6c5ce7;
+  --company-700: #4c37e1;
+  --company-800: #321ec8;
+  --company-900: #2919a4;
   --company: var(--company-600);
   --company-foreground: oklch(0.985 0 0);
   --background: oklch(1 0 0);
