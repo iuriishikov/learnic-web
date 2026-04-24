@@ -1,10 +1,235 @@
 {
-  "title": "Чтобы начать, отредактируйте файл page.tsx.",
-  "description": "Ищете отправную точку или дополнительные инструкции? Загляните в {templatesLink} или в {learningLink}.",
-  "templatesLink": "шаблоны",
-  "learningLink": "центр обучения",
-  "deploy": "Развернуть",
-  "docs": "Документация",
-  "vercelLogoAlt": "Логотип Vercel",
-  "nextLogoAlt": "Логотип Next.js"
+  "header": {
+    "brand": "Learnic",
+    "nav": {
+      "products": "Lorem",
+      "services": "Ipsum",
+      "pricing": "Dolor",
+      "resources": "Sit",
+      "about": "Amet"
+    },
+    "logIn": "Войти",
+    "signUp": "Регистрация",
+    "openMenu": "Consectetur",
+    "theme": {
+      "toggle": "Сменить тему",
+      "light": "Светлая",
+      "dark": "Тёмная",
+      "system": "Системная"
+    },
+    "megaMenu": {
+      "items": [
+        {
+          "title": "Lorem",
+          "description": "Consectetur adipiscing elit, sed do eiusmod tempor incididunt."
+        },
+        {
+          "title": "Ipsum",
+          "description": "Ut enim ad minim veniam, quis nostrud exercitation ullamco."
+        },
+        {
+          "title": "Dolor",
+          "description": "Duis aute irure dolor in reprehenderit in voluptate velit."
+        },
+        {
+          "title": "Amet",
+          "description": "Excepteur sint occaecat cupidatat non proident, sunt in culpa."
+        }
+      ],
+      "featured": {
+        "title": "Lorem ipsum dolor sit!",
+        "description": "Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore.",
+        "dismiss": "Lorem",
+        "cta": "Ipsum"
+      }
+    }
+  },
+  "hero": {
+    "featureBadge": "Lorem",
+    "featureLinkText": "Consectetur adipiscing elit dolor",
+    "title": "Lorem ipsum dolor sit amet consectetur",
+    "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+    "demo": "Lorem",
+    "signUp": "Ipsum"
+  },
+  "footer": {
+    "brand": "Learnic",
+    "newBadge": "New",
+    "copyright": "© {year} Learnic. Все права защищены.",
+    "columns": [
+      {
+        "title": "Lorem",
+        "items": [
+          { "label": "Ipsum" },
+          { "label": "Dolor" },
+          { "label": "Sit", "isNew": true },
+          { "label": "Amet" },
+          { "label": "Consectetur" },
+          { "label": "Adipiscing" }
+        ]
+      },
+      {
+        "title": "Ipsum",
+        "items": [
+          { "label": "Elit" },
+          { "label": "Sed" },
+          { "label": "Eiusmod" },
+          { "label": "Tempor" },
+          { "label": "Labore" },
+          { "label": "Magna" }
+        ]
+      },
+      {
+        "title": "Dolor",
+        "items": [
+          { "label": "Aliqua" },
+          { "label": "Enim" },
+          { "label": "Minim" },
+          { "label": "Veniam" },
+          { "label": "Quis" },
+          { "label": "Nostrud" }
+        ]
+      },
+      {
+        "title": "Sit",
+        "items": [
+          { "label": "Ullamco" },
+          { "label": "Laboris" },
+          { "label": "Aliquip" },
+          { "label": "Commodo" },
+          { "label": "Duis" },
+          { "label": "Aute" }
+        ]
+      },
+      {
+        "title": "Amet",
+        "items": [
+          { "label": "Irure" },
+          { "label": "Voluptate" },
+          { "label": "Velit" },
+          { "label": "Esse" },
+          { "label": "Cillum" },
+          { "label": "Fugiat" }
+        ]
+      },
+      {
+        "title": "Consectetur",
+        "items": [
+          { "label": "Nulla" },
+          { "label": "Pariatur" },
+          { "label": "Excepteur" },
+          { "label": "Sint" },
+          { "label": "Occaecat" },
+          { "label": "Cupidatat" }
+        ]
+      }
+    ]
+  },
+  "blog": {
+    "eyebrow": "Наш блог",
+    "title": "Последние публикации блога",
+    "description": "Инструменты и стратегии, которые нужны современным командам для роста компаний.",
+    "viewAll": "Все публикации",
+    "posts": [
+      {
+        "category": "Дизайн",
+        "title": "Презентации UX-ревью",
+        "description": "Как создавать впечатляющие презентации, которые удивят коллег и произведут впечатление на руководителей?",
+        "author": "Olivia Rhye",
+        "date": "20 янв 2027",
+        "image": "prismFade",
+        "avatar": "OR"
+      },
+      {
+        "category": "Продукт",
+        "title": "Переход на Linear: начало",
+        "description": "Linear помогает упорядочить проекты, спринты, задачи и баг-трекинг. Рассказываем, как начать.",
+        "author": "Phoenix Baker",
+        "date": "19 янв 2027",
+        "image": "filmGrain",
+        "avatar": "PB"
+      },
+      {
+        "category": "Разработка ПО",
+        "title": "Собираем свой API-стек",
+        "description": "Рост RESTful API породил волну инструментов для их создания, тестирования и поддержки.",
+        "author": "Lana Steiner",
+        "date": "18 янв 2027",
+        "image": "liquidChrome",
+        "avatar": "LS"
+      }
+    ]
+  },
+  "features": {
+    "eyebrow": "Возможности",
+    "title": "Аналитика, которая ощущается как из будущего",
+    "description": "Мощная self-serve аналитика продукта и роста, которая помогает конвертировать, вовлекать и удерживать больше пользователей. Нам доверяют более 4 000 стартапов.",
+    "items": [
+      {
+        "icon": "messageCircle",
+        "title": "Общие командные инбоксы",
+        "description": "Команда из 2 или 200 человек — общие инбоксы помогают всем оставаться в курсе и ничего не упускать."
+      },
+      {
+        "icon": "zap",
+        "title": "Мгновенные ответы",
+        "description": "Единая платформа поддержки клиентов помогает закрывать всё, что нужно пользователям, чтобы они были довольны."
+      },
+      {
+        "icon": "pieChart",
+        "title": "Управление через отчёты",
+        "description": "Измеряйте главное с помощью простых отчётов. Фильтруйте, экспортируйте и проваливайтесь в детали за пару кликов."
+      },
+      {
+        "icon": "messageSquare",
+        "title": "Связь с клиентами",
+        "description": "Решайте проблему или закрывайте сделку в режиме реального времени через чат. Если никого нет онлайн — переписка плавно переходит в email."
+      },
+      {
+        "icon": "command",
+        "title": "Подключайте свои инструменты",
+        "description": "Более 100 интеграций делают ежедневный рабочий процесс удобнее и привычнее. Плюс — мощные инструменты для разработчиков."
+      },
+      {
+        "icon": "heartHandshake",
+        "title": "Команда решает",
+        "description": "Мы — продолжение вашей службы поддержки, а все наши ресурсы бесплатны. Пишите нашей дружелюбной команде 24/7, когда нужна помощь."
+      }
+    ]
+  },
+  "faq": {
+    "title": "Часто задаваемые вопросы",
+    "description": "Всё, что нужно знать о продукте и оплате.",
+    "items": [
+      {
+        "question": "Есть ли бесплатный пробный период?",
+        "answer": "Да, вы можете попробовать продукт бесплатно в течение 30 дней. По желанию мы проведём бесплатный персональный 30-минутный онбординг, чтобы вы как можно быстрее приступили к работе."
+      },
+      {
+        "question": "Можно ли сменить тариф позже?",
+        "answer": "Конечно. Тариф можно повысить или понизить в любой момент из настроек биллинга — изменения вступают в силу со следующего расчётного периода."
+      },
+      {
+        "question": "Какая политика отмены подписки?",
+        "answer": "Отменить подписку можно в один клик из личного кабинета. Доступ к продукту сохранится до конца оплаченного периода — никаких скрытых удержаний."
+      },
+      {
+        "question": "Можно ли добавить дополнительные данные в счёт?",
+        "answer": "Да. В настройках биллинга добавьте реквизиты, ИНН, номер заказа или любой другой идентификатор — они появятся во всех будущих счетах."
+      },
+      {
+        "question": "Как устроен биллинг?",
+        "answer": "Оплата происходит автоматически в начале каждого расчётного периода. Доступны ежемесячные и годовые тарифы, а также оплата по фактическому использованию."
+      },
+      {
+        "question": "Как сменить email аккаунта?",
+        "answer": "Зайдите в «Настройки → Профиль», обновите email и подтвердите его по письму. Доступ к аккаунту при этом не прерывается."
+      }
+    ],
+    "support": {
+      "title": "Остались вопросы?",
+      "description": "Не нашли нужный ответ? Напишите нашей дружелюбной команде.",
+      "cta": "Связаться"
+    }
+  }
 }

@@ -6,26 +6,29 @@
 
 :root {
 
-  --company-50: #f3f2fd;
-  --company-100: #e7e4fb;
-  --company-200: #d3cef8;
-  --company-300: #bbb4f4;
-  --company-400: #9f95ef;
-  --company-500: #887aeb;
-  --company-600: #6c5ce7;
-  --company-700: #4c37e1;
-  --company-800: #321ec8;
-  --company-900: #2919a4;
-  --company: var(--company-600);
-  --company-foreground: oklch(0.985 0 0);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --brand-50: #f3f2fd;
+  --brand-100: #e7e4fb;
+  --brand-200: #d3cef8;
+  --brand-300: #bbb4f4;
+  --brand-400: #9f95ef;
+  --brand-500: #887aeb;
+  --brand-600: #6c5ce7;
+  --brand-700: #4c37e1;
+  --brand-800: #321ec8;
+  --brand-900: #2919a4;
+  --brand: var(--brand-600);
+  --brand-foreground: oklch(0.985 0 0);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: var(--company);
-  --primary-foreground: var(--company-foreground);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -35,7 +38,7 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: var(--company);
+  --ring: var(--brand);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -56,22 +59,22 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  --color-company: var(--company);
-  --color-company-foreground: var(--company-foreground);
-  --color-company-50: var(--company-50);
-  --color-company-100: var(--company-100);
-  --color-company-200: var(--company-200);
-  --color-company-300: var(--company-300);
-  --color-company-400: var(--company-400);
-  --color-company-500: var(--company-500);
-  --color-company-600: var(--company-600);
-  --color-company-700: var(--company-700);
-  --color-company-800: var(--company-800);
-  --color-company-900: var(--company-900);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
 
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-geist-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -112,9 +115,9 @@
 
 .dark {
 
-  --company: var(--company-500);
+  --brand: var(--brand-500);
 
-  --company-foreground: oklch(0.985 0 0);
+  --brand-foreground: oklch(0.985 0 0);
 
   --background: oklch(0.145 0 0);
 
@@ -128,9 +131,9 @@
 
   --popover-foreground: oklch(0.985 0 0);
 
-  --primary: var(--company);
+  --primary: var(--brand);
 
-  --primary-foreground: var(--company-foreground);
+  --primary-foreground: var(--brand-foreground);
 
   --secondary: oklch(0.269 0 0);
 
@@ -150,7 +153,7 @@
 
   --input: oklch(1 0 0 / 15%);
 
-  --ring: var(--company);
+  --ring: var(--brand);
 
   --chart-1: oklch(0.87 0 0);
 

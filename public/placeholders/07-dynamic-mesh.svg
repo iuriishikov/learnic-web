@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="960" viewBox="0 0 1600 960">
+  <defs>
+    <radialGradient id="m1" cx="25%" cy="30%" r="42%"><stop offset="0%" stop-color="#C7BEF5"></stop><stop offset="100%" stop-color="#C7BEF5" stop-opacity="0"></stop></radialGradient>
+    <radialGradient id="m2" cx="75%" cy="25%" r="42%"><stop offset="0%" stop-color="#8A7AEC"></stop><stop offset="100%" stop-color="#8A7AEC" stop-opacity="0"></stop></radialGradient>
+    <radialGradient id="m3" cx="85%" cy="80%" r="48%"><stop offset="0%" stop-color="#6C5CE7"></stop><stop offset="100%" stop-color="#6C5CE7" stop-opacity="0"></stop></radialGradient>
+    <radialGradient id="m4" cx="15%" cy="80%" r="45%"><stop offset="0%" stop-color="#4F3FC4"></stop><stop offset="100%" stop-color="#4F3FC4" stop-opacity="0"></stop></radialGradient>
+    <radialGradient id="m5" cx="50%" cy="55%" r="60%"><stop offset="0%" stop-color="#A79BF0"></stop><stop offset="100%" stop-color="#A79BF0" stop-opacity="0"></stop></radialGradient>
+  </defs>
+  <rect width="1600" height="960" fill="#1E1654"></rect>
+  <rect width="1600" height="960" fill="url(#m1)"></rect>
+  <rect width="1600" height="960" fill="url(#m2)"></rect>
+  <rect width="1600" height="960" fill="url(#m3)"></rect>
+  <rect width="1600" height="960" fill="url(#m4)"></rect>
+  <rect width="1600" height="960" fill="url(#m5)"></rect>
+</svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="960" viewBox="0 0 1600 960">
+  <defs>
+    <radialGradient id="a" cx="18%" cy="28%" r="45%"><stop offset="0%" stop-color="#C7BEF5"></stop><stop offset="100%" stop-color="#C7BEF5" stop-opacity="0"></stop></radialGradient>
+    <radialGradient id="b" cx="82%" cy="18%" r="55%"><stop offset="0%" stop-color="#8A7AEC"></stop><stop offset="100%" stop-color="#8A7AEC" stop-opacity="0"></stop></radialGradient>
+    <radialGradient id="c" cx="75%" cy="85%" r="60%"><stop offset="0%" stop-color="#1E1654"></stop><stop offset="100%" stop-color="#1E1654" stop-opacity="0"></stop></radialGradient>
+    <radialGradient id="d" cx="10%" cy="82%" r="55%"><stop offset="0%" stop-color="#6C5CE7"></stop><stop offset="100%" stop-color="#6C5CE7" stop-opacity="0"></stop></radialGradient>
+    <filter id="g"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="1"></feTurbulence><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.45 0"></feColorMatrix></filter>
+  </defs>
+  <rect width="1600" height="960" fill="#4F3FC4"></rect>
+  <rect width="1600" height="960" fill="url(#a)"></rect>
+  <rect width="1600" height="960" fill="url(#b)"></rect>
+  <rect width="1600" height="960" fill="url(#c)"></rect>
+  <rect width="1600" height="960" fill="url(#d)"></rect>
+  <rect width="1600" height="960" filter="url(#g)" opacity="0.42" style="mix-blend-mode:overlay"></rect>
+</svg>

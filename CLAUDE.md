@@ -12,7 +12,7 @@ The codebase follows a **strict feature-based architecture** — code is organiz
 
 - **Framework:** Next.js 15+ (App Router, React Server Components)
 - **Language:** TypeScript (`strict: true`)
-- **Styling:** Tailwind CSS (with the brand `company` color token)
+- **Styling:** Tailwind CSS (with the `brand` color token)
 - **UI components:** shadcn/ui (`base-nova` style on top of `@base-ui/react` + Tailwind) — **mandatory** for both primitives and layout markup. **Do not** install or import Radix (`@radix-ui/*`) packages directly.
 - **Animations:** Framer Motion (`motion/react`) — used actively for transitions, micro-interactions, page/route changes, and presence
 - **Forms:** `react-hook-form` + `zod`
@@ -165,9 +165,9 @@ Generated files land in `src/shared/ui/`.
 
 ### Build custom components on top of shadcn — never from scratch
 
-Feature-level components (`UserAvatar`, `PostCard`, `BillingPlanRow`, etc.) must be **wrappers/compositions over shadcn primitives**, styled with the brand `company` color token via Tailwind utilities and `cva`. Never re-implement a button, dialog, dropdown, or input from raw HTML — wrap the shadcn version and add behavior/styling on top.
+Feature-level components (`UserAvatar`, `PostCard`, `BillingPlanRow`, etc.) must be **wrappers/compositions over shadcn primitives**, styled with the `brand` color token via Tailwind utilities and `cva`. Never re-implement a button, dialog, dropdown, or input from raw HTML — wrap the shadcn version and add behavior/styling on top.
 
-The `company` color is the brand color of this product. It is exposed as a Tailwind token (`bg-company`, `text-company`, `border-company`, `ring-company`, `text-company-foreground`, etc.), backed by CSS custom properties (`--company`, `--company-foreground`) defined in `globals.css` for both `:root` and `.dark`. **All brand-colored UI must use these tokens** — never hardcode the hex value, and never use a generic Tailwind palette color (`bg-blue-500`, `bg-indigo-600`, …) as a stand-in for the brand color.
+The `brand` token is the product's brand color. It is exposed as a Tailwind token (`bg-brand`, `text-brand`, `border-brand`, `ring-brand`, `text-brand-foreground`, etc.), backed by CSS custom properties (`--brand`, `--brand-foreground`) defined in `globals.css` for both `:root` and `.dark`. **All brand-colored UI must use these tokens** — never hardcode the hex value, and never use a generic Tailwind palette color (`bg-blue-500`, `bg-indigo-600`, …) as a stand-in for the brand color.
 
 ### Customization rules
 
@@ -175,7 +175,7 @@ The `company` color is the brand color of this product. It is exposed as a Tailw
 
 - **Styling tweaks:** pass `className`, merge with `cn()`.
 - **Behavioral extension:** create a wrapper in `shared/ui/<name>-extended.tsx` or inside the consuming feature.
-- **A new variant:** extend with `cva` in a wrapper — do not edit the base component. Brand-accent variants should consume the `company` token (e.g. `company: 'bg-company text-company-foreground hover:bg-company/90'`).
+- **A new variant:** extend with `cva` in a wrapper — do not edit the base component. Brand-accent variants should consume the `brand` token (e.g. `brand: 'bg-brand text-brand-foreground hover:bg-brand/90'`).
 - **Composition:** build feature-specific compounds (e.g. `UserAvatar`, `PostCard`) inside the feature by composing shadcn primitives.
 
 This keeps generated files clean so future `shadcn@latest add` updates don't fight your custom code.
@@ -399,7 +399,7 @@ export function PostForm() {
 - **No Sass / Less / PostCSS plugins beyond what Tailwind ships with.** No `*.scss`, no `*.less`.
 - **No `<style jsx>`.**
 - **No arbitrary CSS files** scattered across features. If you feel you need one, you're reaching for the wrong tool — use Tailwind utilities, a `cva` variant, or a design token instead.
-- **No hardcoded hex/rgb colors** in class lists. Use design tokens: `bg-background`, `text-foreground`, `text-muted-foreground`, `border-input`, `ring-ring`, `bg-primary`, `text-primary-foreground`, `bg-company`, `text-company`, `text-company-foreground`, etc. These come from the shadcn/ui theme in `globals.css`. The brand `company` token is the only correct way to reference the product's brand color — never substitute a generic palette color (`bg-blue-500`, `bg-indigo-600`, …).
+- **No hardcoded hex/rgb colors** in class lists. Use design tokens: `bg-background`, `text-foreground`, `text-muted-foreground`, `border-input`, `ring-ring`, `bg-primary`, `text-primary-foreground`, `bg-brand`, `text-brand`, `text-brand-foreground`, etc. These come from the shadcn/ui theme in `globals.css`. The `brand` token is the only correct way to reference the product's brand color — never substitute a generic palette color (`bg-blue-500`, `bg-indigo-600`, …).
 - **No `!important`** in class lists. If you need it, your architecture is wrong — restructure instead.
 - **No manual `dark:` variants for colors that are already tokenized.** The token system handles dark mode automatically. Use `dark:` only when a genuinely different utility (not just color) is needed in dark mode.
 
@@ -428,7 +428,7 @@ Never hardcode a one-off color in a component — add a token.
 
 ### How to build for both themes
 
-- **Use design tokens, always.** `bg-background`, `text-foreground`, `text-muted-foreground`, `border-input`, `bg-card`, `bg-primary`, `text-company`, etc. These are defined for both `:root` and `.dark` in `globals.css` and flip automatically — you get dark mode for free when you follow the existing "Styling" rule.
+- **Use design tokens, always.** `bg-background`, `text-foreground`, `text-muted-foreground`, `border-input`, `bg-card`, `bg-primary`, `text-brand`, etc. These are defined for both `:root` and `.dark` in `globals.css` and flip automatically — you get dark mode for free when you follow the existing "Styling" rule.
 - **Reach for `dark:` only for non-color differences** or when the token system genuinely can't express what you need. Valid cases:
   - Swapping an image/illustration/logo between themes (`block dark:hidden` / `hidden dark:block`).
   - An SVG with hardcoded `fill`/`stroke` you don't control (prefer `currentColor` first; `dark:` as fallback).
@@ -459,15 +459,15 @@ When you need a color that doesn't exist, extend the token system — don't inli
 ### Toggle UI
 
 - A visible theme toggle (light / dark / system) lives in the app chrome (header, user menu, or settings — depends on the surface). The "system" option must exist — don't force users into a binary choice.
-- Built with shadcn primitives (`DropdownMenu` + icon `Button`), with the `company` brand token on the active state.
+- Built with shadcn primitives (`DropdownMenu` + icon `Button`), with the `brand` token on the active state.
 
 ### Verification (reinforces Visual Verification)
 
-Dark mode is **not optional** in the "Before You Say Done" checklist. For every UI change:
+Dark mode is **not optional** in the "Before You Say Done" checklist, and every theme check goes through the **Playwright MCP** — same as the responsive sweep. For every UI change:
 
-- Toggle to dark and walk the same flow again — states, forms, errors, hover/focus, animations.
-- Check the three viewports in **both** themes (so effectively 6 checkpoints, though most issues repro across widths).
-- Switch OS preference (or use DevTools' `prefers-color-scheme` emulation) and reload to confirm the system-default path works on first paint with no flash.
+- Flip to dark via `mcp__playwright__browser_click` on the `ThemeToggle` (or `browser_evaluate` with `document.documentElement.classList.add('dark')`) and walk the same flow again — states, forms, errors, hover/focus, animations.
+- Check the three viewports in **both** themes via `browser_resize` + `browser_take_screenshot` (six screenshots minimum per affected route, filename-encoded like `home-375-dark.png`).
+- Emulate `prefers-color-scheme: dark` with `browser_evaluate` (`page.emulateMedia` via inline JS) and reload to confirm the system-default path paints correctly on first render with no flash — no `next-themes` initial-flash regression.
 
 ### Forbidden
 
@@ -557,13 +557,13 @@ Design briefs and ad-hoc requests almost always describe **one** viewport — us
 
 ### Testing — part of "done"
 
-Before marking any UI task complete, verify in the browser at all three widths:
+Before marking any UI task complete, verify through the **Playwright MCP** (`mcp__playwright__browser_resize` + `browser_take_screenshot`) at all three widths:
 
-- **Mobile:** 375px (iPhone SE/12 baseline)
-- **Tablet:** 820px (iPad portrait)
-- **Desktop:** 1440px
+- **Mobile:** 375 × 667
+- **Tablet:** 820 × 1180
+- **Desktop:** 1440 × 900
 
-Check: layout doesn't overflow, nothing gets clipped, tap targets are usable, text doesn't wrap into awkward lines (remember: `/ru` is the layout reference — Cyrillic copy is the test case). If you can't open a browser, say so explicitly — don't claim responsive correctness from type-checking alone.
+For each: call `browser_resize` to the target size, navigate (or re-screenshot), save with a filename that encodes viewport + theme (e.g. `posts-820-light.png`). Check: layout doesn't overflow, nothing gets clipped, tap targets are usable, text doesn't wrap into awkward lines (remember: `/ru` is the layout reference — Cyrillic copy is the test case). If the Playwright MCP is unavailable, say so explicitly per the Honesty gate — don't claim responsive correctness from type-checking, curl, or DOM inspection alone.
 
 ### Container queries (optional)
 
@@ -619,9 +619,21 @@ For self-contained components whose layout depends on their *own* width (e.g. a 
 - **Validation messages:** zod schemas pull strings via `next-intl` (server-side `getTranslations`, client-side `useTranslations`) — no inline English strings in error maps.
 - **Formatting:** dates, numbers, currency, and relative time go through `next-intl`'s `useFormatter` / `getFormatter`. No ad-hoc `toLocaleString` calls.
 
+### Translation scope — RU-only by default
+
+**By default, only write real translations in Russian.** English translations are added **only when the user explicitly asks** (e.g. "переведи на en", "add English copy", "localize to English").
+
+Operationally, for every key you add:
+
+1. Put the real Russian copy in `messages/ru/<namespace>.json`.
+2. **Mirror the same Russian value verbatim** into `messages/en/<namespace>.json` under the same key — as a placeholder. The key must exist in both files (otherwise `next-intl` throws at runtime when a user lands on `/en`), but the **value** on the English side is intentionally the Russian placeholder until a translation pass happens.
+3. **Do not** machine-translate, invent English copy, or ask an LLM to translate inline. The placeholder stays Russian until the user asks for a proper English pass.
+
+When the user requests English translations, do a proper pass on every `messages/en/` key currently holding a Russian placeholder within the affected scope (feature / namespace / whole app — whatever they specify).
+
 ### Adding or changing copy
 
-1. Add the key to the namespace file in **every** locale (`messages/ru/<namespace>.json` AND `messages/en/<namespace>.json`). Missing translations should fail the build / typecheck — never ship a key that exists in one locale only.
+1. Always add (or update) the key in **both** `messages/ru/<namespace>.json` and `messages/en/<namespace>.json` — the key has to exist in every locale file or `/en` crashes at runtime. The RU file gets the real copy; the EN file gets the same RU value as a placeholder per the "RU-only by default" rule above.
 2. Reference the key from the component via `t('...')`. If a key is unused, remove it from all locales.
 3. New feature or new page → create a new `<namespace>.json` under **each** `messages/<locale>/` directory. No central registry to update — the request handler picks files up automatically.
 
@@ -820,6 +832,67 @@ These are the rules that separate "we added a context menu" from interactions th
 
 ---
 
+## Loading States — Skeletons Everywhere
+
+**Every element that waits for data and would otherwise render as empty space must show a `Skeleton`. No exceptions.** If a surface depends on anything async — a server fetch, a Server Action result, a lazily-loaded chunk, a deferred subtree, an image download — its placeholder while that work is in flight is a shadcn `Skeleton` shaped like the real content. Blank panels, centered spinners, and "Loading…" text are all bugs.
+
+This is not polish. It is the default for every idle surface.
+
+### Where a Skeleton is mandatory
+
+- **Route segments during streaming** — every `loading.tsx` at every route that fetches data. Never a spinner, never "Loading…".
+- **Suspense boundaries** — every `<Suspense>` has a `fallback` built from `Skeleton`, shaped to match `children`.
+- **Client-side fetches** — any TanStack Query / SWR call renders a skeleton while `isPending` / `isLoading` is true. Never blank, never spinner.
+- **Lazy chunks** — `next/dynamic(..., { loading: () => <MatchingSkeleton /> })`. No default blank.
+- **Images** — Next.js `<Image>` with `placeholder="blur"` when a blur source exists; otherwise a `Skeleton` in the image's exact dimensions until `onLoadingComplete`. Applies to avatars, thumbnails, media cards.
+- **Deferred values / transitions** — any `useDeferredValue` or pending transition that can leave a pane empty.
+- **Pagination / infinite scroll** — skeleton rows appended at the bottom while the next page loads. Not a centered spinner under the list.
+- **Optimistic failure rollback** — the row that reverts shows a brief skeleton/loading indicator while the rollback resolves, not a flash of stale data.
+
+If you're writing a component whose initial render could be empty because data hasn't arrived, a `Skeleton` variant of it is part of the task — shipped at the same time, not "later".
+
+### Shape rules — the skeleton matches the layout
+
+A skeleton that doesn't match the real content is worse than useless: it causes layout shift when data arrives.
+
+- A page with a sidebar, header, and three cards → skeleton with sidebar + header + three card-shaped blocks, in the same grid, in the same container.
+- A card with a title, two body lines, and an avatar → four `Skeleton` blocks sized to each: `h-6 w-48` title, `h-4 w-full` body, `h-4 w-3/4` body, `h-10 w-10 rounded-full` avatar.
+- Same paddings, same gaps, same `max-w-*` as the real content. Don't centre a lone skeleton in an empty page.
+- All three viewports — skeletons follow the same responsive rules as real content (stack on mobile, grid on `md:` and up).
+- Both themes — `Skeleton` consumes tokens. No `bg-gray-*` overrides, no `dark:` color layering.
+
+Use **shadcn `Skeleton`** from `src/shared/ui/skeleton.tsx` — never a hand-rolled pulsing `<div>`. If you need a composite skeleton for a specific feature (e.g., `PostCardSkeleton`), build it **inside the feature** by composing `Skeleton` primitives, export it from the feature's `index.ts`, and render it wherever that feature's content is loading.
+
+### Spinners — the narrow exception
+
+Spinners are acceptable **only** for:
+
+- **Button-internal** loading state during an in-flight action (shadcn `Button` with an inline loader icon + `disabled`).
+- **Tiny inline indicators** next to a just-clicked control (a small save/retry dot).
+- A **global top-bar progress** for navigation (thin bar, `nprogress`-style).
+
+Anywhere a spinner occupies a page, a card, a panel, a list, a dialog, or any block larger than a button — **it is a bug, and you replace it with a `Skeleton`**.
+
+### Flicker — minimum-visibility guard
+
+Skeletons that flash for 80ms are worse than none. If the data typically resolves in under ~150ms, prefer an optimistic / cached render via `Suspense` with a longer-lived boundary. If a skeleton does render, hold it visible for at least ~200ms (a short show-delay on the request side, or a min-show-time on the skeleton side) so it doesn't flicker on fast networks.
+
+### Verification
+
+Loading states are part of Visual Verification — step 4 of the checklist already requires cycling through `initial / empty / loading / success / error`. For the `loading` check, throttle the network in DevTools ("Slow 3G") and navigate to the surface so the skeleton actually renders long enough to observe. Confirm: (1) skeleton shape matches real content, (2) no layout shift on data arrival, (3) both themes, (4) all three viewports.
+
+### Forbidden
+
+- **No `<Spinner />` / centered spinning circle as a page, panel, list, card, or dialog loader.** Ever.
+- **No "Loading…" text placeholder** where a skeleton could render.
+- **No blank space** where async content will land.
+- **No hand-rolled pulsing `<div>`** — use shadcn `Skeleton`.
+- **No generic grey rectangle** standing in for structured content. Match the layout.
+- **No skeleton-free lazy imports.** Every `next/dynamic` has a `loading` option shaped to the component it replaces.
+- **No async-data component shipped without its `Skeleton` variant built in the same task.** The loading state is not a follow-up.
+
+---
+
 ## Testing
 
 - Co-locate unit tests: `button.tsx` → `button.test.tsx`.
@@ -835,22 +908,43 @@ These are the rules that separate "we added a context menu" from interactions th
 
 `pnpm lint` and `pnpm typecheck` verify code correctness. They do **not** verify that the feature works — they won't catch broken motion, clipped layout on mobile, a missing empty state, a `dark:` variant with unreadable contrast, a form that type-checks but fails to submit, or a regression in a sibling screen that consumed the shared component you just edited. The only way to catch those is to run the app and check with your eyes.
 
+### Tooling — Playwright MCP is the only way
+
+Visual verification runs through the **Playwright MCP server** configured in `.mcp.json` (`mcp__playwright__*` tools). There is no other acceptable path — curl-ing HTML, reading DOM snapshots, or asking the user to screenshot manually does **not** count as verification. Every responsive / theme / state check below must be executed via the MCP's browser, and every screenshot that backs a "done" claim must come from it.
+
+Core tools and when to reach for them:
+
+- `mcp__playwright__browser_navigate` — go to the route under test (always `/ru` first).
+- `mcp__playwright__browser_resize` — cycle viewports; call it **before** each screenshot at the target width.
+- `mcp__playwright__browser_take_screenshot` — capture the viewport (or `fullPage: true` for long pages). Save with a descriptive `filename` so reviewers can trace which viewport/theme each image belongs to (e.g. `home-375-dark.png`).
+- `mcp__playwright__browser_snapshot` — structured accessibility tree; use when you need to *act on* something (click, fill) and need the `ref`.
+- `mcp__playwright__browser_click` / `browser_hover` / `browser_type` / `browser_press_key` / `browser_fill_form` — interaction. Use these to walk the golden path, trigger validation errors, open modals, toggle themes.
+- `mcp__playwright__browser_evaluate` — run page JS. Primary use: flip the theme without hunting a UI toggle (`document.documentElement.classList.add('dark')` / `.remove('dark')`), scroll sections into view to trigger `whileInView` animations, or emulate `prefers-color-scheme`.
+- `mcp__playwright__browser_console_messages` — read console after each state; any unhandled exception / hydration mismatch / React key warning is a failure.
+- `mcp__playwright__browser_network_requests` — check for 404s on assets you added.
+- `mcp__playwright__browser_wait_for` — wait for content/animation to settle before screenshotting.
+- `mcp__playwright__browser_close` — close when finished so the next session starts clean.
+
+**Artifacts are scratch — clean up at the end of the task.** The MCP writes screenshots to the project root (or wherever `filename` points) and dumps page snapshots / console logs into `.playwright-mcp/` in the repo. These are verification scratch, not deliverables. After the "done" moment, delete every `*.png` / `*.jpeg` screenshot you saved for this task **and** `.playwright-mcp/` — leave the working tree clean. `.gitignore` already excludes both patterns as a safety net, but don't lean on it; remove the files yourself. The only exception is if the user explicitly asked you to save a screenshot (e.g. "send me the mobile screenshot") — keep only what was requested, remove the rest.
+
 ### The checklist — step by step, in order
 
 After any UI-affecting change, before declaring the task done:
 
-1. **Start the dev server** (`pnpm dev`) if it isn't running.
-2. **Navigate to the affected route on `/ru`** — that's the design reference. Use `/en` additionally only if you touched copy or layout sensitive to string length.
-3. **Walk the golden path end-to-end.** Enter input, submit, see the result. Not "the form renders" — actually submit it.
-4. **Cycle through UI states** visible on the screen:
+1. **Start the dev server** (`pnpm dev`) if it isn't running, then drive the browser through `mcp__playwright__*` — never skip to static checks.
+2. **Navigate to the affected route on `/ru`** via `mcp__playwright__browser_navigate` — that's the design reference. Use `/en` additionally only if you touched copy or layout sensitive to string length.
+3. **Walk the golden path end-to-end.** Use `browser_click` / `browser_type` / `browser_fill_form` to actually submit. "The form renders" is not the bar — the submission has to resolve.
+4. **Cycle through UI states** visible on the screen, driving the browser to each one:
    - `initial` / `empty` / `loading` / `success` / `error`
-   - `hover` / `focus-visible` / `active` / `disabled`
-   - form validation errors (trigger them on purpose)
-5. **Resize through all three viewports** — ~375px, ~820px, ~1440px — and confirm no overflow, no clipped content, no broken stacking, tap targets still usable. (See the Responsive Design section.)
-6. **Watch the animations play.** Framer Motion effects are runtime-only — code review cannot confirm them. If the screen has `AnimatePresence`, mount/unmount the animated element and watch it. If there's a stagger, scroll it into view.
-7. **Toggle to dark mode and repeat the walk.** Not optional — every component consumes theme tokens, so every component must be verified in both themes. Walk the same states, forms, and animations in dark as you did in light. Also reload with OS preference set to dark to confirm the system-default path works on first paint with no flash.
-8. **Run the regression sweep.** If you edited `shared/ui/*`, a widget, or any component with multiple callers, open each major consumer screen and verify nothing else broke. Shared-component edits have the highest blast radius — don't skip this.
-9. **Check the console** — no unhandled exceptions, no React key warnings, no hydration mismatches, no 404s in the Network tab for assets you added.
+   - `hover` (`browser_hover`) / `focus-visible` (`browser_press_key` Tab) / `active` / `disabled`
+   - form validation errors (trigger them on purpose via `browser_fill_form` + submit)
+   - screenshot each state that isn't trivially covered by an earlier one.
+5. **Resize through all three viewports via `mcp__playwright__browser_resize`** — 375 × 667, 820 × 1180, 1440 × 900 — screenshotting the affected route at each. Confirm no overflow, no clipped content, no broken stacking, tap targets still usable. (See the Responsive Design section.)
+6. **Watch the animations play.** Framer Motion effects are runtime-only — code review cannot confirm them. `fullPage` screenshots do **not** trigger `whileInView` because the viewport stays at the top — scroll the target into view with `browser_evaluate` (`document.querySelector('...').scrollIntoView()`) and then screenshot, or take regular (viewport) screenshots while scrolling through. For `AnimatePresence`, trigger mount/unmount via `browser_click` and screenshot mid-flight with `browser_wait_for`.
+7. **Toggle to dark mode and repeat the full walk.** Not optional — every component consumes theme tokens, so every component must be verified in both themes. Flip via the in-app `ThemeToggle` using `browser_click`, or directly with `browser_evaluate` (`document.documentElement.classList.toggle('dark')`). Screenshot the same viewports + states you did in light. Reload with OS preference set to dark (`browser_evaluate` emulating `prefers-color-scheme`) to confirm the system-default path paints correctly on first render with no flash.
+8. **Run the regression sweep.** If you edited `shared/ui/*`, a widget, or any component with multiple callers, navigate each major consumer screen via `browser_navigate` and verify nothing else broke. Shared-component edits have the highest blast radius — don't skip this.
+9. **Check the console and network.** Call `mcp__playwright__browser_console_messages` after each state and `browser_network_requests` after asset-touching changes — no unhandled exceptions, no React key warnings, no hydration mismatches, no 404s.
+10. **Clean up the verification artifacts.** Before handing back, delete every screenshot you saved for this task (`rm *.png` / `rm *.jpeg` in the project root, or the specific files you named) **and** the `.playwright-mcp/` directory (`rm -rf .playwright-mcp`). Close the browser session with `mcp__playwright__browser_close`. The working tree must be clean of verification scratch — the only UI artifacts that remain are the actual code changes. Keep a screenshot only if the user explicitly asked for it.
 
 ### Check as you build, not at the end
 
@@ -858,22 +952,27 @@ Verify each block right after you build it. If you batch all the checking for th
 
 ### Honesty gate — what to do when you can't look
 
-If you genuinely cannot open a browser (headless environment, no dev server available, CI-only context), **say so explicitly in the handoff**: list what you verified (lint, typecheck, unit tests) and what you did **not** verify (visual, interaction, responsive, motion, regression). Name the specific routes/flows that still need human eyes. Do **not** claim the UI works based on static checks alone. An honest "needs manual verification on /ru/posts at 375/820/1440" is far more useful than a confident "done" that ships a broken screen.
+If the Playwright MCP is genuinely unavailable (server not connected, `mcp__playwright__*` tools missing, dev server cannot start), **say so explicitly in the handoff**: list what you verified (lint, typecheck, unit tests) and what you did **not** verify (visual, interaction, responsive, motion, regression). Name the specific routes/flows that still need human eyes. Do **not** claim the UI works based on static checks alone, and do **not** substitute curl / DOM string inspection / "I looked at the code" for an actual MCP-driven browser pass. An honest "Playwright MCP unavailable — needs manual verification on /ru/posts at 375/820/1440 in light+dark" is far more useful than a confident "done" that ships a broken screen.
 
 ### What counts as "looked at"
 
-- ✅ Opened the route, walked the flow, resized, watched animations, checked the console.
+- ✅ Drove `mcp__playwright__*` through the route — navigated, walked the flow, resized to 375/820/1440, flipped light/dark, watched animations, read the console and network, saved screenshots for each viewport × theme.
 - ❌ "The diff looks right." — not verification.
 - ❌ "Type-checks pass." — not verification.
+- ❌ "`curl http://localhost:3000/ru` returned 200." — server-up check, not visual verification.
 - ❌ "I updated the file the same way as last time." — not verification.
 - ❌ "Storybook renders it." — helpful, but not a replacement for the real route in the real app.
+- ❌ Asking the user to take screenshots when Playwright MCP is available — use the MCP.
 
 ### Forbidden
 
-- **Don't** declare a UI task done without having viewed it in a running browser session.
+- **Don't** declare a UI task done without having driven the route through `mcp__playwright__*` in a running browser session.
+- **Don't** substitute curl, static DOM inspection, or user-provided screenshots for the Playwright MCP when it's available.
 - **Don't** skip the regression sweep after editing shared UI or widgets.
 - **Don't** rely solely on type-checking, linting, or unit tests to validate a visual change.
-- **Don't** claim "it works" when you haven't actually seen it work — say "unverified, needs manual QA" instead.
+- **Don't** claim "it works" when you haven't actually seen it work through the MCP — say "Playwright MCP unavailable, unverified, needs manual QA" instead.
+- **Don't** skip viewports or themes — all three widths × both themes is the minimum, and every one goes through `browser_resize` + a theme flip in Playwright.
+- **Don't** leave verification scratch in the working tree. After handing back, the task directory must be clean: delete every screenshot you saved (`*.png` / `*.jpeg` in the project root) and `rm -rf .playwright-mcp`. The `.gitignore` is a safety net, not a substitute for cleanup. Keep a screenshot only if the user explicitly asked for one.
 
 ---
 
@@ -892,8 +991,8 @@ If you genuinely cannot open a browser (headless environment, no dev server avai
 - **Don't** deep-import a feature's internals. Always go through the feature's `index.ts`.
 - **Don't** edit generated shadcn/ui files in `shared/ui/` — wrap them instead.
 - **Don't** hand-roll primitives that exist in shadcn/ui (`Button`, `Input`, `Dialog`, `Select`, etc.). Install via `pnpm dlx shadcn@latest add <component>`.
-- **Don't** build feature components from raw HTML when shadcn primitives exist — wrap and compose shadcn instead, then style with the `company` brand token.
-- **Don't** hardcode the brand color or substitute a generic Tailwind palette color for it. Use `bg-company` / `text-company-foreground` etc.
+- **Don't** build feature components from raw HTML when shadcn primitives exist — wrap and compose shadcn instead, then style with the `brand` token.
+- **Don't** hardcode the brand color or substitute a generic Tailwind palette color for it. Use `bg-brand` / `text-brand-foreground` etc.
 - **Don't** install other UI libraries (MUI, Mantine, Chakra, Ant Design, HeadlessUI, Flowbite, DaisyUI, NextUI). shadcn/ui is it.
 - **Don't** ship static, motion-less interactive UI. Use Framer Motion (`motion/react`) for transitions, presence, hover/tap feedback, list staggers, and route changes.
 - **Don't** install competing animation libraries (GSAP, react-spring, auto-animate, anime.js). Framer Motion is the only animation library.
@@ -901,14 +1000,20 @@ If you genuinely cannot open a browser (headless environment, no dev server avai
 - **Don't** use raw `next/link` or `next/navigation` redirects for in-app routes — use `next-intl`'s `Link` / `useRouter` / `redirect` so the locale prefix stays.
 - **Don't** install other i18n libraries (`react-i18next`, `next-i18next`, `lingui`, `paraglide`). `next-intl` is it.
 - **Don't** tune layouts to non-`/ru` locales by default. Design target is `/ru` unless explicitly stated otherwise.
+- **Don't** write real English translations by default. The default scope is RU-only: real copy goes into `messages/ru/*.json`; `messages/en/*.json` gets the same Russian value verbatim as a placeholder. Only run a proper EN pass when the user explicitly asks.
+- **Don't** leave a key missing from one locale file. Even under the RU-only default, the key must exist in **both** `ru/` and `en/` namespace files (with RU as the EN placeholder) — otherwise `/en` crashes at runtime.
+- **Don't** machine-translate or LLM-translate inline when adding copy. Placeholder = verbatim Russian; translation is a separate, user-requested pass.
 - **Don't** ship a screen that works on only one viewport. Every UI must be built for mobile, tablet, and desktop — verified in the browser at ~375/820/1440px before "done".
 - **Don't** apply a single-viewport spec (e.g. "700px side panel") literally across all sizes, and don't silently skip mobile when the spec doesn't fit there. Translate the intent to a viewport-appropriate equivalent (e.g. mobile → full-screen / bottom `Sheet`) **and tell the user what you substituted**. See "When a prompt describes only one viewport".
 - **Don't** write desktop-first CSS. Mobile-first only: base classes = mobile, scale up with `md:` / `lg:`. No `max-md:` overrides to undo desktop styles.
 - **Don't** use `sm:` as a tablet breakpoint. Tablet = `md:` (≥ 768px), Desktop = `lg:` (≥ 1024px). `sm:` / `xl:` / `2xl:` are narrow exceptions, not tiers.
 - **Don't** set fixed pixel widths (`w-[1200px]`) on layout containers. Use `w-full` + `max-w-*`.
-- **Don't** declare a UI task done without opening it in a running browser and walking through it. Lint + typecheck ≠ "it works". See Visual Verification — the checklist is mandatory.
-- **Don't** skip the regression sweep when editing `shared/ui/*` or widgets — open the main consumer screens and verify nothing else broke.
-- **Don't** claim "it works" when you haven't actually seen it run. If you couldn't open a browser, say "unverified, needs manual QA on X" — explicitly name the routes/flows that still need human eyes.
+- **Don't** declare a UI task done without driving the route through the **Playwright MCP** (`mcp__playwright__*` — `browser_navigate` / `browser_resize` / `browser_take_screenshot` / `browser_click` / `browser_evaluate` / `browser_console_messages`). Lint + typecheck ≠ "it works". See Visual Verification — the MCP-driven checklist is mandatory.
+- **Don't** substitute curl, DOM string inspection, "I read the code", or asking the user to screenshot for the Playwright MCP when it's connected. Those do not count as verification.
+- **Don't** skip any viewport or theme in the sweep. Three viewports (375 / 820 / 1440) × two themes (light + dark) = six checkpoints minimum, every one through `browser_resize` + a theme flip in the Playwright MCP.
+- **Don't** skip the regression sweep when editing `shared/ui/*` or widgets — navigate each major consumer screen via `browser_navigate` and verify nothing else broke.
+- **Don't** claim "it works" when you haven't actually seen it run through the MCP. If the Playwright MCP is unavailable, say "Playwright MCP unavailable — unverified, needs manual QA on X" — explicitly name the routes/flows that still need human eyes.
+- **Don't** leave verification scratch in the working tree after a UI task. Screenshots (`*.png` / `*.jpeg` at the project root) and `.playwright-mcp/` are scratch — delete them before handing back via `rm` + `rm -rf .playwright-mcp`. The `.gitignore` already excludes them as a safety net, but cleanup is still your responsibility. Keep a screenshot only if the user explicitly asked for one.
 - **Don't** ship a feature in one theme only. Light and dark are built and verified together in the same task — dark mode is never "later".
 - **Don't** hardcode a default theme that overrides the OS on first visit. Initial theme = system preference (`prefers-color-scheme`) via `next-themes` `defaultTheme="system"` + `enableSystem`.
 - **Don't** layer `dark:` on top of already-tokenized colors (`bg-white dark:bg-black` is a bug — use `bg-background`). Reach for `dark:` only for non-color differences (image swaps, shadow intensity, `currentColor` fallbacks).
@@ -920,7 +1025,8 @@ If you genuinely cannot open a browser (headless environment, no dev server avai
 - **Don't** force desktop context menus onto touch. Long-press on iOS is unreliable — use a `Sheet` trigger or rely on the kebab. Same for hover previews — gate `HoverCard` behind a hover-capability check.
 - **Don't** install another DnD library (`react-beautiful-dnd`, `react-dnd`, `sortablejs`). `dnd-kit` is the single DnD stack — with its `KeyboardSensor` and `announcements` enabled for a11y.
 - **Don't** use a confirmation dialog for a reversible operation. Default to an undo toast (~5s window) for deletes/archives; reserve confirm dialogs for genuinely irreversible / high-stakes operations.
-- **Don't** use generic spinners as page loaders or ship `"No data."` as an empty state. Skeletons match the layout; empty states are branded and suggest 1–2 next actions.
+- **Don't** ship any async surface without a shadcn `Skeleton` that matches the layout — every fetch, every Suspense boundary, every `next/dynamic`, every image, every list that loads more rows. Spinners are allowed only button-internally / inline; anywhere larger than a button uses `Skeleton`. See Loading States — Skeletons Everywhere.
+- **Don't** ship `"No data."` as an empty state. Branded illustration + 1–2 suggested next actions, or nothing.
 - **Don't** hijack right-click over text content, inputs, textareas, or article bodies. The native browser menu belongs there.
 - **Don't** write CSS outside Tailwind. No CSS Modules, no CSS-in-JS (styled-components, Emotion, vanilla-extract, etc.), no Sass, no `<style jsx>`, no standalone `.css` files beyond `globals.css`.
 - **Don't** hardcode colors (`#fff`, `rgb(...)`, `bg-gray-800`). Use design tokens (`bg-background`, `text-foreground`, etc.).

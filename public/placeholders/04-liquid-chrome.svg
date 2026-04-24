@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="960" viewBox="0 0 400 240">
+  <defs>
+    <linearGradient id="chr" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E8E4FB"></stop>
+      <stop offset="30%" stop-color="#A79BF0"></stop>
+      <stop offset="55%" stop-color="#6C5CE7"></stop>
+      <stop offset="80%" stop-color="#1E1654"></stop>
+      <stop offset="100%" stop-color="#E8E4FB"></stop>
+    </linearGradient>
+    <filter id="goo"><feGaussianBlur stdDeviation="14"></feGaussianBlur><feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -12"></feColorMatrix></filter>
+  </defs>
+  <rect width="400" height="240" fill="#1E1654"></rect>
+  <g filter="url(#goo)">
+    <circle cx="110" cy="130" r="72" fill="url(#chr)"></circle>
+    <circle cx="220" cy="100" r="56" fill="url(#chr)"></circle>
+    <circle cx="310" cy="150" r="50" fill="url(#chr)"></circle>
+    <circle cx="180" cy="180" r="36" fill="url(#chr)"></circle>
+  </g>
+  <ellipse cx="150" cy="98" rx="36" ry="8" fill="#E8E4FB" opacity="0.55"></ellipse>
+</svg>

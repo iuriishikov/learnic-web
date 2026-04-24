@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# playwright mcp — verification artifacts (clean up after each session)
+/.playwright-mcp/
+/*.png
+/*.jpeg
+/*.jpg

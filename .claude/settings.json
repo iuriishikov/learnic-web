@@ -1,0 +1,15 @@
+{
+  "enabledMcpjsonServers": ["playwright"],
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git status --porcelain 2>/dev/null | grep -qE 'src/.*\\.(tsx|ts|css|jsx|js)$|i18n/messages/' && printf '%s' '{\"systemMessage\":\"Visual verification reminder — UI files modified. Before declaring done: open /ru in a running browser at 375 / 820 / 1440 px, in BOTH light and dark, walk the golden path, cycle states (empty/loading/success/error), watch animations, check the console. If you could not open a browser, say so explicitly. See CLAUDE.md -> Visual Verification.\"}' || true"
+          }
+        ]
+      }
+    ]
+  }
+}
