@@ -1,5 +1,7 @@
+import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 
+import { buildPageMetadata } from '@/shared/lib/page-metadata';
 import { FaqSection } from '@/widgets/faq-section';
 import { FeaturesGrid } from '@/widgets/features-grid';
 import { LandingHero } from '@/widgets/landing-hero';
@@ -10,6 +12,17 @@ import { SiteHeader } from '@/widgets/site-header';
 type HomeProps = {
   params: Promise<{ locale: string }>;
 };
+
+export async function generateMetadata({
+  params,
+}: HomeProps): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata({
+    locale,
+    namespace: 'metadata.home',
+    absoluteTitle: true,
+  });
+}
 
 export default async function Home({ params }: HomeProps) {
   const { locale } = await params;

@@ -1,0 +1,21 @@
+{
+  "dashboard": {
+    "title": "Дашборд",
+    "description": "Обзор активности и ключевые показатели за последний период.",
+    "lorem": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+  },
+  "products": {
+    "title": "Продукты",
+    "description": "Управляйте продуктами команды — создавайте, отслеживайте и сдавайте работу в срок.",
+    "lorem": "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+  },
+  "profile": {
+    "title": "Настройки профиля",
+    "description": "Управляйте личными данными, паролем, командой и уведомлениями.",
+    "lorem": "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur."
+  },
+  "presence": {
+    "online": "Онлайн",
+    "offline": "Не в сети"
+  }
+}

@@ -14,6 +14,7 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 
 import { loginAction } from '../api/login';
+import { sanitizeRedirectTarget } from '../lib/redirect';
 import { loginSchema, type LoginInput } from '../model/login';
 import type { AuthError } from '../model/types';
 import { AuthAltButton } from './auth-alt-button';
@@ -24,6 +25,7 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const showResetSuccess = searchParams.get('reset') === 'success';
+  const fromParam = searchParams.get('from');
   const [formError, setFormError] = useState<AuthError | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -38,7 +40,8 @@ export function LoginForm() {
     startTransition(async () => {
       const result = await loginAction(values);
       if (result.ok) {
-        router.replace('/');
+        const safeFrom = sanitizeRedirectTarget(fromParam);
+        router.replace(safeFrom ?? '/');
         return;
       }
       setFormError(result.error);
@@ -126,6 +129,7 @@ export function LoginForm() {
           href="/register"
           label={t('login.switchToRegister')}
           disabled={submitting}
+          from={fromParam}
         />
       </div>
     </form>

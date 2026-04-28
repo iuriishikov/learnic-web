@@ -1,12 +1,21 @@
+import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { AuthLayout, ResetPasswordForm } from '@/features/auth';
 import { Link } from '@/shared/config/i18n/navigation';
+import { buildPageMetadata } from '@/shared/lib/page-metadata';
 
 type ResetPasswordPageProps = {
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ token?: string }>;
 };
+
+export async function generateMetadata({
+  params,
+}: ResetPasswordPageProps): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata({ locale, namespace: 'metadata.resetPassword' });
+}
 
 export default async function ResetPasswordPage({
   params,

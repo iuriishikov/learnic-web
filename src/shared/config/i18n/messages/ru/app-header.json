@@ -1,0 +1,53 @@
+{
+  "brand": "Learnic",
+  "nav": {
+    "home": "Главная",
+    "dashboard": "Дашборд",
+    "products": "Продукты",
+    "tasks": "Задачи",
+    "reporting": "Отчёты",
+    "users": "Пользователи"
+  },
+  "settings": "Настройки",
+  "notifications": "Уведомления",
+  "openMenu": "Открыть меню",
+  "userAvatar": "Открыть профиль",
+  "subHeader": {
+    "sections": {
+      "profile": {
+        "label": "Разделы профиля",
+        "tabs": {
+          "my-details": "Мои данные",
+          "profile": "Профиль",
+          "password": "Пароль",
+          "team": "Команда",
+          "plan": "Тариф",
+          "billing": "Биллинг",
+          "email": "Почта",
+          "notifications": "Уведомления",
+          "integrations": "Интеграции",
+          "api": "API"
+        }
+      },
+      "products": {
+        "label": "Разделы продуктов",
+        "tabs": {
+          "overview": "Обзор",
+          "catalog": "Каталог",
+          "categories": "Категории",
+          "inventory": "Склад",
+          "pricing": "Цены"
+        }
+      },
+      "dashboard": {
+        "label": "Разделы дашборда",
+        "tabs": {
+          "overview": "Обзор",
+          "analytics": "Аналитика",
+          "reports": "Отчёты",
+          "activity": "Активность"
+        }
+      }
+    }
+  }
+}

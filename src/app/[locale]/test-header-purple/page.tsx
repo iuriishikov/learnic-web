@@ -1,10 +1,23 @@
+import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
+import { buildPageMetadata } from '@/shared/lib/page-metadata';
 import { SiteHeader } from '@/widgets/site-header';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
 };
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata({
+    locale,
+    namespace: 'metadata.test.headerPurple',
+    noindex: true,
+  });
+}
 
 export default async function TestHeaderPurplePage({ params }: PageProps) {
   const { locale } = await params;

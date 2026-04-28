@@ -1,15 +1,37 @@
+import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { AuthLayout, RegisterForm } from '@/features/auth';
-import { Link } from '@/shared/config/i18n/navigation';
+import { sanitizeRedirectTarget } from '@/features/auth/lib/redirect';
+import { getCurrentUser } from '@/features/auth/server';
+import { Link, redirect } from '@/shared/config/i18n/navigation';
+import { buildPageMetadata } from '@/shared/lib/page-metadata';
 
 type RegisterPageProps = {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ from?: string }>;
 };
 
-export default async function RegisterPage({ params }: RegisterPageProps) {
+export async function generateMetadata({
+  params,
+}: RegisterPageProps): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata({ locale, namespace: 'metadata.register' });
+}
+
+export default async function RegisterPage({
+  params,
+  searchParams,
+}: RegisterPageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
+
+  const { from } = await searchParams;
+  const safeFrom = sanitizeRedirectTarget(from);
+
+  const user = await getCurrentUser();
+  if (user) redirect({ href: safeFrom ?? '/dashboard', locale });
+
   const t = await getTranslations('auth');
 
   return (

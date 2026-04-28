@@ -234,6 +234,23 @@ Forbidden:
 - A per-feature wrapper around `apiFetch` "for convenience" (`userApi.ts`, `productApi.ts` that wrap method/path). Call `apiFetch` directly with the explicit path — the indirection costs more than it saves.
 - Multiple env vars for what is one backend (`AUTH_API_URL`, `BILLING_API_URL`, …). One backend → one `API_URL`.
 
+### Backend API contract — `docs/api/openapi.json`
+
+The full OpenAPI spec for the backend lives at `docs/api/openapi.json`. **It is the source of truth** for endpoint paths, request/response payload shapes, status codes, error models, and auth requirements (cookie-based: `accessCookie`, `refreshCookie`, `signupSessionCookie`).
+
+**Read this file before:**
+
+- Implementing a new `apiFetch` call from any feature.
+- Extending or changing an existing API call (path, method, body, query params).
+- Writing or updating a zod schema that mirrors a backend payload.
+- Reasoning about error handling — the spec lists the exact error response models per endpoint (`SimpleErrorResponseModel`, `FieldErrorResponseModel`, `EntityNotFoundResponseModel`, `HTTPValidationError`).
+
+Never guess endpoint paths, payload field names, or status codes from the codebase or memory alone — the spec wins. If the codebase and the spec disagree, the spec is authoritative; surface the discrepancy and confirm with the user before reconciling.
+
+**Keeping it fresh:** when the backend ships changes, replace `docs/api/openapi.json` with the new export. Don't hand-edit it. If a new endpoint isn't yet in the spec, ask the user to regenerate before relying on it.
+
+**Naming convention note:** the spec uses `snake_case` field names (`first_name`, `avatar_url`, `entity_id`, …). The frontend type system uses `camelCase` (e.g., `User.firstName`, `User.avatarUrl`). When wiring a new endpoint, map between the two at the `apiFetch` boundary inside the feature's `api/` layer — never let `snake_case` field names leak into components or zod schemas used by `react-hook-form`.
+
 ### Forbidden
 
 - **Don't pile multiple sub-flows into one `actions.ts` / `schema.ts`** and "split later". Split when the second sub-flow appears.
@@ -508,6 +525,28 @@ Colors, radii, and other theme values live as CSS custom properties in `globals.
 
 Never hardcode a one-off color in a component — add a token.
 
+### Pointer cursor on interactive elements
+
+**Every clickable element must show `cursor: pointer` on hover.** Tailwind v4's preflight matches the modern browser default (`cursor: default` on `<button>`), which makes interactive surfaces feel dead. We override this back to v3 behavior with a single base-layer rule in `src/app/globals.css`:
+
+```css
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+```
+
+This covers native `<button>` (used by shadcn `Button`, `DropdownMenu` triggers, `SheetTrigger`, etc.) and any element with `role="button"`. Anchor tags (`<a>`) already get `cursor: pointer` from the browser when they have `href`. Disabled buttons keep the default cursor — they already have `pointer-events-none` via shadcn's `disabled:` utilities.
+
+**Don't add `cursor-pointer` utility classes manually** — the global rule already covers every clickable element. If something feels "stuck" with the wrong cursor, the bug is that it isn't a `<button>` / `[role="button"]` / `<a>` — fix the semantics, don't paper over it with a utility.
+
+**Forbidden:**
+
+- **No `cursor-pointer` utility on individual components.** It's redundant with the global rule and creates noise.
+- **No fake "buttons" built on `<div>`** without `role="button"` (and `tabIndex={0}` + keyboard handler). Either use a real `<button>` or apply the role properly so the global cursor rule kicks in.
+
 ---
 
 ## Theming — Light & Dark
@@ -745,6 +784,36 @@ When the user requests English translations, do a proper pass on every `messages
 
 ---
 
+## Environment Variables — `.env.dist` is the contract
+
+**Every environment variable read by the app must be listed in `.env.dist` at the repo root.** `.env.dist` is the committed template that documents which variables exist, what they're for, and what a safe default looks like for local development. Real secrets live in `.env.local` (gitignored); `.env.dist` is the public contract.
+
+### Mandatory workflow when adding or changing env vars
+
+Whenever you introduce a new `process.env.X` reference, rename one, change its meaning, or remove it — **update `.env.dist` in the same change**, not later:
+
+1. Add the variable to `.env.dist` with:
+   - A short comment line above it explaining what it's for and where it's read (server / client / both).
+   - A safe placeholder or local-dev default value (never a real secret, real token, or production URL).
+2. If the variable is required at boot, validate it in `src/shared/config` with zod — don't read raw `process.env` from feature code.
+3. If the variable is renamed or removed, update `.env.dist` in the same commit so the template never drifts from the code.
+
+`.env.dist` and the set of `process.env.X` reads in the codebase must match exactly — no orphan entries in the template, no undocumented reads in the code. Treat a mismatch the same as a failing typecheck.
+
+### Naming
+
+- `NEXT_PUBLIC_*` — exposed to the browser. Use only for values that are safe to ship in the client bundle (public URLs, public keys). Never put a secret behind a `NEXT_PUBLIC_` prefix.
+- Everything else is server-only and must never be referenced from a Client Component.
+
+### Forbidden
+
+- **Don't** add a `process.env.X` read without adding `X` to `.env.dist` in the same change.
+- **Don't** put real secrets, production credentials, or live API keys in `.env.dist` — it's committed. Use placeholders or local-dev defaults.
+- **Don't** read env vars directly from feature code when the value needs validation — go through `shared/config`.
+- **Don't** prefix a server secret with `NEXT_PUBLIC_` to "make it work in the browser". If the browser needs it, it isn't a secret; if it's a secret, the browser cannot have it.
+
+---
+
 ## Error Handling
 
 - `error.tsx` and `not-found.tsx` at route boundaries.
@@ -933,6 +1002,12 @@ These are the rules that separate "we added a context menu" from interactions th
 
 This is not polish. It is the default for every idle surface.
 
+### Default = strictly shadcn `Skeleton`
+
+**Unless the user explicitly says otherwise, the loading placeholder is always the shadcn `Skeleton` from `src/shared/ui/skeleton.tsx` — nothing else.** Do not invent your own pulsing `<div>`, do not pull a skeleton from another library, do not substitute a spinner / "Loading…" text / blank space "for now". The default is fixed: shadcn `Skeleton`, composed into a shape that matches the real content.
+
+The only way to deviate is an explicit user instruction in the task itself ("use a spinner here", "use this custom shimmer", "no skeleton on this surface"). A general preference, an unrelated past decision, or your own judgement that "a spinner would be cleaner" do **not** override the default. When in doubt — `Skeleton`.
+
 ### Where a Skeleton is mandatory
 
 - **Route segments during streaming** — every `loading.tsx` at every route that fetches data. Never a spinner, never "Loading…".
@@ -982,6 +1057,7 @@ Loading states are part of Visual Verification — step 4 of the checklist alrea
 - **No "Loading…" text placeholder** where a skeleton could render.
 - **No blank space** where async content will land.
 - **No hand-rolled pulsing `<div>`** — use shadcn `Skeleton`.
+- **No skeleton primitive from another library** (`react-loading-skeleton`, MUI `Skeleton`, Chakra `Skeleton`, etc.). The default is **strictly** shadcn `Skeleton` from `src/shared/ui/skeleton.tsx` — only the user can override it explicitly per task.
 - **No generic grey rectangle** standing in for structured content. Match the layout.
 - **No skeleton-free lazy imports.** Every `next/dynamic` has a `loading` option shaped to the component it replaces.
 - **No async-data component shipped without its `Skeleton` variant built in the same task.** The loading state is not a follow-up.
@@ -1126,17 +1202,22 @@ If the Playwright MCP is genuinely unavailable (server not connected, `mcp__play
 - **Don't** install another DnD library (`react-beautiful-dnd`, `react-dnd`, `sortablejs`). `dnd-kit` is the single DnD stack — with its `KeyboardSensor` and `announcements` enabled for a11y.
 - **Don't** use a confirmation dialog for a reversible operation. Default to an undo toast (~5s window) for deletes/archives; reserve confirm dialogs for genuinely irreversible / high-stakes operations.
 - **Don't** ship any async surface without a shadcn `Skeleton` that matches the layout — every fetch, every Suspense boundary, every `next/dynamic`, every image, every list that loads more rows. Spinners are allowed only button-internally / inline; anywhere larger than a button uses `Skeleton`. See Loading States — Skeletons Everywhere.
+- **Don't** substitute a different skeleton implementation for the default. The loading placeholder is **strictly** shadcn `Skeleton` from `src/shared/ui/skeleton.tsx` unless the user explicitly says otherwise in the task. No hand-rolled pulsing `<div>`, no third-party skeleton libraries, no spinner-as-skeleton.
 - **Don't** ship `"No data."` as an empty state. Branded illustration + 1–2 suggested next actions, or nothing.
 - **Don't** hijack right-click over text content, inputs, textareas, or article bodies. The native browser menu belongs there.
 - **Don't** write CSS outside Tailwind. No CSS Modules, no CSS-in-JS (styled-components, Emotion, vanilla-extract, etc.), no Sass, no `<style jsx>`, no standalone `.css` files beyond `globals.css`.
 - **Don't** hardcode colors (`#fff`, `rgb(...)`, `bg-gray-800`). Use design tokens (`bg-background`, `text-foreground`, etc.).
 - **Don't** use `!important` to force styles. Fix the cascade instead.
+- **Don't** add `cursor-pointer` utility classes manually to buttons or other clickable elements. The global rule in `globals.css` already gives `cursor: pointer` to every `<button>` and `[role="button"]`. Adding the utility is redundant noise. See "Pointer cursor on interactive elements".
+- **Don't** build fake buttons out of `<div>` without `role="button"` (and a keyboard handler + `tabIndex`). Use a real `<button>` so the global cursor rule, focus ring, and Enter/Space activation all work for free.
 - **Don't** put business logic in `shared/`. If it's domain-specific, it's a feature.
 - **Don't** fetch data in Client Components when a Server Component can do it.
 - **Don't** use `any`, `@ts-ignore`, or non-null assertions without a comment.
 - **Don't** create barrel files for every folder. Only features expose a public API; internal folders import directly.
 - **Don't** use route handlers (`app/api/`) for things Server Actions can do. Reserve them for webhooks and third-party integrations that require a stable URL.
 - **Don't** hardcode config. Use `shared/config` and validate env at boot with zod.
+- **Don't** add a `process.env.X` read without adding `X` to `.env.dist` in the same change. Every env var the app reads must appear in the committed `.env.dist` template with a comment and a safe local-dev default — no orphans in either direction. See "Environment Variables — `.env.dist` is the contract".
+- **Don't** put real secrets in `.env.dist` (it's committed) and don't prefix a server secret with `NEXT_PUBLIC_` to expose it to the browser.
 - **Don't** throw from Server Actions for expected failures — return a discriminated result.
 - **Don't** invent new architectural patterns without updating this file first.
 

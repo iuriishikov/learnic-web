@@ -40,6 +40,11 @@ export {
 
 export { getMeAction, type GetMeResult } from './api/me';
 export { AuthProvider, useAuth } from './components/auth-provider';
+export {
+  UserAvatar,
+  buildUserInitials,
+  buildUserDisplayName,
+} from './components/user-avatar';
 export type { User } from './model/user';
 
 export type {

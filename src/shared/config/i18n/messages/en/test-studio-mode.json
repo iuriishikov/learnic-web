@@ -1,0 +1,128 @@
+{
+  "brand": "Learnic",
+  "studioBadge": "Студия",
+  "modes": {
+    "learn": "Учусь",
+    "teach": "Преподаю"
+  },
+  "modeSwitchHint": "Переключение режима",
+  "learn": {
+    "nav": {
+      "home": "Главная",
+      "myCourses": "Мои курсы",
+      "catalog": "Каталог",
+      "community": "Сообщество"
+    },
+    "search": "Поиск",
+    "notifications": "Уведомления",
+    "menu": {
+      "open": "Открыть меню",
+      "profile": "Профиль",
+      "settings": "Настройки",
+      "switchToTeach": "Преподавание",
+      "logout": "Выйти"
+    },
+    "page": {
+      "greeting": "Продолжайте обучение",
+      "subtitle": "У вас 3 активных курса. Сегодня запланировано 2 занятия.",
+      "continueLabel": "Продолжить",
+      "courseCardsTitle": "Активные курсы",
+      "cards": {
+        "react": {
+          "title": "React 18 с нуля",
+          "teacher": "Анна Петрова",
+          "progress": "Прогресс 64%"
+        },
+        "design": {
+          "title": "Основы UX-дизайна",
+          "teacher": "Михаил Орлов",
+          "progress": "Прогресс 22%"
+        },
+        "english": {
+          "title": "Английский для разработчиков",
+          "teacher": "Елена Васильева",
+          "progress": "Прогресс 81%"
+        }
+      }
+    }
+  },
+  "teach": {
+    "nav": {
+      "dashboard": "Дашборд",
+      "courses": "Курсы",
+      "students": "Ученики",
+      "analytics": "Аналитика",
+      "revenue": "Доходы"
+    },
+    "createCourse": "Создать курс",
+    "menu": {
+      "open": "Открыть меню",
+      "profile": "Профиль",
+      "settings": "Настройки школы",
+      "switchToLearn": "Перейти в обучение",
+      "logout": "Выйти"
+    },
+    "subHeader": {
+      "ariaLabel": "Разделы курса",
+      "courseLabel": "Курс «React 18 с нуля»",
+      "tabs": {
+        "lessons": "Уроки",
+        "assignments": "Задания",
+        "students": "Студенты",
+        "discussions": "Обсуждения",
+        "settings": "Настройки"
+      }
+    },
+    "page": {
+      "title": "React 18 с нуля",
+      "subtitle": "Активный курс · 248 студентов · 24 урока",
+      "stats": {
+        "students": {
+          "label": "Студентов",
+          "value": "248"
+        },
+        "completion": {
+          "label": "Средний прогресс",
+          "value": "62%"
+        },
+        "revenue": {
+          "label": "Доход за месяц",
+          "value": "₽184 000"
+        },
+        "rating": {
+          "label": "Рейтинг",
+          "value": "4.8"
+        }
+      },
+      "lessonsTitle": "Уроки",
+      "lessons": {
+        "lesson1": {
+          "title": "Введение и настройка окружения",
+          "meta": "Опубликован · 12 мин"
+        },
+        "lesson2": {
+          "title": "JSX и компоненты",
+          "meta": "Опубликован · 28 мин"
+        },
+        "lesson3": {
+          "title": "useState и управление состоянием",
+          "meta": "Опубликован · 35 мин"
+        },
+        "lesson4": {
+          "title": "Эффекты и побочные действия",
+          "meta": "Черновик · 40 мин"
+        }
+      }
+    }
+  },
+  "demo": {
+    "modeLabel": "Превью мокапа",
+    "modeBadge": "Вариант A — toggle в шапке",
+    "controlsTitle": "Управление мокапом",
+    "controlsHint": "Переключите роль и/или тему, чтобы увидеть оба shell-а.",
+    "modeLearn": "Режим: ученик",
+    "modeTeach": "Режим: преподаватель",
+    "courseHint": "Sub-header в режиме преподавателя — табы конкретного курса.",
+    "subtitle": "Изолированная демо-страница. Существующий /(app)/-shell не затронут."
+  }
+}

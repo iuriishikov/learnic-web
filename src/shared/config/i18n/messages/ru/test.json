@@ -8,5 +8,10 @@
     "title": "Header на фиолетовом фоне",
     "description": "Тестовая страница: заголовок без обводки, без sticky-поведения, со светлой надписью «Learnic» поверх фирменного фиолетового фона.",
     "lorem": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+  },
+  "appHeader": {
+    "title": "Header авторизованного пользователя",
+    "description": "Тестовая страница: новый двухстрочный заголовок для авторизованного пользователя — верхняя строка с логотипом, навигацией и действиями, нижняя — с табами и поиском.",
+    "lorem": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
   }
 }

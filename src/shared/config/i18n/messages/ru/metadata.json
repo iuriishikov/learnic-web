@@ -1,0 +1,53 @@
+{
+  "site": {
+    "title": "Learnic — Платформа для современных команд",
+    "description": "Аналитика, общие инбоксы и инструменты роста — всё в одном месте. Бесплатный пробный период."
+  },
+  "home": {
+    "title": "Learnic — Платформа для современных команд",
+    "description": "Аналитика, общие инбоксы и инструменты роста — всё в одном месте. Бесплатный пробный период."
+  },
+  "login": {
+    "title": "Вход",
+    "description": "Войдите в аккаунт Learnic, чтобы продолжить."
+  },
+  "register": {
+    "title": "Регистрация",
+    "description": "Создайте аккаунт Learnic за минуту."
+  },
+  "forgotPassword": {
+    "title": "Восстановление пароля",
+    "description": "Отправим ссылку для сброса пароля на ваш email."
+  },
+  "resetPassword": {
+    "title": "Новый пароль",
+    "description": "Установите новый пароль для своего аккаунта."
+  },
+  "verifyEmail": {
+    "title": "Подтверждение email",
+    "description": "Подтвердите адрес, чтобы активировать аккаунт."
+  },
+  "dashboard": {
+    "title": "Дэшборд",
+    "description": "Главный экран рабочего пространства Learnic."
+  },
+  "profile": {
+    "title": "Профиль",
+    "description": "Управляйте данными аккаунта и настройками."
+  },
+  "products": {
+    "title": "Продукты",
+    "description": "Все ваши продукты в одном месте."
+  },
+  "notFound": {
+    "title": "Страница не найдена",
+    "description": "К сожалению, такой страницы нет."
+  },
+  "test": {
+    "appHeader": { "title": "Test — App Header" },
+    "userAvatar": { "title": "Test — User Avatar" },
+    "headerWhite": { "title": "Test — Header White" },
+    "headerPurple": { "title": "Test — Header Purple" },
+    "studioMode": { "title": "Test — Studio Mode (Вариант A)" }
+  }
+}

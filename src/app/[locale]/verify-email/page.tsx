@@ -1,19 +1,28 @@
+import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { AuthLayout, VerifyEmailClient } from '@/features/auth';
 import { Link } from '@/shared/config/i18n/navigation';
+import { buildPageMetadata } from '@/shared/lib/page-metadata';
 
 type VerifyEmailPageProps = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ token?: string; email?: string }>;
+  searchParams: Promise<{ token?: string; email?: string; from?: string }>;
 };
+
+export async function generateMetadata({
+  params,
+}: VerifyEmailPageProps): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata({ locale, namespace: 'metadata.verifyEmail' });
+}
 
 export default async function VerifyEmailPage({
   params,
   searchParams,
 }: VerifyEmailPageProps) {
   const { locale } = await params;
-  const { token, email } = await searchParams;
+  const { token, email, from } = await searchParams;
   setRequestLocale(locale);
   const t = await getTranslations('auth');
 
@@ -38,7 +47,7 @@ export default async function VerifyEmailPage({
         </Link>
       }
     >
-      <VerifyEmailClient token={token} email={email} />
+      <VerifyEmailClient token={token} email={email} from={from} />
     </AuthLayout>
   );
 }

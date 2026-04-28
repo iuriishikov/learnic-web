@@ -12,6 +12,7 @@ import {
   verifyEmailAction,
   waitForEmailVerificationAction,
 } from '../api/email-verification';
+import { appendFrom, sanitizeRedirectTarget } from '../lib/redirect';
 
 type Status =
   | 'verifying-token'
@@ -23,11 +24,18 @@ type Status =
 type VerifyEmailClientProps = {
   token?: string;
   email?: string;
+  from?: string;
 };
 
-export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
+export function VerifyEmailClient({
+  token,
+  email,
+  from,
+}: VerifyEmailClientProps) {
   const t = useTranslations('auth');
   const router = useRouter();
+  const safeFrom = sanitizeRedirectTarget(from);
+  const loginHref = appendFrom('/login', safeFrom);
   const [status, setStatus] = useState<Status>(() =>
     token ? 'verifying-token' : 'waiting',
   );
@@ -58,7 +66,7 @@ export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
       const result = await waitForEmailVerificationAction();
       if (cancelled) return;
       if (result === 'verified') {
-        router.push('/');
+        router.push(safeFrom ?? '/');
         router.refresh();
         return;
       }
@@ -76,7 +84,7 @@ export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
       if (timer) clearTimeout(timer);
       pollingRef.current = false;
     };
-  }, [token, router]);
+  }, [token, router, safeFrom]);
 
   if (status === 'verifying-token') {
     return (
@@ -97,7 +105,7 @@ export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
         action={
           <Button
             className="h-11 rounded-lg bg-brand text-[15px] font-semibold text-brand-foreground hover:bg-brand/90"
-            render={<Link href="/login" />}
+            render={<Link href={loginHref} />}
             nativeButton={false}
           >
             {t('verifyEmail.success.logIn')}

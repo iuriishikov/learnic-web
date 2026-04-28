@@ -1,0 +1,28 @@
+import type { Metadata } from 'next';
+import { setRequestLocale } from 'next-intl/server';
+
+import { buildPageMetadata } from '@/shared/lib/page-metadata';
+
+import { StudioModeMockup } from './studio-mode-mockup';
+
+type PageProps = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata({
+    locale,
+    namespace: 'metadata.test.studioMode',
+    noindex: true,
+  });
+}
+
+export default async function TestStudioModePage({ params }: PageProps) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
+  return <StudioModeMockup />;
+}

@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckCircle2Icon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -14,6 +15,7 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 
 import { registerAction } from '../api/registration';
+import { sanitizeRedirectTarget } from '../lib/redirect';
 import { PASSWORD_MIN } from '../model/constants';
 import { registerSchema, type RegisterInput } from '../model/registration';
 import type { AuthError } from '../model/types';
@@ -23,6 +25,8 @@ import { PasswordInput } from './password-input';
 export function RegisterForm() {
   const t = useTranslations('auth');
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromParam = searchParams.get('from');
   const [formError, setFormError] = useState<AuthError | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -47,6 +51,8 @@ export function RegisterForm() {
       const result = await registerAction(values);
       if (result.ok) {
         const search = new URLSearchParams({ email: values.email });
+        const safeFrom = sanitizeRedirectTarget(fromParam);
+        if (safeFrom) search.set('from', safeFrom);
         router.push(`/verify-email?${search.toString()}`);
         return;
       }
@@ -257,6 +263,7 @@ export function RegisterForm() {
           href="/login"
           label={t('register.switchToLogin')}
           disabled={submitting}
+          from={fromParam}
         />
       </div>
     </form>

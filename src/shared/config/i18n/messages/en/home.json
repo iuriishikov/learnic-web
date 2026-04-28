@@ -11,12 +11,6 @@
     "logIn": "Войти",
     "signUp": "Регистрация",
     "openMenu": "Consectetur",
-    "userMenu": {
-      "openLabel": "Меню профиля",
-      "profile": "Профиль",
-      "logout": "Выйти",
-      "loggingOut": "Выходим…"
-    },
     "theme": {
       "toggle": "Сменить тему",
       "light": "Светлая",
