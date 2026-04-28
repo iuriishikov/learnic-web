@@ -3,6 +3,10 @@
 import { motion, useReducedMotion } from 'motion/react';
 
 import { cn } from '@/shared/lib/utils';
+import {
+  AnnouncementChip,
+  type AnnouncementChipProps,
+} from '@/shared/ui/announcement-chip';
 
 const TOTAL_CELLS = 120;
 
@@ -20,9 +24,15 @@ const FLIP_STAGGER = 0.28;
 
 type GridBackdropProps = {
   className?: string;
+  announcement?: AnnouncementChipProps;
+  extendToTop?: boolean;
 };
 
-export function GridBackdrop({ className }: GridBackdropProps) {
+export function GridBackdrop({
+  className,
+  announcement,
+  extendToTop = true,
+}: GridBackdropProps) {
   const shouldReduceMotion = useReducedMotion();
 
   const cells = [];
@@ -71,19 +81,28 @@ export function GridBackdrop({ className }: GridBackdropProps) {
   }
 
   return (
-    <div
-      aria-hidden
-      className={cn(
-        'pointer-events-none absolute inset-0 overflow-hidden',
-        '[mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent),linear-gradient(to_bottom,black,black_55%,transparent_100%)]',
-        '[mask-composite:intersect]',
-        '[-webkit-mask-composite:source-in]',
-        className,
-      )}
-    >
-      <div className="grid w-full [grid-template-columns:repeat(auto-fill,minmax(72px,1fr))] md:[grid-template-columns:repeat(auto-fill,minmax(84px,1fr))] lg:[grid-template-columns:repeat(auto-fill,minmax(92px,1fr))]">
-        {cells}
+    <>
+      <div
+        aria-hidden
+        className={cn(
+          'pointer-events-none absolute inset-0 overflow-hidden',
+          extendToTop
+            ? '[mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent),linear-gradient(to_bottom,black,black_55%,transparent_100%)]'
+            : '[mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent),linear-gradient(to_bottom,transparent,black_25%,black_70%,transparent_100%)]',
+          '[mask-composite:intersect]',
+          '[-webkit-mask-composite:source-in]',
+          className,
+        )}
+      >
+        <div className="grid w-full [grid-template-columns:repeat(auto-fill,minmax(72px,1fr))] md:[grid-template-columns:repeat(auto-fill,minmax(84px,1fr))] lg:[grid-template-columns:repeat(auto-fill,minmax(92px,1fr))]">
+          {cells}
+        </div>
       </div>
-    </div>
+      {announcement && (
+        <div className="absolute inset-x-0 top-40 z-10 flex justify-center md:top-52">
+          <AnnouncementChip {...announcement} />
+        </div>
+      )}
+    </>
   );
 }

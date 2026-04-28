@@ -1,0 +1,12 @@
+{
+  "headerWhite": {
+    "title": "Header на белом фоне",
+    "description": "Тестовая страница: заголовок без обводки и без sticky-поведения на стандартном (белом) фоне страницы.",
+    "lorem": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+  },
+  "headerPurple": {
+    "title": "Header на фиолетовом фоне",
+    "description": "Тестовая страница: заголовок без обводки, без sticky-поведения, со светлой надписью «Learnic» поверх фирменного фиолетового фона.",
+    "lorem": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+  }
+}

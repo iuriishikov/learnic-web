@@ -1,11 +1,11 @@
 import { getTranslations } from 'next-intl/server';
-import { ArrowRightIcon, PlayCircleIcon } from 'lucide-react';
+import { PlayCircleIcon } from 'lucide-react';
 
 import { Button } from '@/shared/ui/button';
+import { GridBackdrop } from '@/shared/ui/grid-backdrop';
 import { Separator } from '@/shared/ui/separator';
 
 import { DeviceShowcase } from './device-showcase';
-import { GridBackdrop } from './grid-backdrop';
 
 export async function LandingHero() {
   const t = await getTranslations('home.hero');
@@ -14,23 +14,16 @@ export async function LandingHero() {
     <section className="relative isolate -mt-20 w-full overflow-hidden md:-mt-24">
       <div className="relative mx-auto w-full max-w-[1216px] px-4 md:px-6">
         <div className="relative pt-40 pb-20 md:pt-52 md:pb-28">
-          <GridBackdrop className="-inset-x-8 -bottom-20 md:-inset-x-16 md:-bottom-28 lg:-inset-x-32 xl:-inset-x-48" />
+          <GridBackdrop
+            className="-inset-x-8 -bottom-20 md:-inset-x-16 md:-bottom-28 lg:-inset-x-32 xl:-inset-x-48"
+            announcement={{
+              badge: t('featureBadge'),
+              linkText: t('featureLinkText'),
+              href: '#',
+            }}
+          />
 
-          <div className="relative flex flex-col items-center text-center">
-            <a
-              href="#"
-              className="mb-6 inline-flex items-center rounded-full border border-border bg-background px-3 py-1 text-sm font-medium shadow-sm transition-colors hover:bg-muted md:mb-8"
-            >
-              <span className="-my-1 -ml-3 inline-flex items-center gap-2 rounded-full border-r border-border bg-foreground/[0.03] px-3 py-1 text-foreground">
-                <span aria-hidden className="size-2 rounded-full bg-brand" />
-                {t('featureBadge')}
-              </span>
-              <span className="flex items-center gap-2 pl-3 text-foreground">
-                {t('featureLinkText')}
-                <ArrowRightIcon className="size-4 shrink-0" />
-              </span>
-            </a>
-
+          <div className="relative mt-14 flex flex-col items-center text-center md:mt-16">
             <h1 className="max-w-[860px] text-pretty text-[40px] font-semibold leading-[1.08] tracking-[-0.02em] text-foreground md:text-6xl lg:text-[72px]">
               {t('title')}
             </h1>

@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import { AuthProvider } from '@/features/auth';
+import { getCurrentUser } from '@/features/auth/server';
 import { routing } from '@/shared/config/i18n/routing';
 import { ThemeProvider } from '@/shared/ui/theme-provider';
 import '../globals.css';
@@ -40,6 +42,8 @@ export default async function LocaleLayout({
 
   setRequestLocale(locale);
 
+  const initialUser = await getCurrentUser();
+
   return (
     <html
       lang={locale}
@@ -53,7 +57,9 @@ export default async function LocaleLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <NextIntlClientProvider>{children}</NextIntlClientProvider>
+          <NextIntlClientProvider>
+            <AuthProvider initialUser={initialUser}>{children}</AuthProvider>
+          </NextIntlClientProvider>
         </ThemeProvider>
       </body>
     </html>

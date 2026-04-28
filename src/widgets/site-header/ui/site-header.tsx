@@ -5,17 +5,20 @@ import {
   BookOpenIcon,
   ChevronDownIcon,
   FileTextIcon,
+  LogOutIcon,
   MenuIcon,
   PlayCircleIcon,
   SparklesIcon,
 } from 'lucide-react';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 
+import { useAuth } from '@/features/auth';
 import { Link } from '@/shared/config/i18n/navigation';
 import { PLACEHOLDERS } from '@/shared/lib/placeholders';
 import { cn } from '@/shared/lib/utils';
-import { BrandMark } from '@/shared/ui/brand-mark';
+import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
+import { BrandMark, type BrandMarkTone } from '@/shared/ui/brand-mark';
 import { Button } from '@/shared/ui/button';
 import {
   NavigationMenu,
@@ -26,6 +29,8 @@ import {
   NavigationMenuTrigger,
 } from '@/shared/ui/navigation-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/shared/ui/sheet';
+
+import { UserMenu } from './user-menu';
 
 type NavKey = 'products' | 'services' | 'pricing' | 'resources' | 'about';
 
@@ -41,18 +46,69 @@ const MEGA_MENU_ICONS = [BookOpenIcon, SparklesIcon, PlayCircleIcon, FileTextIco
 
 type MegaMenuItem = { title: string; description: string };
 
-export function SiteHeader() {
+type SiteHeaderProps = {
+  bordered?: boolean;
+  sticky?: boolean;
+  tone?: BrandMarkTone;
+};
+
+export function SiteHeader({
+  bordered = true,
+  sticky = true,
+  tone = 'dark',
+}: SiteHeaderProps = {}) {
   const t = useTranslations('home.header');
+  const tUser = useTranslations('home.header.userMenu');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const [isLoggingOut, startLogoutTransition] = useTransition();
 
   const megaMenuItems = t.raw('megaMenu.items') as MegaMenuItem[];
+  const isLight = tone === 'light';
+
+  function handleMobileLogout() {
+    startLogoutTransition(async () => {
+      await logout();
+      setMobileOpen(false);
+    });
+  }
+
+  const navTriggerToneClasses = isLight
+    ? 'text-brand-foreground/70 hover:text-brand-foreground data-open:text-brand-foreground data-popup-open:text-brand-foreground'
+    : 'text-muted-foreground hover:text-foreground data-open:text-foreground data-popup-open:text-foreground';
+
+  const navLinkToneClasses = isLight
+    ? 'text-brand-foreground/70 hover:text-brand-foreground'
+    : 'text-muted-foreground hover:text-foreground';
+
+  const signUpToneClasses = isLight
+    ? 'bg-brand-foreground text-brand hover:bg-brand-foreground/90'
+    : 'bg-brand text-brand-foreground hover:bg-brand/90';
+
+  const logInToneClasses = isLight
+    ? 'border-brand-foreground/40 bg-transparent text-brand-foreground hover:bg-brand-foreground/10 hover:text-brand-foreground'
+    : '';
+
+  const mobileTriggerToneClasses = isLight
+    ? 'text-brand-foreground hover:bg-brand-foreground/10 hover:text-brand-foreground'
+    : '';
 
   return (
-    <header className="sticky top-4 z-40 mx-auto w-full max-w-[1216px] px-4 md:top-6 md:px-6">
-      <div className="flex h-16 items-center justify-between rounded-2xl border border-border bg-background/90 px-3 backdrop-blur md:h-[72px] md:px-5">
+    <header
+      className={cn(
+        'mx-auto w-full max-w-[1216px] px-4 md:px-6',
+        sticky && 'sticky top-4 z-40 md:top-6',
+      )}
+    >
+      <div
+        className={cn(
+          'flex h-16 items-center justify-between rounded-2xl px-3 md:h-[72px] md:px-5',
+          bordered && 'border border-border bg-background/90 backdrop-blur',
+        )}
+      >
         <div className="flex items-center gap-2 md:gap-10">
           <Link href="/" aria-label={t('brand')}>
-            <BrandMark label={t('brand')} size="md" />
+            <BrandMark label={t('brand')} size="md" tone={tone} />
           </Link>
 
           <NavigationMenu className="hidden md:flex" align="start">
@@ -60,7 +116,12 @@ export function SiteHeader() {
               {NAV_ITEMS.map((item) =>
                 item.hasMenu ? (
                   <NavigationMenuItem key={item.key}>
-                    <NavigationMenuTrigger className="h-9 gap-0 px-3 text-[15px] font-medium text-muted-foreground hover:text-foreground data-open:text-foreground data-popup-open:text-foreground">
+                    <NavigationMenuTrigger
+                      className={cn(
+                        'h-9 gap-0 px-3 text-[15px] font-medium',
+                        navTriggerToneClasses,
+                      )}
+                    >
                       {t(`nav.${item.key}`)}
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
@@ -71,7 +132,10 @@ export function SiteHeader() {
                   <NavigationMenuItem key={item.key}>
                     <NavigationMenuLink
                       href="#"
-                      className="h-9 px-3 text-[15px] font-medium text-muted-foreground hover:text-foreground"
+                      className={cn(
+                        'h-9 px-3 text-[15px] font-medium',
+                        navLinkToneClasses,
+                      )}
                     >
                       {t(`nav.${item.key}`)}
                     </NavigationMenuLink>
@@ -83,21 +147,33 @@ export function SiteHeader() {
         </div>
 
         <div className="hidden items-center gap-2 md:flex">
-          <Button
-            variant="outline"
-            className="h-10 rounded-lg px-4 text-[15px] font-medium"
-            render={<Link href="/login" />}
-            nativeButton={false}
-          >
-            {t('logIn')}
-          </Button>
-          <Button
-            className="h-10 rounded-lg bg-brand px-4 text-[15px] font-medium text-brand-foreground hover:bg-brand/90"
-            render={<Link href="/register" />}
-            nativeButton={false}
-          >
-            {t('signUp')}
-          </Button>
+          {user ? (
+            <UserMenu user={user} tone={tone === 'light' ? 'light' : 'dark'} />
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                className={cn(
+                  'h-10 rounded-lg px-4 text-[15px] font-medium',
+                  logInToneClasses,
+                )}
+                render={<Link href="/login" />}
+                nativeButton={false}
+              >
+                {t('logIn')}
+              </Button>
+              <Button
+                className={cn(
+                  'h-10 rounded-lg px-4 text-[15px] font-medium',
+                  signUpToneClasses,
+                )}
+                render={<Link href="/register" />}
+                nativeButton={false}
+              >
+                {t('signUp')}
+              </Button>
+            </>
+          )}
         </div>
 
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -106,7 +182,7 @@ export function SiteHeader() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-10 md:hidden"
+                className={cn('size-10 md:hidden', mobileTriggerToneClasses)}
                 aria-label={t('openMenu')}
               />
             }
@@ -139,25 +215,61 @@ export function SiteHeader() {
               ))}
             </nav>
             <div className="mt-auto flex flex-col gap-2 pt-6">
-              <Button
-                variant="outline"
-                className="h-11 w-full rounded-lg text-[15px] font-medium"
-                render={
-                  <Link href="/login" onClick={() => setMobileOpen(false)} />
-                }
-                nativeButton={false}
-              >
-                {t('logIn')}
-              </Button>
-              <Button
-                className="h-11 w-full rounded-lg bg-brand text-[15px] font-medium text-brand-foreground hover:bg-brand/90"
-                render={
-                  <Link href="/register" onClick={() => setMobileOpen(false)} />
-                }
-                nativeButton={false}
-              >
-                {t('signUp')}
-              </Button>
+              {user ? (
+                <>
+                  <div className="flex items-center gap-3 rounded-lg border border-border p-3">
+                    <Avatar className="size-10">
+                      {user.avatarUrl ? (
+                        <AvatarImage src={user.avatarUrl} alt="" />
+                      ) : null}
+                      <AvatarFallback>
+                        {`${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex min-w-0 flex-col">
+                      <span className="truncate text-[15px] font-semibold text-foreground">
+                        {[user.firstName, user.lastName].filter(Boolean).join(' ') || '—'}
+                      </span>
+                      {user.description ? (
+                        <span className="truncate text-xs text-muted-foreground">
+                          {user.description}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="h-11 w-full justify-center gap-2 rounded-lg text-[15px] font-medium text-destructive hover:text-destructive"
+                    onClick={handleMobileLogout}
+                    disabled={isLoggingOut}
+                  >
+                    <LogOutIcon className="size-4" />
+                    {isLoggingOut ? tUser('loggingOut') : tUser('logout')}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    className="h-11 w-full rounded-lg text-[15px] font-medium"
+                    render={
+                      <Link href="/login" onClick={() => setMobileOpen(false)} />
+                    }
+                    nativeButton={false}
+                  >
+                    {t('logIn')}
+                  </Button>
+                  <Button
+                    className="h-11 w-full rounded-lg bg-brand text-[15px] font-medium text-brand-foreground hover:bg-brand/90"
+                    render={
+                      <Link href="/register" onClick={() => setMobileOpen(false)} />
+                    }
+                    nativeButton={false}
+                  >
+                    {t('signUp')}
+                  </Button>
+                </>
+              )}
             </div>
           </SheetContent>
         </Sheet>

@@ -37,12 +37,13 @@ export function BlogPostCard({
       whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-80px' }}
       transition={{ duration: 0.45, delay: index * 0.08, ease: 'easeOut' }}
+      className="h-full"
     >
       <a
         href="#"
-        className="group/post block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background rounded-xl"
+        className="group/post flex h-full flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background rounded-xl"
       >
-        <Card className="gap-0 border-0 bg-transparent py-0 shadow-none ring-0">
+        <Card className="flex h-full flex-col gap-0 border-0 bg-transparent py-0 shadow-none ring-0">
           <div className="relative aspect-[16/11] w-full overflow-hidden rounded-2xl bg-muted">
             <Image
               src={PLACEHOLDERS[image]}
@@ -52,7 +53,7 @@ export function BlogPostCard({
               className="object-cover transition-transform duration-500 ease-out group-hover/post:scale-[1.03]"
             />
           </div>
-          <div className="flex flex-col gap-2 pt-6">
+          <div className="flex flex-1 flex-col gap-2 pt-6">
             <span className="text-sm font-semibold text-brand">
               {category}
             </span>
@@ -69,7 +70,7 @@ export function BlogPostCard({
               {description}
             </p>
           </div>
-          <div className="flex items-center gap-3 pt-6">
+          <div className="mt-auto flex items-center gap-3 pt-6">
             <Avatar>
               <AvatarFallback className="bg-brand/10 text-xs font-semibold text-brand">
                 {avatar}

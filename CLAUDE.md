@@ -149,6 +149,101 @@ src/
 
 6. Consumers import only from `@/features/posts` — never deeper.
 
+The example above uses a single `api/actions.ts` and `model/schema.ts`. That's only correct while the feature has **one sub-flow**. As soon as a second sub-flow lands (e.g., `auth` gains `login`, `registration`, `email-verification`, `password-reset`), split per sub-flow — see "File Organization Within Features" below.
+
+---
+
+## File Organization Within Features — Split by Sub-Flow Early
+
+The folder layout (`api/`, `model/`, `components/`) splits a feature by **technical layer**. Within each layer, split further by **sub-flow** as soon as the feature has more than one. **Do not dump everything for a feature into a single `actions.ts` / `schema.ts` and "refactor later"** — split when the second sub-flow appears, not after the fifth.
+
+### Trigger to split
+
+Split a file as soon as **either** is true:
+
+- It would mix two or more unrelated sub-flows (e.g., `loginAction` + `confirmPasswordResetAction` in the same `actions.ts`).
+- It would cross ~150 lines from accumulating distinct concerns.
+
+A feature with a single sub-flow keeps a single `actions.ts` / `schema.ts`. **Don't pre-split for one concern** — that creates stub files, not structure. Splitting is triggered by a real second concern, not by anticipation.
+
+### How to split — one sub-flow per file, per layer
+
+Files are named after the sub-flow they implement. All artifacts of a sub-flow live next to each other inside their layer:
+
+```
+src/features/auth/
+├── api/
+│   ├── login.ts                  # loginAction
+│   ├── registration.ts           # registerAction
+│   ├── email-verification.ts     # verify + wait + hasSession
+│   ├── password-reset.ts         # request + confirm
+│   └── _shared.ts                # helpers used by ≥2 sub-flows
+├── model/
+│   ├── login.ts                  # loginSchema, LoginInput
+│   ├── registration.ts           # registerSchema, RegisterInput, NAME_MIN
+│   ├── email-verification.ts     # verifyEmailSchema, WaitResult
+│   ├── password-reset.ts         # forgotPasswordSchema + resetPasswordSchema (one flow)
+│   ├── types.ts                  # cross-flow types (AuthError, AuthResult)
+│   └── constants.ts              # cross-flow constants (PASSWORD_MIN, …)
+├── components/                   # already 1 file per form — same principle
+│   ├── login-form.tsx
+│   ├── register-form.tsx
+│   ├── forgot-password-form.tsx
+│   ├── reset-password-form.tsx
+│   └── verify-email-client.tsx
+└── index.ts                      # the only barrel; re-exports per sub-flow
+```
+
+Rules:
+
+- **One sub-flow per file** within a layer. A sub-flow's actions live in `api/<sub-flow>.ts`; its schemas + single-flow types/constants in `model/<sub-flow>.ts`; its components in `components/<sub-flow>-*.tsx`.
+- **Two related operations of the same sub-flow stay together.** `forgotPasswordSchema` and `resetPasswordSchema` are both "password-reset" — one file. `verifyEmailAction`, `waitForEmailVerificationAction`, and `hasSignupSessionAction` are all "email-verification" — one file. Don't split a sub-flow further unless it crosses the 150-line trigger on its own.
+- **Internal shared helpers** go in `_shared.ts` (underscore = internal, not re-exported from `index.ts`). Use this for things like `parseFieldError` / `safeErrorMessage` that ≥2 sub-flow files reuse. Don't call it `utils.ts` — `utils` is reserved for `shared/lib/utils.ts`.
+- **Cross-flow types and constants** live in `model/types.ts` / `model/constants.ts`. Single-flow types/constants stay in that flow's file (`NAME_MIN` lives in `model/registration.ts`, not `constants.ts`).
+- **No layer-level `index.ts`** in `api/` or `model/`. The feature root has the only barrel; internal code imports directly from sibling files (`./login`, `./password-reset`).
+- **Public API in the root `index.ts`** re-exports per sub-flow, grouped:
+
+  ```ts
+  // src/features/auth/index.ts
+  export { LoginForm } from './components/login-form';
+  export { loginAction } from './api/login';
+  export { loginSchema, type LoginInput } from './model/login';
+
+  export { RegisterForm } from './components/register-form';
+  export { registerAction } from './api/registration';
+  export { registerSchema, type RegisterInput } from './model/registration';
+
+  // …per sub-flow, in the same shape
+  ```
+
+### `shared/api/` — one HTTP client for the whole backend
+
+The app talks to **one backend domain**. There is one HTTP wrapper for it, and it lives in `shared/api/`. Features must not create their own:
+
+```
+src/shared/api/
+├── client.ts        # apiFetch — the only HTTP wrapper for the backend
+└── cookies.ts       # cookie forwarding utilities (parseSetCookie, forwardSetCookies)
+```
+
+`apiFetch` reads the backend URL from a single env var (`API_URL`), serializes JSON bodies, forwards cookies in both directions, and returns the raw `Response`. It contains zero business logic — every feature calls it directly with the explicit endpoint path.
+
+Forbidden:
+
+- A `client.ts` inside `features/<x>/api/` that re-implements `apiFetch`.
+- A per-feature wrapper around `apiFetch` "for convenience" (`userApi.ts`, `productApi.ts` that wrap method/path). Call `apiFetch` directly with the explicit path — the indirection costs more than it saves.
+- Multiple env vars for what is one backend (`AUTH_API_URL`, `BILLING_API_URL`, …). One backend → one `API_URL`.
+
+### Forbidden
+
+- **Don't pile multiple sub-flows into one `actions.ts` / `schema.ts`** and "split later". Split when the second sub-flow appears.
+- **Don't pre-split a single-flow feature** into stub files. Splitting is triggered by a real second concern.
+- **Don't create per-feature HTTP clients.** `@/shared/api/client` is the only `apiFetch`.
+- **Don't create layer-level barrel files** (`features/<x>/api/index.ts`, `features/<x>/model/index.ts`). Only the feature root has `index.ts`.
+- **Don't name the helpers file `utils.ts`.** Use `_shared.ts` inside a feature layer.
+
+---
+
 ## UI Components — shadcn/ui Only
 
 **Strict rule:** every component, every layout block, every primitive must be built on top of shadcn/ui. shadcn/ui is the ONLY source of UI primitives in this codebase — there are no exceptions. This applies to both atomic primitives (`Button`, `Input`, `Dialog`, `Select`, `Tooltip`, `Popover`, `Table`, etc.) and to layout/structural markup (cards, sections, sheets, navigation menus, sidebars, etc.). If shadcn/ui ships it, you use it.
@@ -989,6 +1084,11 @@ If the Playwright MCP is genuinely unavailable (server not connected, `mcp__play
 - **Don't** put `'use client'` on every file. Default is Server Component.
 - **Don't** import across features. `features/posts` must not import from `features/auth`.
 - **Don't** deep-import a feature's internals. Always go through the feature's `index.ts`.
+- **Don't** pile multiple sub-flows into one `actions.ts` / `schema.ts` and "split later". Split as soon as the second sub-flow lands (or at ~150 lines). See "File Organization Within Features".
+- **Don't** pre-split a single-flow feature into stub files. Splitting is triggered by a real second concern, not anticipation.
+- **Don't** create per-feature HTTP clients. `@/shared/api/client` is the only `apiFetch`. No `userApi.ts` / `productApi.ts` wrappers.
+- **Don't** create layer-level barrels (`features/<x>/api/index.ts`, `features/<x>/model/index.ts`). Only the feature root has `index.ts`.
+- **Don't** introduce per-service env vars when there's one backend. One backend → one `API_URL`.
 - **Don't** edit generated shadcn/ui files in `shared/ui/` — wrap them instead.
 - **Don't** hand-roll primitives that exist in shadcn/ui (`Button`, `Input`, `Dialog`, `Select`, etc.). Install via `pnpm dlx shadcn@latest add <component>`.
 - **Don't** build feature components from raw HTML when shadcn primitives exist — wrap and compose shadcn instead, then style with the `brand` token.

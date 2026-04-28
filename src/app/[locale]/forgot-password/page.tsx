@@ -1,13 +1,15 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { AuthLayout, RegisterForm } from '@/features/auth';
+import { AuthLayout, ForgotPasswordForm } from '@/features/auth';
 import { Link } from '@/shared/config/i18n/navigation';
 
-type RegisterPageProps = {
+type ForgotPasswordPageProps = {
   params: Promise<{ locale: string }>;
 };
 
-export default async function RegisterPage({ params }: RegisterPageProps) {
+export default async function ForgotPasswordPage({
+  params,
+}: ForgotPasswordPageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('auth');
@@ -15,18 +17,18 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
   return (
     <AuthLayout
       brandLabel={t('brand')}
-      title={t('register.title')}
-      description={t('register.description')}
+      title={t('forgotPassword.title')}
+      description={t('forgotPassword.description')}
       footer={
         <Link
-          href="/forgot-password"
+          href="/login"
           className="font-semibold text-brand transition-colors hover:text-brand/80"
         >
-          {t('forgotPassword.link')}
+          {t('forgotPassword.backToLogin')}
         </Link>
       }
     >
-      <RegisterForm />
+      <ForgotPasswordForm />
     </AuthLayout>
   );
 }
