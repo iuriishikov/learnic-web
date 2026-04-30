@@ -40,6 +40,8 @@ const userAvatarVariants = cva('shrink-0', {
   defaultVariants: { size: 'default' },
 });
 
+type AvatarShape = 'square' | 'circle';
+
 type UserAvatarProps = VariantProps<typeof userAvatarVariants> & {
   user: Pick<User, 'oid' | 'firstName' | 'lastName' | 'avatarUrl'> | null | undefined;
   className?: string;
@@ -49,6 +51,23 @@ type UserAvatarProps = VariantProps<typeof userAvatarVariants> & {
    */
   showLoadErrorIndicator?: boolean;
   online?: boolean;
+  /** Avatar silhouette. Defaults to `square` (rounded square) per design. */
+  shape?: AvatarShape;
+};
+
+const SHAPE_RADIUS: Record<AvatarShape, { root: string; image: string; fallback: string; after: string }> = {
+  circle: {
+    root: 'rounded-full',
+    image: 'rounded-full',
+    fallback: 'rounded-full',
+    after: 'after:rounded-full',
+  },
+  square: {
+    root: 'rounded-lg',
+    image: 'rounded-lg',
+    fallback: 'rounded-lg',
+    after: 'after:rounded-lg',
+  },
 };
 
 export function UserAvatar({
@@ -57,6 +76,7 @@ export function UserAvatar({
   className,
   showLoadErrorIndicator = true,
   online = false,
+  shape = 'square',
 }: UserAvatarProps) {
   const t = useTranslations('app');
   const hasUrl = Boolean(user?.avatarUrl);
@@ -76,21 +96,30 @@ export function UserAvatar({
   const showOnlineBadge = online && !showErrorBadge;
   const onlineLabel = t('presence.online');
 
+  const radius = SHAPE_RADIUS[shape];
+
   return (
     <Avatar
       size={size === 'sm' ? 'sm' : size === 'lg' ? 'lg' : 'default'}
-      className={cn(userAvatarVariants({ size }), className)}
+      className={cn(
+        userAvatarVariants({ size }),
+        radius.root,
+        radius.after,
+        className,
+      )}
     >
       {user?.avatarUrl ? (
         <AvatarImage
           src={user.avatarUrl}
           alt={displayName}
           onLoadingStatusChange={setStatus}
+          className={radius.image}
         />
       ) : null}
       <AvatarFallback
         className={cn(
           'font-semibold tracking-tight',
+          radius.fallback,
           isLoading
             ? 'bg-transparent p-0'
             : user
@@ -99,7 +128,7 @@ export function UserAvatar({
         )}
       >
         {isLoading ? (
-          <Skeleton className="size-full rounded-full" />
+          <Skeleton className={cn('size-full', radius.fallback)} />
         ) : (
           initials
         )}

@@ -1,1 +1,1 @@
-export { SiteFooter } from './ui/site-footer';
+export { SiteFooter, type SiteFooterVariant } from './ui/site-footer';

@@ -27,17 +27,39 @@
     "title": "Подтверждение email",
     "description": "Подтвердите адрес, чтобы активировать аккаунт."
   },
-  "dashboard": {
-    "title": "Дэшборд",
-    "description": "Главный экран рабочего пространства Learnic."
+  "marketplace": {
+    "title": "Маркетплейс",
+    "description": "Все курсы, уроки и подборки на одной странице."
   },
   "profile": {
     "title": "Профиль",
     "description": "Управляйте данными аккаунта и настройками."
   },
-  "products": {
-    "title": "Продукты",
-    "description": "Все ваши продукты в одном месте."
+  "teach": {
+    "products": {
+      "title": "Продукты",
+      "description": "Управление продуктами, тарифами и каталогом курсов студии."
+    },
+    "catalog": {
+      "title": "Каталог",
+      "description": "Все продукты, доступные ученикам."
+    },
+    "dashboard": {
+      "title": "Дашборд",
+      "description": "Сводка по студии — продажи, ученики, активность."
+    },
+    "overview": {
+      "title": "Обзор",
+      "description": "Ключевые метрики студии за выбранный период."
+    },
+    "settings": {
+      "title": "Настройки",
+      "description": "Параметры студии, оплаты и доступов."
+    },
+    "general": {
+      "title": "Общие настройки",
+      "description": "Базовая конфигурация студии."
+    }
   },
   "notFound": {
     "title": "Страница не найдена",
@@ -48,6 +70,7 @@
     "userAvatar": { "title": "Test — User Avatar" },
     "headerWhite": { "title": "Test — Header White" },
     "headerPurple": { "title": "Test — Header Purple" },
-    "studioMode": { "title": "Test — Studio Mode (Вариант A)" }
+    "teachButton": { "title": "Test — TeachButton variants" },
+    "userMenu": { "title": "Test — UserMenu" }
   }
 }

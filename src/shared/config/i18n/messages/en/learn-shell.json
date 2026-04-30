@@ -1,0 +1,10 @@
+{
+  "nav": {
+    "marketplace": "Маркетплейс",
+    "myCourses": "Мои курсы",
+    "community": "Сообщество"
+  },
+  "teachButton": {
+    "label": "Преподавать"
+  }
+}

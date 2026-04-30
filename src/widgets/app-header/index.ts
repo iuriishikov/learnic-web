@@ -1,9 +1,30 @@
 export { AppHeader } from './ui/app-header';
-export { AppSubHeader } from './ui/app-sub-header';
+export type { AppHeaderProps, AppHeaderNavItem } from './ui/app-header';
+
+export { AppHeaderShell } from './ui/app-header-shell';
 export {
-  SUB_HEADER_SECTIONS,
-  findActiveSubHeaderTab,
-  findSubHeaderSection,
-  type SubHeaderSection,
-  type SubHeaderTab,
-} from './ui/sub-header-sections';
+  HeaderConfigProvider,
+  useHeaderConfig,
+  useSetHeaderConfig,
+  type HeaderConfigValue,
+} from './ui/header-config-provider';
+export { HeaderConfig, type HeaderConfigProps } from './ui/header-config';
+
+export { AppSubHeader } from './ui/app-sub-header';
+export type { AppSubHeaderProps, AppSubHeaderTab } from './ui/app-sub-header';
+
+export { AppSubHeaderShell } from './ui/app-sub-header-shell';
+export {
+  SubHeaderConfigProvider,
+  useSubHeaderConfig,
+  useSetSubHeaderConfig,
+  type SubHeaderConfigValue,
+} from './ui/sub-header-config-provider';
+export {
+  SubHeaderConfig,
+  type SubHeaderConfigProps,
+} from './ui/sub-header-config';
+
+export { TeachButton } from './ui/teach-button';
+
+export { UserMenu } from './ui/user-menu';

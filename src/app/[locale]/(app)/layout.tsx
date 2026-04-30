@@ -5,7 +5,12 @@ import type { ReactNode } from 'react';
 import { sanitizeRedirectTarget } from '@/features/auth/lib/redirect';
 import { getCurrentUser } from '@/features/auth/server';
 import { redirect } from '@/shared/config/i18n/navigation';
-import { AppHeader, AppSubHeader } from '@/widgets/app-header';
+import {
+  AppHeaderShell,
+  AppSubHeaderShell,
+  HeaderConfigProvider,
+  SubHeaderConfigProvider,
+} from '@/widgets/app-header';
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -22,17 +27,19 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
   if (!user) {
     const requestHeaders = await headers();
     const from = sanitizeRedirectTarget(requestHeaders.get('x-pathname'));
-    const href = from
-      ? `/login?from=${encodeURIComponent(from)}`
-      : '/login';
+    const href = from ? `/login?from=${encodeURIComponent(from)}` : '/login';
     redirect({ href, locale });
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <AppHeader />
-      <AppSubHeader />
-      <main className="flex-1">{children}</main>
-    </div>
+    <HeaderConfigProvider>
+      <SubHeaderConfigProvider>
+        <div className="flex min-h-screen flex-col bg-background">
+          <AppHeaderShell />
+          <AppSubHeaderShell />
+          <main className="flex-1">{children}</main>
+        </div>
+      </SubHeaderConfigProvider>
+    </HeaderConfigProvider>
   );
 }

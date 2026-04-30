@@ -11,6 +11,17 @@
     "logIn": "Войти",
     "signUp": "Регистрация",
     "openMenu": "Consectetur",
+    "closeMenu": "Adipiscing",
+    "mobileFooter": {
+      "columns": [
+        {
+          "items": ["Lorem", "Ipsum", "Dolor", "Sit"]
+        },
+        {
+          "items": ["Amet", "Consectetur", "Elit", "Sed"]
+        }
+      ]
+    },
     "theme": {
       "toggle": "Сменить тему",
       "light": "Светлая",
@@ -54,8 +65,27 @@
   },
   "footer": {
     "brand": "Learnic",
+    "tagline": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
     "newBadge": "New",
     "copyright": "© {year} Learnic. Все права защищены.",
+    "newsletter": {
+      "title": "Lorem ipsum dolor sit amet",
+      "mobileTitle": "Lorem ipsum",
+      "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "Email",
+      "subscribe": "Подписаться"
+    },
+    "social": {
+      "label": "Социальные сети",
+      "items": [
+        { "key": "x", "label": "X" },
+        { "key": "linkedin", "label": "LinkedIn" },
+        { "key": "facebook", "label": "Facebook" },
+        { "key": "github", "label": "GitHub" },
+        { "key": "dribbble", "label": "Dribbble" }
+      ]
+    },
     "columns": [
       {
         "title": "Lorem",
@@ -110,17 +140,6 @@
           { "label": "Esse" },
           { "label": "Cillum" },
           { "label": "Fugiat" }
-        ]
-      },
-      {
-        "title": "Consectetur",
-        "items": [
-          { "label": "Nulla" },
-          { "label": "Pariatur" },
-          { "label": "Excepteur" },
-          { "label": "Sint" },
-          { "label": "Occaecat" },
-          { "label": "Cupidatat" }
         ]
       }
     ]

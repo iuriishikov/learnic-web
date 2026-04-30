@@ -2,73 +2,89 @@
 
 import { BellIcon, MenuIcon, SettingsIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { ReactNode } from 'react';
 import { useState } from 'react';
 
-import { UserAvatar, useAuth, type User } from '@/features/auth';
-import { usePresence } from '@/features/presence';
+import { UserAvatar, useAuth } from '@/features/auth';
 import { Link, usePathname } from '@/shared/config/i18n/navigation';
 import { cn } from '@/shared/lib/utils';
 import { BrandMark } from '@/shared/ui/brand-mark';
 import { Button } from '@/shared/ui/button';
+import { NavTabsRouter, type NavTabRoute } from '@/shared/ui/nav-tabs-router';
 import { Sheet, SheetContent, SheetTrigger } from '@/shared/ui/sheet';
 
-type NavKey = 'home' | 'dashboard' | 'products' | 'tasks' | 'reporting' | 'users';
+import { BrandSuffix } from './brand-suffix';
+import { UserMenu } from './user-menu';
 
-const NAV_ITEMS: { key: NavKey; href: string }[] = [
-  { key: 'home', href: '/' },
-  { key: 'dashboard', href: '/dashboard' },
-  { key: 'products', href: '/products' },
-  { key: 'tasks', href: '/tasks' },
-  { key: 'reporting', href: '/reporting' },
-  { key: 'users', href: '/users' },
-];
-
-type AppHeaderProps = {
-  activeNavKey?: NavKey;
+export type AppHeaderNavItem = {
+  key: string;
+  href: string;
+  label: string;
 };
 
-export function AppHeader({ activeNavKey }: AppHeaderProps = {}) {
+export type AppHeaderProps = {
+  /** Primary navigation items rendered in the centre of the header (and inside the mobile sheet). */
+  navItems?: AppHeaderNavItem[];
+  /** Active item key. When omitted, falls back to pathname-based matching. */
+  activeKey?: string;
+  /** Slot rendered before the bell on desktop and at the top of the mobile sheet. */
+  actions?: ReactNode;
+  /** Slot rendered at the bottom of the mobile sheet (use for mode switches, secondary CTAs). */
+  mobileActions?: ReactNode;
+  /** Optional element rendered immediately after the brand mark — e.g. a "Studio" badge. */
+  brandSuffix?: ReactNode;
+  /** Where the brand mark links to. Defaults to `/`. */
+  brandHref?: string;
+};
+
+export function AppHeader({
+  navItems = [],
+  activeKey,
+  actions,
+  mobileActions,
+  brandSuffix,
+  brandHref = '/',
+}: AppHeaderProps = {}) {
   const t = useTranslations('app-header');
   const pathname = usePathname();
   const { user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  function isActive(item: (typeof NAV_ITEMS)[number]): boolean {
-    if (activeNavKey) return activeNavKey === item.key;
-    if (item.href === '/') return pathname === '/';
-    return pathname === item.href || pathname.startsWith(`${item.href}/`);
+  const resolvedActiveKey =
+    activeKey ?? findLongestMatchKey(navItems, pathname);
+
+  function isActive(item: AppHeaderNavItem): boolean {
+    return resolvedActiveKey === item.key;
   }
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background">
       <div className="mx-auto flex h-[72px] w-full max-w-[1440px] items-center justify-between gap-3 px-4 md:gap-6 md:px-8">
-        <div className="flex min-w-0 items-center gap-3 md:gap-10">
-          <Link href="/" aria-label={t('brand')} className="shrink-0">
+        <div className="flex min-w-0 items-center gap-3 md:gap-8">
+          <Link
+            href={brandHref}
+            aria-label={t('brand')}
+            className="flex shrink-0 items-center"
+          >
             <BrandMark label={t('brand')} size="sm" />
+            <BrandSuffix>{brandSuffix}</BrandSuffix>
           </Link>
-          <nav className="hidden items-center gap-1 lg:flex">
-            {NAV_ITEMS.map((item) => {
-              const active = isActive(item);
-              return (
-                <Link
-                  key={item.key}
-                  href={item.href}
-                  aria-current={active ? 'page' : undefined}
-                  className={cn(
-                    'rounded-md px-3 py-1.5 text-sm font-semibold transition-colors',
-                    active
-                      ? 'bg-muted text-foreground'
-                      : 'text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  {t(`nav.${item.key}`)}
-                </Link>
-              );
-            })}
-          </nav>
+          {navItems.length > 0 ? (
+            <NavTabsRouter
+              tabs={navItems satisfies NavTabRoute[]}
+              activeKey={resolvedActiveKey}
+              variant="pill"
+              layoutId="app-header-nav"
+              ariaLabel={t('navAriaLabel')}
+              className="hidden lg:flex"
+            />
+          ) : null}
         </div>
 
         <div className="flex items-center gap-2">
+          {actions ? (
+            <div className="hidden items-center gap-2 md:flex">{actions}</div>
+          ) : null}
           <Button
             variant="outline"
             size="icon"
@@ -93,7 +109,7 @@ export function AppHeader({ activeNavKey }: AppHeaderProps = {}) {
           </Button>
 
           {user ? (
-            <UserAvatarLink user={user} />
+            <UserMenu user={user} />
           ) : (
             <UserAvatar user={null} size="lg" />
           )}
@@ -115,29 +131,37 @@ export function AppHeader({ activeNavKey }: AppHeaderProps = {}) {
               side="right"
               className="flex w-[85vw] max-w-sm flex-col gap-0 p-6"
             >
-              <div className="mb-8">
+              <div className="mb-2 flex items-center gap-2">
                 <BrandMark label={t('brand')} size="md" />
               </div>
-              <nav className="flex flex-col">
-                {NAV_ITEMS.map((item) => {
-                  const active = isActive(item);
-                  return (
-                    <Link
-                      key={item.key}
-                      href={item.href}
-                      onClick={() => setMobileOpen(false)}
-                      className={cn(
-                        'rounded-lg px-2 py-3 text-base font-medium transition-colors',
-                        active
-                          ? 'bg-muted text-foreground'
-                          : 'text-foreground hover:bg-muted',
-                      )}
-                    >
-                      {t(`nav.${item.key}`)}
-                    </Link>
-                  );
-                })}
-              </nav>
+              <div className="mb-6">
+                <BrandSuffix variant="block">{brandSuffix}</BrandSuffix>
+              </div>
+              {actions ? (
+                <div className="mb-6 flex flex-col gap-2">{actions}</div>
+              ) : null}
+              {navItems.length > 0 ? (
+                <nav className="flex flex-col">
+                  {navItems.map((item) => {
+                    const active = isActive(item);
+                    return (
+                      <Link
+                        key={item.key}
+                        href={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        className={cn(
+                          'rounded-lg px-2 py-3 text-base font-medium transition-colors',
+                          active
+                            ? 'bg-muted text-foreground'
+                            : 'text-foreground hover:bg-muted',
+                        )}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </nav>
+              ) : null}
               <div className="mt-6 flex flex-col gap-2">
                 <Button
                   variant="outline"
@@ -147,6 +171,11 @@ export function AppHeader({ activeNavKey }: AppHeaderProps = {}) {
                   {t('settings')}
                 </Button>
               </div>
+              {mobileActions ? (
+                <div className="mt-auto border-t border-border pt-6">
+                  {mobileActions}
+                </div>
+              ) : null}
             </SheetContent>
           </Sheet>
         </div>
@@ -155,18 +184,27 @@ export function AppHeader({ activeNavKey }: AppHeaderProps = {}) {
   );
 }
 
-function UserAvatarLink({ user }: { user: User }) {
-  const t = useTranslations('app-header');
-  const presence = usePresence(user.oid);
-  const isOnline = presence === 'online';
-
-  return (
-    <Link
-      href={`/users/${user.oid}`}
-      aria-label={t('userAvatar')}
-      className="rounded-full focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-    >
-      <UserAvatar user={user} size="lg" online={isOnline} />
-    </Link>
-  );
+function findLongestMatchKey(
+  items: AppHeaderNavItem[],
+  pathname: string,
+): string | undefined {
+  let bestKey: string | undefined;
+  let bestLength = -1;
+  for (const item of items) {
+    if (item.href === '/') {
+      if (pathname === '/' && bestLength < 1) {
+        bestKey = item.key;
+        bestLength = 1;
+      }
+      continue;
+    }
+    const matches =
+      pathname === item.href || pathname.startsWith(`${item.href}/`);
+    if (matches && item.href.length > bestLength) {
+      bestKey = item.key;
+      bestLength = item.href.length;
+    }
+  }
+  return bestKey;
 }
+

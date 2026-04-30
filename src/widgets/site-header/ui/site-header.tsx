@@ -8,9 +8,17 @@ import {
   MenuIcon,
   PlayCircleIcon,
   SparklesIcon,
+  XIcon,
 } from 'lucide-react';
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+  type Transition,
+  type Variants,
+} from 'motion/react';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 import { Link } from '@/shared/config/i18n/navigation';
 import { PLACEHOLDERS } from '@/shared/lib/placeholders';
@@ -25,7 +33,14 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from '@/shared/ui/navigation-menu';
-import { Sheet, SheetContent, SheetTrigger } from '@/shared/ui/sheet';
+import { Separator } from '@/shared/ui/separator';
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from '@/shared/ui/sheet';
 
 type NavKey = 'products' | 'services' | 'pricing' | 'resources' | 'about';
 
@@ -40,6 +55,7 @@ const NAV_ITEMS: { key: NavKey; hasMenu: boolean }[] = [
 const MEGA_MENU_ICONS = [BookOpenIcon, SparklesIcon, PlayCircleIcon, FileTextIcon];
 
 type MegaMenuItem = { title: string; description: string };
+type MobileFooterColumn = { items: string[] };
 
 type SiteHeaderProps = {
   bordered?: boolean;
@@ -56,6 +72,9 @@ export function SiteHeader({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const megaMenuItems = t.raw('megaMenu.items') as MegaMenuItem[];
+  const mobileFooterColumns = t.raw(
+    'mobileFooter.columns',
+  ) as MobileFooterColumn[];
   const isLight = tone === 'light';
 
   const navTriggerToneClasses = isLight
@@ -77,6 +96,8 @@ export function SiteHeader({
   const mobileTriggerToneClasses = isLight
     ? 'text-brand-foreground hover:bg-brand-foreground/10 hover:text-brand-foreground'
     : '';
+
+  const closeMobile = () => setMobileOpen(false);
 
   return (
     <header
@@ -170,54 +191,289 @@ export function SiteHeader({
           </SheetTrigger>
           <SheetContent
             side="right"
-            className="flex w-[85vw] max-w-sm flex-col gap-0 p-6"
+            showCloseButton={false}
+            className="flex flex-col gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-md"
           >
-            <div className="mb-8">
-              <BrandMark label={t('brand')} size="md" />
-            </div>
-            <nav className="flex flex-col">
-              {NAV_ITEMS.map((item) => (
-                <a
-                  key={item.key}
-                  href="#"
-                  onClick={() => setMobileOpen(false)}
-                  className={cn(
-                    'flex items-center justify-between rounded-lg px-2 py-3 text-base font-medium text-foreground',
-                    'hover:bg-muted',
-                  )}
-                >
-                  {t(`nav.${item.key}`)}
-                  {item.hasMenu && (
-                    <ChevronDownIcon className="size-4 text-muted-foreground" />
-                  )}
-                </a>
-              ))}
-            </nav>
-            <div className="mt-auto flex flex-col gap-2 pt-6">
-              <Button
-                variant="outline"
-                className="h-11 w-full rounded-lg text-[15px] font-medium"
-                render={
-                  <Link href="/login" onClick={() => setMobileOpen(false)} />
-                }
-                nativeButton={false}
-              >
-                {t('logIn')}
-              </Button>
-              <Button
-                className="h-11 w-full rounded-lg bg-brand text-[15px] font-medium text-brand-foreground hover:bg-brand/90"
-                render={
-                  <Link href="/register" onClick={() => setMobileOpen(false)} />
-                }
-                nativeButton={false}
-              >
-                {t('signUp')}
-              </Button>
-            </div>
+            <SheetTitle className="sr-only">{t('openMenu')}</SheetTitle>
+            <MobileMenu
+              brand={t('brand')}
+              megaMenuItems={megaMenuItems}
+              mobileFooterColumns={mobileFooterColumns}
+              onNavigate={closeMobile}
+              closeLabel={t('closeMenu')}
+              logInLabel={t('logIn')}
+              signUpLabel={t('signUp')}
+            />
           </SheetContent>
         </Sheet>
       </div>
     </header>
+  );
+}
+
+type MobileMenuProps = {
+  brand: string;
+  megaMenuItems: MegaMenuItem[];
+  mobileFooterColumns: MobileFooterColumn[];
+  onNavigate: () => void;
+  closeLabel: string;
+  logInLabel: string;
+  signUpLabel: string;
+};
+
+const EASE_OUT_EXPO = [0.22, 1, 0.36, 1] as const;
+const EASE_IN_QUAD = [0.4, 0, 1, 1] as const;
+
+function MobileMenu({
+  brand,
+  megaMenuItems,
+  mobileFooterColumns,
+  onNavigate,
+  closeLabel,
+  logInLabel,
+  signUpLabel,
+}: MobileMenuProps) {
+  const t = useTranslations('home.header');
+  const reduceMotion = useReducedMotion();
+  const [openKey, setOpenKey] = useState<NavKey | null>(null);
+
+  const panelTransition: Transition = reduceMotion
+    ? { duration: 0 }
+    : {
+        height: { duration: 0.34, ease: EASE_OUT_EXPO },
+        opacity: { duration: 0.22, ease: EASE_OUT_EXPO },
+      };
+
+  const listVariants: Variants = {
+    hidden: {
+      transition: reduceMotion
+        ? {}
+        : { staggerChildren: 0.025, staggerDirection: -1 },
+    },
+    visible: {
+      transition: reduceMotion
+        ? {}
+        : { staggerChildren: 0.045, delayChildren: 0.06 },
+    },
+  };
+
+  const itemVariants: Variants = {
+    hidden: reduceMotion
+      ? { opacity: 1, y: 0 }
+      : {
+          opacity: 0,
+          y: -4,
+          transition: { duration: 0.16, ease: EASE_IN_QUAD },
+        },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.26, ease: EASE_OUT_EXPO },
+    },
+  };
+
+  return (
+    <div className="flex h-full flex-col bg-background">
+      <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-4">
+        <Link href="/" onClick={onNavigate} aria-label={brand}>
+          <BrandMark label={brand} size="md" />
+        </Link>
+        <SheetClose
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-10 -mr-2 text-muted-foreground hover:text-foreground"
+              aria-label={closeLabel}
+            />
+          }
+        >
+          <XIcon className="size-5" />
+        </SheetClose>
+      </div>
+
+      <div className="flex-1 overflow-y-auto overscroll-contain">
+        <nav className="flex flex-col px-2 py-3">
+          {NAV_ITEMS.map((item) =>
+            item.hasMenu ? (
+              <MobileNavSection
+                key={item.key}
+                label={t(`nav.${item.key}`)}
+                open={openKey === item.key}
+                onToggle={() =>
+                  setOpenKey((prev) => (prev === item.key ? null : item.key))
+                }
+                megaMenuItems={megaMenuItems}
+                onNavigate={onNavigate}
+                reduceMotion={!!reduceMotion}
+                listVariants={listVariants}
+                itemVariants={itemVariants}
+                panelTransition={panelTransition}
+              />
+            ) : (
+              <Link
+                key={item.key}
+                href="#"
+                onClick={onNavigate}
+                className={cn(
+                  'flex items-center justify-between rounded-lg px-3 py-3 text-base font-semibold text-foreground',
+                  'transition-colors hover:bg-muted',
+                )}
+              >
+                {t(`nav.${item.key}`)}
+              </Link>
+            ),
+          )}
+        </nav>
+
+        <Separator />
+
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3 px-5 py-5">
+          {mobileFooterColumns.map((col, ci) => (
+            <ul key={ci} className="flex flex-col gap-3">
+              {col.items.map((label) => (
+                <li key={label}>
+                  <a
+                    href="#"
+                    onClick={onNavigate}
+                    className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ))}
+        </div>
+      </div>
+
+      <div
+        className={cn(
+          'flex shrink-0 flex-col gap-2 border-t border-border bg-background px-5 pt-4',
+          'pb-[max(env(safe-area-inset-bottom),1rem)]',
+        )}
+      >
+        <Button
+          className="h-11 w-full rounded-lg bg-brand text-[15px] font-medium text-brand-foreground hover:bg-brand/90"
+          render={<Link href="/register" onClick={onNavigate} />}
+          nativeButton={false}
+        >
+          {signUpLabel}
+        </Button>
+        <Button
+          variant="outline"
+          className="h-11 w-full rounded-lg text-[15px] font-medium"
+          render={<Link href="/login" onClick={onNavigate} />}
+          nativeButton={false}
+        >
+          {logInLabel}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+type MobileNavSectionProps = {
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+  megaMenuItems: MegaMenuItem[];
+  onNavigate: () => void;
+  reduceMotion: boolean;
+  listVariants: Variants;
+  itemVariants: Variants;
+  panelTransition: Transition;
+};
+
+function MobileNavSection({
+  label,
+  open,
+  onToggle,
+  megaMenuItems,
+  onNavigate,
+  reduceMotion,
+  listVariants,
+  itemVariants,
+  panelTransition,
+}: MobileNavSectionProps) {
+  const panelId = useId();
+  const triggerId = useId();
+
+  return (
+    <div>
+      <button
+        id={triggerId}
+        type="button"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={onToggle}
+        className={cn(
+          'flex w-full items-center justify-between rounded-lg px-3 py-3 text-left text-base font-semibold text-foreground',
+          'transition-colors outline-none hover:bg-muted focus-visible:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50',
+        )}
+      >
+        <span>{label}</span>
+        <motion.span
+          aria-hidden
+          className="ml-2 flex shrink-0"
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={
+            reduceMotion
+              ? { duration: 0 }
+              : { duration: 0.28, ease: EASE_OUT_EXPO }
+          }
+        >
+          <ChevronDownIcon className="size-5 text-muted-foreground" />
+        </motion.span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.section
+            key="panel"
+            id={panelId}
+            aria-labelledby={triggerId}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={panelTransition}
+            style={{ overflow: 'hidden' }}
+          >
+            <motion.ul
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              variants={listVariants}
+              className="mt-2 mb-2 flex flex-col gap-1 rounded-xl border border-border bg-card/50 p-2"
+            >
+              {megaMenuItems.map((sub, i) => {
+                const Icon = MEGA_MENU_ICONS[i] ?? BookOpenIcon;
+                return (
+                  <motion.li key={sub.title} variants={itemVariants}>
+                    <Link
+                      href="#"
+                      onClick={onNavigate}
+                      className="flex items-start gap-3 rounded-lg p-2 no-underline transition-colors hover:bg-muted hover:no-underline"
+                    >
+                      <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background">
+                        <Icon className="size-[18px] text-brand" />
+                      </span>
+                      <span className="flex flex-col gap-0.5">
+                        <span className="text-sm font-semibold text-foreground">
+                          {sub.title}
+                        </span>
+                        <span className="text-xs leading-relaxed text-muted-foreground">
+                          {sub.description}
+                        </span>
+                      </span>
+                    </Link>
+                  </motion.li>
+                );
+              })}
+            </motion.ul>
+          </motion.section>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 

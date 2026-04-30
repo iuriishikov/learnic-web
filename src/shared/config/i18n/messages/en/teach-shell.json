@@ -1,0 +1,27 @@
+{
+  "studioBadge": "Студия",
+  "nav": {
+    "products": "Продукты",
+    "dashboard": "Дашборд",
+    "settings": "Настройки"
+  },
+  "products": {
+    "ariaLabel": "Разделы продуктов",
+    "tabs": {
+      "general": "Общие",
+      "catalog": "Каталог"
+    }
+  },
+  "dashboard": {
+    "ariaLabel": "Разделы дашборда",
+    "tabs": {
+      "overview": "Обзор"
+    }
+  },
+  "settings": {
+    "ariaLabel": "Разделы настроек",
+    "tabs": {
+      "general": "Общие"
+    }
+  }
+}

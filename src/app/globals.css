@@ -6,7 +6,7 @@
 
 :root {
 
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 
   --brand-50: #f3f2fd;
@@ -66,6 +66,8 @@
 
   --online: oklch(0.66 0.18 145);
   --online-foreground: oklch(0.985 0 0);
+
+  --surface-subtle: oklch(0.965 0.014 277);
 }
 
 @theme inline {
@@ -85,9 +87,9 @@
   --color-brand-800: var(--brand-800);
   --color-brand-900: var(--brand-900);
 
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
+  --font-heading: var(--font-inter);
   --color-avatar-foreground: var(--avatar-foreground);
   --color-avatar-1: var(--avatar-1);
   --color-avatar-2: var(--avatar-2);
@@ -100,6 +102,8 @@
 
   --color-online: var(--online);
   --color-online-foreground: var(--online-foreground);
+
+  --color-surface-subtle: var(--surface-subtle);
 
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -228,6 +232,8 @@
   --online: oklch(0.7 0.19 145);
 
   --online-foreground: oklch(0.145 0 0);
+
+  --surface-subtle: oklch(0.13 0.022 277);
 }
 
 @layer base {
@@ -239,6 +245,7 @@
   }
   html {
     @apply font-sans;
+    scrollbar-gutter: stable;
   }
   button:not(:disabled),
   [role="button"]:not(:disabled) {

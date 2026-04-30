@@ -66,7 +66,7 @@ export function VerifyEmailClient({
       const result = await waitForEmailVerificationAction();
       if (cancelled) return;
       if (result === 'verified') {
-        router.push(safeFrom ?? '/');
+        router.push(safeFrom ?? '/marketplace');
         router.refresh();
         return;
       }

@@ -1,30 +1,126 @@
 import { getTranslations } from 'next-intl/server';
 
 import { Link } from '@/shared/config/i18n/navigation';
+import { cn } from '@/shared/lib/utils';
 import { Badge } from '@/shared/ui/badge';
 import { BrandMark } from '@/shared/ui/brand-mark';
-import { Separator } from '@/shared/ui/separator';
-import { ThemeToggle } from '@/shared/ui/theme-toggle';
+
+import { NewsletterForm } from './newsletter-form';
+import { SocialIcons } from './social-icons';
 
 type FooterColumn = {
   title: string;
   items: Array<{ label: string; isNew?: boolean }>;
 };
 
-export async function SiteFooter() {
+type SocialKey = 'x' | 'linkedin' | 'facebook' | 'github' | 'dribbble';
+type SocialItem = { key: SocialKey; label: string };
+
+export type SiteFooterVariant = 'purple' | 'white';
+
+type SiteFooterProps = {
+  variant?: SiteFooterVariant;
+};
+
+export async function SiteFooter({ variant = 'purple' }: SiteFooterProps = {}) {
   const t = await getTranslations('home.footer');
   const currentYear = new Date().getFullYear();
   const columns = t.raw('columns') as FooterColumn[];
+  const socialItems = t.raw('social.items') as SocialItem[];
+
+  const isPurple = variant === 'purple';
+
+  const surfaceClasses = isPurple
+    ? 'bg-[#5C45D1] text-brand-foreground'
+    : 'bg-background text-foreground';
+
+  const newsletterSurfaceClasses = isPurple
+    ? 'bg-[#5C45D1]'
+    : 'bg-secondary dark:bg-card';
+
+  const dividerClasses = isPurple
+    ? 'border-brand-foreground/15'
+    : 'border-border';
+
+  const headlineToneClasses = isPurple
+    ? 'text-brand-foreground'
+    : 'text-foreground';
+
+  const subduedToneClasses = isPurple
+    ? 'text-brand-foreground/70'
+    : 'text-muted-foreground';
+
+  const linkToneClasses = isPurple
+    ? 'text-brand-foreground hover:text-brand-foreground/80'
+    : 'text-foreground hover:text-brand';
+
+  const newBadgeClasses = isPurple
+    ? 'border-brand-foreground/30 text-brand-foreground/90'
+    : 'border-border text-muted-foreground';
 
   return (
-    <footer className="w-full">
-      <div className="mx-auto w-full max-w-[1216px] px-4 md:px-6">
-        <Separator />
-        <div className="pt-12 md:pt-16">
-          <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-3 lg:grid-cols-6">
+    <footer className={cn('w-full', surfaceClasses)}>
+      <div className={newsletterSurfaceClasses}>
+        <div className="mx-auto w-full max-w-[1216px] px-4 py-12 md:px-6 md:py-16">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between md:gap-10">
+            <div className="flex flex-col gap-3">
+              <h2
+                className={cn(
+                  'text-2xl font-semibold leading-tight tracking-tight md:text-[32px] md:leading-[1.15]',
+                  headlineToneClasses,
+                )}
+              >
+                {t('newsletter.title')}
+              </h2>
+              <p
+                className={cn(
+                  'max-w-[520px] text-base leading-relaxed',
+                  subduedToneClasses,
+                )}
+              >
+                {t('newsletter.description')}
+              </p>
+            </div>
+            <NewsletterForm variant={variant} />
+          </div>
+        </div>
+      </div>
+
+      <div className={cn('border-t', dividerClasses)} />
+
+      <div className="mx-auto w-full max-w-[1216px] px-4 py-12 md:px-6 md:py-16">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[300px_1fr] lg:gap-16">
+          <div className="flex flex-col gap-6">
+            <Link
+              href="/"
+              aria-label={t('brand')}
+              className="inline-flex w-fit"
+            >
+              <BrandMark
+                label={t('brand')}
+                size="md"
+                tone={isPurple ? 'light' : 'dark'}
+              />
+            </Link>
+            <p
+              className={cn(
+                'max-w-[280px] text-base leading-relaxed',
+                subduedToneClasses,
+              )}
+            >
+              {t('tagline')}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-3 lg:grid-cols-5">
             {columns.map((column) => (
               <div key={column.title} className="flex flex-col gap-4">
-                <h3 className="text-sm font-medium text-muted-foreground">
+                <h3
+                  className={cn(
+                    'text-sm font-medium',
+                    subduedToneClasses,
+                  )}
+                >
                   {column.title}
                 </h3>
                 <ul className="flex flex-col gap-3">
@@ -32,13 +128,19 @@ export async function SiteFooter() {
                     <li key={item.label}>
                       <a
                         href="#"
-                        className="inline-flex items-center gap-2 text-sm font-semibold text-foreground transition-colors hover:text-brand"
+                        className={cn(
+                          'inline-flex items-center gap-2 text-sm font-semibold transition-colors',
+                          linkToneClasses,
+                        )}
                       >
                         {item.label}
                         {item.isNew ? (
                           <Badge
                             variant="outline"
-                            className="h-[18px] rounded-md px-1.5 text-[10px] text-muted-foreground"
+                            className={cn(
+                              'h-[18px] rounded-md px-1.5 text-[10px]',
+                              newBadgeClasses,
+                            )}
                           >
                             {t('newBadge')}
                           </Badge>
@@ -52,17 +154,17 @@ export async function SiteFooter() {
           </div>
         </div>
 
-        <Separator className="mt-12 md:mt-16" />
-        <div className="flex flex-col gap-6 py-8 md:flex-row md:items-center md:justify-between">
-          <Link href="/" aria-label={t('brand')}>
-            <BrandMark label={t('brand')} size="sm" />
-          </Link>
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <p className="text-sm text-muted-foreground">
-              {t('copyright', { year: currentYear })}
-            </p>
-          </div>
+        <div className={cn('mt-12 border-t md:mt-16', dividerClasses)} />
+
+        <div className="flex flex-col gap-6 pt-8 md:flex-row md:items-center md:justify-between">
+          <p className={cn('text-sm', subduedToneClasses)}>
+            {t('copyright', { year: currentYear })}
+          </p>
+          <SocialIcons
+            items={socialItems}
+            variant={variant}
+            label={t('social.label')}
+          />
         </div>
       </div>
     </footer>
