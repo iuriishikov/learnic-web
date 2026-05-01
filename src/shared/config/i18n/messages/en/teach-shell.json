@@ -1,5 +1,8 @@
 {
   "studioBadge": "Студия",
+  "breadcrumbs": {
+    "root": "Студия"
+  },
   "nav": {
     "products": "Продукты",
     "dashboard": "Дашборд",

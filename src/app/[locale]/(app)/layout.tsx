@@ -4,10 +4,14 @@ import type { ReactNode } from 'react';
 
 import { sanitizeRedirectTarget } from '@/features/auth/lib/redirect';
 import { getCurrentUser } from '@/features/auth/server';
+import { QueryProvider } from '@/shared/api/query-provider';
 import { redirect } from '@/shared/config/i18n/navigation';
+import { Toaster } from '@/shared/ui/sonner';
 import {
+  AppBreadcrumbsShell,
   AppHeaderShell,
   AppSubHeaderShell,
+  BreadcrumbConfigProvider,
   HeaderConfigProvider,
   SubHeaderConfigProvider,
 } from '@/widgets/app-header';
@@ -32,14 +36,20 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
   }
 
   return (
-    <HeaderConfigProvider>
-      <SubHeaderConfigProvider>
-        <div className="flex min-h-screen flex-col bg-background">
-          <AppHeaderShell />
-          <AppSubHeaderShell />
-          <main className="flex-1">{children}</main>
-        </div>
-      </SubHeaderConfigProvider>
-    </HeaderConfigProvider>
+    <QueryProvider>
+      <HeaderConfigProvider>
+        <SubHeaderConfigProvider>
+          <BreadcrumbConfigProvider>
+            <div className="flex min-h-screen flex-col bg-background">
+              <AppHeaderShell />
+              <AppSubHeaderShell />
+              <AppBreadcrumbsShell />
+              <main className="flex-1">{children}</main>
+            </div>
+            <Toaster />
+          </BreadcrumbConfigProvider>
+        </SubHeaderConfigProvider>
+      </HeaderConfigProvider>
+    </QueryProvider>
   );
 }

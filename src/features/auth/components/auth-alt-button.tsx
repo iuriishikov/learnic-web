@@ -27,7 +27,7 @@ export function AuthAltButton({
       variant="outline"
       disabled={disabled}
       className={cn(
-        'h-11 w-full rounded-lg px-4 text-[15px] font-semibold',
+        'h-11 w-full rounded-lg px-4 text-[15px] font-normal text-foreground',
         className,
       )}
       render={<Link href={target} />}

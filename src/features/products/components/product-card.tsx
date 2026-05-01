@@ -2,7 +2,6 @@
 
 import {
   ArchiveIcon,
-  CalendarClockIcon,
   ClockIcon,
   CopyIcon,
   EllipsisIcon,
@@ -10,12 +9,14 @@ import {
   LayersIcon,
   PencilIcon,
   RadioIcon,
+  TagIcon,
   Trash2Icon,
-  UsersIcon,
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { useCallback } from 'react';
 
+import { useRouter } from '@/shared/config/i18n/navigation';
 import { cn } from '@/shared/lib/utils';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
@@ -34,10 +35,21 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 
-import type { Product } from '../model/types';
+import { coverGradient } from '../lib/cover-hue';
+import {
+  hasDescriptionContent,
+  looksLikeHtml,
+} from '../lib/description-html';
+import type { Currency, Product } from '../model/types';
 
 type ProductCardProps = {
   product: Product;
+};
+
+const CURRENCY_LOCALE_OVERRIDE: Partial<Record<Currency, string>> = {
+  RUB: 'ru-RU',
+  KZT: 'ru-KZ',
+  BYN: 'ru-BY',
 };
 
 export function ProductCard({ product }: ProductCardProps) {
@@ -47,20 +59,33 @@ export function ProductCard({ product }: ProductCardProps) {
   const reduceMotion = useReducedMotion();
   const format = useFormatter();
   const locale = useLocale();
+  const router = useRouter();
+
+  const editorHref = `/products/${product.id}/editor`;
+  const openEditor = useCallback(() => {
+    router.push(editorHref);
+  }, [router, editorHref]);
 
   const isCourse = product.type === 'course';
   const updated = format.relativeTime(new Date(product.updatedAt), {
     now: new Date(),
   });
-  const studentsLabel = new Intl.NumberFormat(locale).format(
-    product.studentsCount,
-  );
 
-  const cover = `linear-gradient(135deg, oklch(0.85 0.12 ${product.coverHue}) 0%, oklch(0.62 0.2 ${(product.coverHue + 30) % 360}) 100%)`;
+  const cover = coverGradient(product.id);
+  const lessons = product.webinarDetails?.totalLessons;
+  const priceLabel = formatPrice(
+    product.priceAmount,
+    product.priceCurrency,
+    locale,
+  );
 
   const actionItems = (
     <>
-      <ItemRow icon={<PencilIcon />} label={t('actions.edit')} />
+      <ItemRow
+        icon={<PencilIcon />}
+        label={t('actions.edit')}
+        onSelect={openEditor}
+      />
       <ItemRow icon={<CopyIcon />} label={t('actions.duplicate')} />
       <Separator />
       <ItemRow icon={<ArchiveIcon />} label={t('actions.archive')} />
@@ -76,11 +101,22 @@ export function ProductCard({ product }: ProductCardProps) {
     <ContextMenu>
       <ContextMenuTrigger>
         <motion.article
+          role="button"
+          tabIndex={0}
+          aria-label={product.title}
+          onClick={openEditor}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              openEditor();
+            }
+          }}
           whileHover={reduceMotion ? undefined : { y: -3 }}
           transition={{ type: 'spring', stiffness: 360, damping: 28 }}
           className={cn(
             'group/product relative flex flex-col overflow-hidden rounded-2xl bg-card text-card-foreground ring-1 ring-foreground/10 transition-shadow',
             'hover:ring-foreground/15 hover:shadow-lg dark:hover:shadow-black/40',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           )}
         >
           <div
@@ -101,38 +137,43 @@ export function ProductCard({ product }: ProductCardProps) {
                 )}
                 {isCourse ? tType('course') : tType('webinar')}
               </Badge>
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  render={
-                    <Button
-                      size="icon-sm"
-                      variant="ghost"
-                      aria-label={t('actions.more')}
-                      className="bg-black/25 text-white opacity-0 backdrop-blur-sm transition-opacity hover:bg-black/40 group-hover/product:opacity-100 focus-visible:opacity-100 data-[popup-open]:opacity-100"
-                    />
-                  }
-                >
-                  <EllipsisIcon />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
-                  <DropdownMenuItem>
-                    <PencilIcon /> {t('actions.edit')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <CopyIcon /> {t('actions.duplicate')}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <ArchiveIcon /> {t('actions.archive')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive">
-                    <Trash2Icon /> {t('actions.delete')}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div onClick={(event) => event.stopPropagation()}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        aria-label={t('actions.more')}
+                        className="bg-black/25 text-white opacity-0 backdrop-blur-sm transition-opacity hover:bg-black/40 group-hover/product:opacity-100 focus-visible:opacity-100 data-[popup-open]:opacity-100"
+                      />
+                    }
+                  >
+                    <EllipsisIcon />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem onClick={openEditor}>
+                      <PencilIcon /> {t('actions.edit')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <CopyIcon /> {t('actions.duplicate')}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      <ArchiveIcon /> {t('actions.archive')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive">
+                      <Trash2Icon /> {t('actions.delete')}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
             <div className="absolute inset-x-0 bottom-3 px-3">
-              <StatusChip status={product.status} label={tStatus(product.status)} />
+              <StatusChip
+                status={product.status}
+                label={tStatus(product.status)}
+              />
             </div>
           </div>
 
@@ -140,34 +181,34 @@ export function ProductCard({ product }: ProductCardProps) {
             <h3 className="font-heading text-base font-semibold leading-snug tracking-tight text-foreground line-clamp-2">
               {product.title}
             </h3>
-            <p className="text-sm leading-relaxed text-muted-foreground line-clamp-2">
-              {product.description}
-            </p>
+            {hasDescriptionContent(product.description) ? (
+              looksLikeHtml(product.description) ? (
+                <div
+                  className="text-sm leading-relaxed text-muted-foreground line-clamp-2 [&_*]:!my-0 [&_a]:underline"
+                  dangerouslySetInnerHTML={{ __html: product.description }}
+                />
+              ) : (
+                <p className="text-sm leading-relaxed text-muted-foreground line-clamp-2 whitespace-pre-line">
+                  {product.description}
+                </p>
+              )
+            ) : null}
 
             <dl className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-2 text-xs text-muted-foreground">
-              <Stat icon={<UsersIcon />} label={studentsLabel} hint={t('stats.students')} />
-              {isCourse && product.lessonsCount ? (
-                <Stat
-                  icon={<LayersIcon />}
-                  label={t('stats.lessons', { count: product.lessonsCount })}
-                />
-              ) : null}
-              {!isCourse && product.scheduledAt ? (
-                <Stat
-                  icon={<CalendarClockIcon />}
-                  label={format.dateTime(new Date(product.scheduledAt), {
-                    day: 'numeric',
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                />
-              ) : null}
-              {product.durationMinutes ? (
+              {product.durationHours > 0 ? (
                 <Stat
                   icon={<ClockIcon />}
-                  label={formatDuration(product.durationMinutes, t)}
+                  label={t('stats.hours', { count: product.durationHours })}
                 />
+              ) : null}
+              {!isCourse && lessons ? (
+                <Stat
+                  icon={<LayersIcon />}
+                  label={t('stats.lessons', { count: lessons })}
+                />
+              ) : null}
+              {priceLabel ? (
+                <Stat icon={<TagIcon />} label={priceLabel} />
               ) : null}
             </dl>
           </div>
@@ -186,13 +227,16 @@ function ItemRow({
   icon,
   label,
   destructive,
+  onSelect,
 }: {
   icon: React.ReactNode;
   label: string;
   destructive?: boolean;
+  onSelect?: () => void;
 }) {
   return (
     <ContextMenuItem
+      onClick={onSelect}
       className={cn(
         destructive &&
           'text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive',
@@ -221,6 +265,8 @@ function StatusChip({
       'bg-amber-500/20 text-amber-50 ring-amber-200/50 dark:bg-amber-400/25',
     archived:
       'bg-zinc-500/30 text-zinc-50 ring-zinc-200/40 dark:bg-zinc-400/20',
+    banned:
+      'bg-rose-500/25 text-rose-50 ring-rose-300/50 dark:bg-rose-400/25',
   };
 
   return (
@@ -236,31 +282,30 @@ function StatusChip({
   );
 }
 
-function Stat({
-  icon,
-  label,
-  hint,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  hint?: string;
-}) {
+function Stat({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
     <div className="inline-flex items-center gap-1.5">
       <span className="text-muted-foreground/80 [&>svg]:size-3.5">{icon}</span>
       <span className="font-medium text-foreground">{label}</span>
-      {hint ? <span className="text-muted-foreground/70">{hint}</span> : null}
     </div>
   );
 }
 
-function formatDuration(
-  minutes: number,
-  t: (key: string, values?: Record<string, number>) => string,
-) {
-  if (minutes < 60) return t('stats.minutes', { count: minutes });
-  const hours = Math.floor(minutes / 60);
-  const remainder = minutes % 60;
-  if (remainder === 0) return t('stats.hours', { count: hours });
-  return `${t('stats.hours', { count: hours })} ${t('stats.minutes', { count: remainder })}`;
+function formatPrice(
+  amount: string,
+  currency: Currency,
+  locale: string,
+): string | null {
+  const value = Number(amount);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  const targetLocale = CURRENCY_LOCALE_OVERRIDE[currency] ?? locale;
+  try {
+    return new Intl.NumberFormat(targetLocale, {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: value % 1 === 0 ? 0 : 2,
+    }).format(value);
+  } catch {
+    return `${amount} ${currency}`;
+  }
 }

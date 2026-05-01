@@ -1,7 +1,11 @@
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
-import { HeaderConfig, type AppHeaderNavItem } from '@/widgets/app-header';
+import {
+  BreadcrumbConfig,
+  HeaderConfig,
+  type AppHeaderNavItem,
+} from '@/widgets/app-header';
 
 type TeachLayoutProps = {
   children: ReactNode;
@@ -31,6 +35,11 @@ export default async function TeachLayout({
             {t('studioBadge')}
           </span>
         }
+      />
+      <BreadcrumbConfig
+        slot="teach-root"
+        order={1}
+        segments={[{ label: t('breadcrumbs.root'), href: '/dashboard' }]}
       />
       {children}
     </>

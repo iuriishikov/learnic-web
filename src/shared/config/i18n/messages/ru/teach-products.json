@@ -1,9 +1,7 @@
 {
   "general": {
-    "heroEyebrow": "Студия — мастерская",
-    "title": "Создавайте курсы и вебинары быстрее",
-    "description": "Управляйте всеми продуктами студии с одного экрана. Создавайте, редактируйте, делитесь — без хаоса вкладок и таблиц.",
-    "heroCreate": "Создать продукт",
+    "title": "Мои продукты",
+    "description": "Все курсы и вебинары студии в одном месте — создавайте, редактируйте и делитесь с учениками.",
     "createCta": "Создать",
     "searchPlaceholder": "Найти продукт",
     "searchAriaLabel": "Поиск по продуктам"
@@ -14,8 +12,8 @@
     "webinars": "Вебинары"
   },
   "create": {
-    "title": "Что создаём?",
-    "description": "Выберите тип продукта — детали можно будет настроить позже.",
+    "chooseTitle": "Что создаём?",
+    "chooseDescription": "Выберите тип продукта — основные поля заполните на следующем шаге, материалы добавите позже.",
     "options": {
       "course": {
         "label": "Курс",
@@ -26,8 +24,67 @@
         "description": "Прямой эфир со студентами — один час концентрированного контента и живого общения."
       }
     },
-    "footerHint": "Настройки можно изменить после создания.",
-    "cancel": "Отмена"
+    "details": {
+      "title": {
+        "course": "Создать курс",
+        "webinar": "Создать вебинар"
+      },
+      "description": "Заполните основные поля — материалы, уроки и расписание добавите потом."
+    },
+    "fields": {
+      "optional": "необязательно",
+      "title": {
+        "label": "Название",
+        "placeholder": "Например, «Дизайн-система с нуля»"
+      },
+      "description": {
+        "label": "Описание",
+        "placeholder": {
+          "course": "О чём курс, кому он подойдёт и какие навыки даст к концу обучения.",
+          "webinar": "О чём вебинар, кому он будет полезен и какие выводы получат участники."
+        }
+      },
+      "hours": {
+        "label": "Часы на продукт",
+        "placeholder": "8",
+        "suffix": "ч"
+      }
+    },
+    "info": {
+      "eyebrow": {
+        "course": "Курс",
+        "webinar": "Вебинар"
+      },
+      "control": {
+        "title": "Полный контроль",
+        "description": "Управляйте материалами, ценой и доступом — в любой момент."
+      },
+      "analytics": {
+        "title": "Аналитика прогресса",
+        "description": "Видите, кто завершил урок, а где ученики застревают."
+      },
+      "reach": {
+        "title": "Шире охват",
+        "description": "Публикуйте на маркетплейсе и делитесь по прямой ссылке."
+      }
+    },
+    "actions": {
+      "submit": "Создать продукт",
+      "submitting": "Создаём…",
+      "back": "Назад",
+      "cancel": "Отмена"
+    },
+    "errors": {
+      "titleMin": "Название слишком короткое",
+      "titleMax": "Название слишком длинное",
+      "descriptionMin": "Опишите продукт хотя бы парой предложений",
+      "descriptionMax": "Описание слишком длинное",
+      "hoursRequired": "Укажите количество часов",
+      "hoursInt": "Введите целое число часов",
+      "hoursPositive": "Часов должно быть больше нуля",
+      "hoursMax": "Максимум 1000 часов"
+    },
+    "footerHint": "Параметры можно изменить после создания."
   },
   "type": {
     "course": "Курс",
@@ -36,14 +93,13 @@
   "status": {
     "published": "Опубликован",
     "draft": "Черновик",
-    "archived": "В архиве"
+    "archived": "В архиве",
+    "banned": "Заблокирован"
   },
   "card": {
     "updated": "Обновлено {time}",
     "stats": {
-      "students": "учеников",
       "lessons": "{count, plural, one {# урок} few {# урока} many {# уроков} other {# урока}}",
-      "minutes": "{count, plural, one {# мин} few {# мин} many {# мин} other {# мин}}",
       "hours": "{count, plural, one {# ч} few {# ч} many {# ч} other {# ч}}"
     },
     "actions": {
@@ -52,6 +108,72 @@
       "archive": "Отправить в архив",
       "delete": "Удалить",
       "more": "Действия"
+    }
+  },
+  "breadcrumbs": {
+    "section": "Продукты"
+  },
+  "editor": {
+    "backToList": "К моим продуктам",
+    "untitled": "Без названия",
+    "actions": {
+      "messages": "Сообщения",
+      "edit": "Редактировать",
+      "more": "Ещё",
+      "addSection": "Добавить раздел"
+    },
+    "sections": {
+      "brief": "Описание",
+      "goals": "Цели",
+      "timeline": "Программа",
+      "about": "Об авторе",
+      "notes": "Заметки"
+    },
+    "overview": {
+      "title": "Обзор продукта",
+      "description": "Краткий обзор продукта: для кого, чему научит и какие результаты получат ученики."
+    },
+    "summary": "Mi tincidunt elit, id quisque ligula ac diam, amet. Vel etiam suspendisse morbi eleifend faucibus eget vestibulum felis. Dictum quis montes, sit sit. Tellus aliquam enim urna, etiam.",
+    "blocks": {
+      "about": {
+        "title": "О продукте",
+        "intro": "Dolor enim eu tortor urna sed duis nulla. Aliquam vestibulum, nulla odio nisl vitae. In aliquet pellentesque aenean hac vestibulum turpis mi bibendum diam. Tempor integer aliquam in vitae malesuada fringilla. Elit nisi in eleifend sed nisi. Pulvinar at orci, proin imperdiet commodo consectetur convallis risus.",
+        "bullets": [
+          "Ipsum sit mattis nulla quam nulla. Gravida id gravida ac enim mauris id.",
+          "Diam elit, orci, tincidunt aenean tempus. Quis velit eget ut tortor tellus. Sed vel, congue felis elit erat nam nibh orci.",
+          "Non pellentesque congue eget consectetur turpis.",
+          "Sapien, dictum molestie sem tempor. Diam elit, orci, tincidunt aenean tempus."
+        ]
+      },
+      "audience": {
+        "title": "Для кого этот продукт",
+        "body": "Ipsum sit mattis nulla quam nulla. Gravida id gravida ac enim mauris id. Non pellentesque congue eget consectetur turpis. Sapien, dictum molestie sem tempor. Diam elit, orci, tincidunt aenean tempus. Quis velit eget ut tortor tellus. Sed vel, congue felis elit erat nam nibh orci.\n\nDolor enim eu tortor urna sed duis nulla. Aliquam vestibulum, nulla odio nisl vitae. In aliquet pellentesque aenean hac vestibulum turpis mi bibendum diam. Tempor integer aliquam in vitae malesuada fringilla.\n\nElit nisi in eleifend sed nisi. Pulvinar at orci, proin imperdiet commodo consectetur convallis risus. Sed condimentum enim dignissim adipiscing faucibus consequat, urna. Viverra purus et erat auctor aliquam. Risus, volutpat vulputate posuere quis et arcu auctor. Arcu id augue ut feugiat donec porttitor neque. Mauris, neque ultricies eu vestibulum, bibendum quam lorem id. Dolor lacus, eget nunc lectus in tellus, pharetra, porttitor."
+      },
+      "success": {
+        "title": "Что вы получите",
+        "body": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Scelerisque tellus vel pretium posuere. Id maecenas a tristique in fusce hendrerit. Amet, mattis in vitae, est urna, diam. Ante fringilla nulla ad sed tincidunt. Et aliquam neque cras mauris non bibendum. Hac ut ridiculus enim urna felis amet. Dolor aliquam diam suspendisse non elit faucibus id orci, mi.\n\nPharetra nam gravida commodo accumsan sapien aliquet bibendum purus nunc. Quam cursus at eu, aliquam integer. Accumsan, nisi ultricies ut pulvinar fames neque risus. Eu et, elementum leo amet bibendum gravida vitae ridiculus."
+      }
+    },
+    "upload": {
+      "title": "Нажмите, чтобы загрузить",
+      "subtitle": "или перетащите файл",
+      "hint": "SVG, PNG, JPG или GIF (макс. 800×400px)"
+    },
+    "share": {
+      "title": "Поделиться продуктом",
+      "description": "Продукт создан. Отправьте ссылку коллегам, чтобы они могли работать вместе с вами.",
+      "linkLabel": "Ссылка для приглашения",
+      "linkValue": "join.learnic.io/p/marketing-redesign",
+      "copy": "Скопировать ссылку"
+    },
+    "invite": {
+      "title": "Пригласить соавторов",
+      "description": "Добавьте email-адреса коллег — мы отправим им приглашение присоединиться к этому продукту.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@learnic.io",
+      "addAnother": "Добавить ещё",
+      "cancel": "Отмена",
+      "confirm": "Подтвердить"
     }
   },
   "empty": {

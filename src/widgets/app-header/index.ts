@@ -25,6 +25,21 @@ export {
   type SubHeaderConfigProps,
 } from './ui/sub-header-config';
 
+export { AppBreadcrumbs } from './ui/app-breadcrumbs';
+export type { AppBreadcrumbsProps } from './ui/app-breadcrumbs';
+export { AppBreadcrumbsShell } from './ui/app-breadcrumbs-shell';
+export {
+  BreadcrumbConfigProvider,
+  useBreadcrumbContributions,
+  useSetBreadcrumbContribution,
+  type BreadcrumbSegment,
+  type BreadcrumbContribution,
+} from './ui/breadcrumb-config-provider';
+export {
+  BreadcrumbConfig,
+  type BreadcrumbConfigProps,
+} from './ui/breadcrumb-config';
+
 export { TeachButton } from './ui/teach-button';
 
 export { UserMenu } from './ui/user-menu';

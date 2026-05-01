@@ -5,39 +5,64 @@ import {
   PlusIcon,
   RadioIcon,
   SearchIcon,
-  SparklesIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 
-import { MOCK_PRODUCTS } from '../lib/mock-products';
+import { useMyProducts } from '../api/use-my-products';
 import type { Product, ProductType } from '../model/types';
 
 import { CreateProductDialog } from './create-product-dialog';
 import { ProductCard } from './product-card';
+import { ProductCardSkeleton } from './product-card-skeleton';
 
 type Filter = 'all' | ProductType;
 
 type ProductsGeneralViewProps = {
-  initialProducts?: Product[];
+  initialProducts: Product[];
 };
 
 export function ProductsGeneralView({
-  initialProducts = MOCK_PRODUCTS,
+  initialProducts,
 }: ProductsGeneralViewProps) {
   const t = useTranslations('teach-products.general');
   const tFilter = useTranslations('teach-products.filter');
   const reduceMotion = useReducedMotion();
 
-  const [products] = useState<Product[]>(initialProducts);
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useMyProducts(initialProducts);
+
+  const products = useMemo<Product[]>(
+    () => data?.pages.flat() ?? [],
+    [data],
+  );
+
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || !hasNextPage || isFetchingNextPage) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) fetchNextPage();
+      },
+      { rootMargin: '200px 0px' },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const counts = useMemo(() => {
     return products.reduce(
@@ -62,14 +87,21 @@ export function ProductsGeneralView({
     });
   }, [products, filter, search]);
 
-  const showEmpty = visible.length === 0;
+  const showEmpty = visible.length === 0 && !isFetchingNextPage;
   const isFiltered = search.trim().length > 0 || filter !== 'all';
 
   return (
     <div className="mx-auto w-full max-w-[1440px] px-4 py-8 md:px-8 md:py-10">
-      <Hero t={t} />
+      <header className="flex flex-col gap-1.5">
+        <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+          {t('title')}
+        </h1>
+        <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
+          {t('description')}
+        </p>
+      </header>
 
-      <div className="mt-8 flex flex-col gap-3 md:mt-10 md:flex-row md:items-center md:justify-between">
+      <div className="mt-6 flex flex-col gap-3 md:mt-8 md:flex-row md:items-center md:justify-between">
         <Tabs
           value={filter}
           onValueChange={(value) => setFilter(value as Filter)}
@@ -123,81 +155,50 @@ export function ProductsGeneralView({
               <EmptyState filtered={isFiltered} />
             </motion.div>
           ) : (
-            <motion.ul
-              key="grid"
-              initial={false}
-              className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3"
-            >
-              <AnimatePresence mode="popLayout" initial={false}>
-                {visible.map((product, index) => (
-                  <motion.li
-                    key={product.id}
-                    layout
-                    initial={
-                      reduceMotion
-                        ? { opacity: 0 }
-                        : { opacity: 0, y: 12, scale: 0.98 }
-                    }
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.98 }}
-                    transition={{
-                      duration: 0.22,
-                      delay: reduceMotion ? 0 : Math.min(index * 0.03, 0.15),
-                      ease: [0.32, 0.72, 0, 1],
-                    }}
-                  >
-                    <ProductCard product={product} />
-                  </motion.li>
-                ))}
-              </AnimatePresence>
-            </motion.ul>
+            <motion.div key="grid" initial={false}>
+              <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3">
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {visible.map((product, index) => (
+                    <motion.li
+                      key={product.id}
+                      layout
+                      initial={
+                        reduceMotion
+                          ? { opacity: 0 }
+                          : { opacity: 0, y: 12, scale: 0.98 }
+                      }
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.98 }}
+                      transition={{
+                        duration: 0.22,
+                        delay: reduceMotion ? 0 : Math.min(index * 0.03, 0.15),
+                        ease: [0.32, 0.72, 0, 1],
+                      }}
+                    >
+                      <ProductCard product={product} />
+                    </motion.li>
+                  ))}
+                </AnimatePresence>
+                {isFetchingNextPage
+                  ? Array.from({ length: 3 }).map((_, i) => (
+                      <li key={`skeleton-${i}`}>
+                        <ProductCardSkeleton />
+                      </li>
+                    ))
+                  : null}
+              </ul>
+              {hasNextPage ? (
+                <div
+                  ref={sentinelRef}
+                  aria-hidden
+                  className="h-px w-full"
+                />
+              ) : null}
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
     </div>
-  );
-}
-
-function Hero({ t }: { t: (key: string) => string }) {
-  return (
-    <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand/95 via-brand to-brand-800 px-6 py-7 text-brand-foreground md:px-9 md:py-9">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-20 -right-20 size-72 rounded-full bg-brand-300/30 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-32 -left-12 size-72 rounded-full bg-brand-900/40 blur-3xl"
-      />
-      <div className="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-        <div className="max-w-2xl">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium backdrop-blur-sm">
-            <SparklesIcon className="size-3" />
-            {t('heroEyebrow')}
-          </span>
-          <h1 className="mt-4 font-heading text-3xl font-semibold tracking-tight md:text-4xl">
-            {t('title')}
-          </h1>
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/80 md:text-base">
-            {t('description')}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <CreateProductDialog
-            trigger={
-              <Button
-                size="lg"
-                variant="secondary"
-                className="h-10 gap-1.5 bg-white text-brand hover:bg-white/90"
-              >
-                <PlusIcon /> {t('heroCreate')}
-              </Button>
-            }
-          />
-        </div>
-      </div>
-    </section>
   );
 }
 

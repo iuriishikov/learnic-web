@@ -1,7 +1,11 @@
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
-import { HeaderConfig, type AppHeaderNavItem } from '@/widgets/app-header';
+import {
+  BreadcrumbConfig,
+  HeaderConfig,
+  type AppHeaderNavItem,
+} from '@/widgets/app-header';
 
 type LearnLayoutProps = {
   children: ReactNode;
@@ -24,6 +28,11 @@ export default async function LearnLayout({
   return (
     <>
       <HeaderConfig navItems={navItems} brandHref="/marketplace" />
+      <BreadcrumbConfig
+        slot="learn-root"
+        order={1}
+        segments={[{ label: t('breadcrumbs.root'), href: '/marketplace' }]}
+      />
       {children}
     </>
   );

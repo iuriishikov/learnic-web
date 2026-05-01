@@ -1,5 +1,29 @@
+export { hasDescriptionContent, looksLikeHtml } from './lib/description-html';
 export { ProductsGeneralView } from './components/products-general-view';
+export { ProductsGeneralViewSkeleton } from './components/products-general-view-skeleton';
 export { ProductCard } from './components/product-card';
+export { ProductCardSkeleton } from './components/product-card-skeleton';
 export { CreateProductDialog } from './components/create-product-dialog';
-export { MOCK_PRODUCTS } from './lib/mock-products';
-export type { Product, ProductType, ProductStatus } from './model/types';
+export { ProductEditorView } from './components/product-editor-view';
+export { ProductEditorSkeleton } from './components/product-editor-skeleton';
+export { getMyProducts, type GetMyProductsResult } from './api/get-my-products';
+export {
+  getProductById,
+  type GetProductByIdResult,
+} from './api/get-product-by-id';
+export {
+  createProductAction,
+  type CreateProductResult,
+} from './api/create-product';
+export {
+  createProductSchema,
+  type CreateProductInput,
+} from './model/create-product';
+export type {
+  Currency,
+  Product,
+  ProductAuthor,
+  ProductStatus,
+  ProductType,
+  WebinarDetails,
+} from './model/types';

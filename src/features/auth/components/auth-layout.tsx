@@ -22,7 +22,7 @@ export function AuthLayout({
   children,
 }: AuthLayoutProps) {
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen w-screen bg-background">
       <div className="flex w-full flex-col lg:w-1/2">
         <header className="px-6 pt-6 md:px-10 md:pt-10">
           <Link href="/" aria-label={brandLabel} className="inline-flex">

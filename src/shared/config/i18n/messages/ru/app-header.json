@@ -5,6 +5,10 @@
   "notifications": "Уведомления",
   "openMenu": "Открыть меню",
   "userAvatar": "Открыть профиль",
+  "breadcrumbs": {
+    "ariaLabel": "Хлебные крошки",
+    "home": "Главная"
+  },
   "userMenu": {
     "myProfile": "Мой профиль",
     "openStudio": "Студия",

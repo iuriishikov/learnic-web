@@ -23,7 +23,11 @@ export async function apiFetch(path: string, init: ApiRequestInit = {}) {
   const headers: Record<string, string> = {
     ...(init.headers ?? {}),
   };
-  if (init.body !== undefined) headers['Content-Type'] = 'application/json';
+  const isFormData =
+    typeof FormData !== 'undefined' && init.body instanceof FormData;
+  if (init.body !== undefined && !isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
   if (outgoing) headers.cookie = outgoing;
 
   const { timeoutMs = DEFAULT_TIMEOUT_MS, signal: callerSignal, ...rest } = init;
@@ -38,7 +42,12 @@ export async function apiFetch(path: string, init: ApiRequestInit = {}) {
     const response = await fetch(`${API_URL}${path}`, {
       ...rest,
       headers,
-      body: init.body === undefined ? undefined : JSON.stringify(init.body),
+      body:
+        init.body === undefined
+          ? undefined
+          : isFormData
+            ? (init.body as FormData)
+            : JSON.stringify(init.body),
       cache: 'no-store',
       signal: controller.signal,
     });

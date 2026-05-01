@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 
-import { ProductsGeneralView } from '@/features/products';
+import { getMyProducts, ProductsGeneralView } from '@/features/products';
 import { buildPageMetadata } from '@/shared/lib/page-metadata';
 
 type PageProps = {
@@ -23,5 +23,8 @@ export default async function TeachProductsGeneralPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  return <ProductsGeneralView />;
+  const result = await getMyProducts({ limit: 20 });
+  const products = result.ok ? result.products : [];
+
+  return <ProductsGeneralView initialProducts={products} />;
 }
