@@ -10,6 +10,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
+      richColors
       className="toaster group"
       icons={{
         success: (
@@ -34,6 +35,22 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
           "--border-radius": "var(--radius)",
+
+          "--error-bg": "var(--destructive)",
+          "--error-text": "oklch(0.99 0 0)",
+          "--error-border": "color-mix(in oklch, var(--destructive) 80%, black)",
+
+          "--success-bg": "color-mix(in oklch, var(--online) 12%, var(--popover))",
+          "--success-text": "var(--online)",
+          "--success-border": "color-mix(in oklch, var(--online) 35%, var(--border))",
+
+          "--info-bg": "color-mix(in oklch, var(--brand) 10%, var(--popover))",
+          "--info-text": "var(--brand)",
+          "--info-border": "color-mix(in oklch, var(--brand) 30%, var(--border))",
+
+          "--warning-bg": "color-mix(in oklch, oklch(0.78 0.15 75) 14%, var(--popover))",
+          "--warning-text": "oklch(0.55 0.13 75)",
+          "--warning-border": "color-mix(in oklch, oklch(0.78 0.15 75) 35%, var(--border))",
         } as React.CSSProperties
       }
       toastOptions={{

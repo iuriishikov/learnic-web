@@ -21,7 +21,7 @@ import { useState, type ReactElement, type ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { useRouter } from '@/shared/config/i18n/navigation';
-import { useNotifyApiError } from '@/shared/lib/notify-api-error';
+import { useNotify } from '@/shared/lib/notify';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import {
@@ -265,7 +265,7 @@ type DetailsStepProps = {
 
 function DetailsStep({ productType, onBack, onCreated }: DetailsStepProps) {
   const t = useTranslations('teach-products.create');
-  const notifyApiError = useNotifyApiError();
+  const notify = useNotify();
 
   const form = useForm<CreateProductInput>({
     resolver: zodResolver(createProductSchema),
@@ -289,7 +289,7 @@ function DetailsStep({ productType, onBack, onCreated }: DetailsStepProps) {
       onCreated(result.productId);
       return;
     }
-    notifyApiError(result.reason);
+    notify.apiError(result.reason);
   }
 
   return (

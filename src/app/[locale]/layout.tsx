@@ -1,5 +1,4 @@
-import type { Metadata, Viewport } from 'next';
-import { Geist_Mono, Inter } from 'next/font/google';
+import type { Metadata } from 'next';
 import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -7,24 +6,7 @@ import { AuthProvider } from '@/features/auth';
 import { getCurrentUser } from '@/features/auth/server';
 import { PresenceProvider } from '@/features/presence';
 import { routing } from '@/shared/config/i18n/routing';
-import {
-  BRAND_COLOR,
-  SITE_NAME,
-  SITE_URL,
-  TITLE_TEMPLATE,
-} from '@/shared/config/site';
-import { ThemeProvider } from '@/shared/ui/theme-provider';
-import '../globals.css';
-
-const inter = Inter({
-  variable: '--font-inter',
-  subsets: ['latin', 'cyrillic'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
+import { SITE_NAME, SITE_URL, TITLE_TEMPLATE } from '@/shared/config/site';
 
 const OG_LOCALES: Record<string, string> = {
   ru: 'ru_RU',
@@ -34,10 +16,6 @@ const OG_LOCALES: Record<string, string> = {
 type LocaleLayoutProps = {
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
-};
-
-export const viewport: Viewport = {
-  themeColor: BRAND_COLOR,
 };
 
 export async function generateMetadata({
@@ -91,25 +69,10 @@ export default async function LocaleLayout({
   const initialUser = await getCurrentUser();
 
   return (
-    <html
-      lang={locale}
-      suppressHydrationWarning
-      className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <NextIntlClientProvider>
-            <AuthProvider initialUser={initialUser}>
-              <PresenceProvider>{children}</PresenceProvider>
-            </AuthProvider>
-          </NextIntlClientProvider>
-        </ThemeProvider>
-      </body>
-    </html>
+    <NextIntlClientProvider>
+      <AuthProvider initialUser={initialUser}>
+        <PresenceProvider>{children}</PresenceProvider>
+      </AuthProvider>
+    </NextIntlClientProvider>
   );
 }

@@ -35,12 +35,13 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 
-import { coverGradient } from '../lib/cover-hue';
 import {
   hasDescriptionContent,
   looksLikeHtml,
 } from '../lib/description-html';
 import type { Currency, Product } from '../model/types';
+
+import { ProductCover } from './product-cover';
 
 type ProductCardProps = {
   product: Product;
@@ -71,7 +72,6 @@ export function ProductCard({ product }: ProductCardProps) {
     now: new Date(),
   });
 
-  const cover = coverGradient(product.id);
   const lessons = product.webinarDetails?.totalLessons;
   const priceLabel = formatPrice(
     product.priceAmount,
@@ -119,10 +119,10 @@ export function ProductCard({ product }: ProductCardProps) {
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           )}
         >
-          <div
-            className="relative h-32 w-full"
-            style={{ backgroundImage: cover }}
-            aria-hidden
+          <ProductCover
+            productId={product.id}
+            initialProduct={product}
+            className="h-32"
           >
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/10 to-transparent" />
             <div className="absolute inset-x-0 top-3 flex items-start justify-between px-3">
@@ -175,7 +175,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 label={tStatus(product.status)}
               />
             </div>
-          </div>
+          </ProductCover>
 
           <div className="flex flex-1 flex-col gap-2.5 p-4">
             <h3 className="font-heading text-base font-semibold leading-snug tracking-tight text-foreground line-clamp-2">

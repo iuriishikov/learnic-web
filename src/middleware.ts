@@ -14,10 +14,20 @@ function stripLocalePrefix(pathname: string): string {
   return pathname;
 }
 
+function extractLocale(pathname: string): string {
+  for (const locale of routing.locales) {
+    if (pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)) {
+      return locale;
+    }
+  }
+  return routing.defaultLocale;
+}
+
 export default function middleware(request: NextRequest) {
   const path =
     stripLocalePrefix(request.nextUrl.pathname) + request.nextUrl.search;
   request.headers.set('x-pathname', path);
+  request.headers.set('x-locale', extractLocale(request.nextUrl.pathname));
   return handleI18nRouting(request);
 }
 

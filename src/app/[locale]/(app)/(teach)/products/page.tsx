@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 
-import { getMyProducts, ProductsGeneralView } from '@/features/products';
+import { ProductsGeneralView } from '@/features/products';
+import { getMyProducts } from '@/features/products/server';
 import { buildPageMetadata } from '@/shared/lib/page-metadata';
 
 type PageProps = {
