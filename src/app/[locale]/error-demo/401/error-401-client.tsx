@@ -1,34 +1,34 @@
 'use client';
 
-import { BookOpenIcon, Code2Icon, MessagesSquareIcon } from 'lucide-react';
+import { KeyRoundIcon, LogInIcon, UserPlusIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { ErrorContent, type ErrorResource } from '@/widgets/error-content';
 
-export function NotFoundContent() {
-  const t = useTranslations('not-found');
+export function Error401Client() {
+  const t = useTranslations('error-401');
 
   const resources: ErrorResource[] = [
     {
-      icon: Code2Icon,
+      icon: LogInIcon,
       title: t('resources.documentation.title'),
       description: t('resources.documentation.description'),
       cta: t('resources.documentation.cta'),
-      href: '#',
+      href: '/login',
     },
     {
-      icon: BookOpenIcon,
+      icon: UserPlusIcon,
       title: t('resources.blog.title'),
       description: t('resources.blog.description'),
       cta: t('resources.blog.cta'),
-      href: '#',
+      href: '/register',
     },
     {
-      icon: MessagesSquareIcon,
+      icon: KeyRoundIcon,
       title: t('resources.chat.title'),
       description: t('resources.chat.description'),
       cta: t('resources.chat.cta'),
-      href: '#',
+      href: '/forgot-password',
     },
   ];
 

@@ -48,13 +48,19 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 
+export type LessonBlockType = 'html' | 'katex';
+
+export type LessonBlock = {
+  id: string;
+  type: LessonBlockType;
+  /** Block content — HTML for `html` blocks, LaTeX source for `katex` blocks. */
+  content: string;
+};
+
 export type LessonNode = {
   id: string;
   title: string;
-  /** Rich-text body for the lesson, persisted as HTML. */
-  contentHtml?: string;
-  /** Optional LaTeX formula for the lesson. */
-  formula?: string;
+  blocks: LessonBlock[];
 };
 export type ModuleNode = { id: string; title: string; lessons: LessonNode[] };
 
@@ -171,7 +177,13 @@ export function ContentTree({
     onChange(
       modules.map((m) =>
         m.id === moduleId
-          ? { ...m, lessons: [...m.lessons, { id, title: t('newLesson') }] }
+          ? {
+              ...m,
+              lessons: [
+                ...m.lessons,
+                { id, title: t('newLesson'), blocks: [] },
+              ],
+            }
           : m,
       ),
     );
@@ -218,6 +230,7 @@ export function ContentTree({
   return (
     <div className={cn('flex flex-col', className)}>
       <DndContext
+        id="content-tree-dnd"
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragEnd={onDragEnd}

@@ -1,23 +1,27 @@
 'use client';
 
-import { BookOpenIcon, Code2Icon, MessagesSquareIcon } from 'lucide-react';
+import {
+  ActivityIcon,
+  MessagesSquareIcon,
+  RadioTowerIcon,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { ErrorContent, type ErrorResource } from '@/widgets/error-content';
 
-export function NotFoundContent() {
-  const t = useTranslations('not-found');
+export function Error503Client() {
+  const t = useTranslations('error-503');
 
   const resources: ErrorResource[] = [
     {
-      icon: Code2Icon,
+      icon: ActivityIcon,
       title: t('resources.documentation.title'),
       description: t('resources.documentation.description'),
       cta: t('resources.documentation.cta'),
       href: '#',
     },
     {
-      icon: BookOpenIcon,
+      icon: RadioTowerIcon,
       title: t('resources.blog.title'),
       description: t('resources.blog.description'),
       cta: t('resources.blog.cta'),

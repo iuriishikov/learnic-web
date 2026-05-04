@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import type { HTMLAttributes, ReactNode } from 'react';
 
+import { useObjectUrl } from '@/shared/hooks/use-object-url';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { Skeleton } from '@/shared/ui/skeleton';
@@ -22,6 +23,12 @@ type ProductCoverProps = Omit<HTMLAttributes<HTMLDivElement>, 'children'> & {
    * a server-rendered detail page or a list that's already populated).
    */
   initialProduct?: Product;
+  /**
+   * Local file preview (e.g. picked from `<input type="file">` before save).
+   * Takes precedence over the gradient and is shown immediately via a managed
+   * object URL — no fetch, no upload involved.
+   */
+  previewFile?: File | Blob | null;
   /** Overlay content rendered on top of the gradient (badges, menus, …). */
   children?: ReactNode;
 };
@@ -31,12 +38,14 @@ const FADE = { duration: 0.2, ease: [0.32, 0.72, 0, 1] as const };
 export function ProductCover({
   productId,
   initialProduct,
+  previewFile,
   className,
   children,
   ...rest
 }: ProductCoverProps) {
   const t = useTranslations('teach-products.cover');
   const reduceMotion = useReducedMotion();
+  const previewUrl = useObjectUrl(previewFile);
 
   const query = useQuery({
     queryKey: ['product', productId] as const,
@@ -53,7 +62,21 @@ export function ProductCover({
   });
 
   let body: ReactNode;
-  if (query.isPending) {
+  if (previewUrl) {
+    body = (
+      <motion.div
+        key="preview"
+        initial={reduceMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={FADE}
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url(${previewUrl})` }}
+        role="img"
+        aria-label={t('alt')}
+      />
+    );
+  } else if (query.isPending) {
     body = (
       <Skeleton
         key="loading"

@@ -25,6 +25,9 @@ export default async function TeachProductsGeneralPage({ params }: PageProps) {
   setRequestLocale(locale);
 
   const result = await getMyProducts({ limit: 20 });
+  if (!result.ok && result.reason !== 'unauthorized') {
+    throw new Error(`Failed to load products: ${result.reason}`);
+  }
   const products = result.ok ? result.products : [];
 
   return <ProductsGeneralView initialProducts={products} />;

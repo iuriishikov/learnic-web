@@ -3,10 +3,12 @@
 import {
   CheckIcon,
   CopyIcon,
+  ImageUpIcon,
   MailIcon,
   PencilIcon,
   PlusIcon,
   Share2Icon,
+  Trash2Icon,
   UserPlusIcon,
   XIcon,
 } from 'lucide-react';
@@ -18,6 +20,7 @@ import {
 } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import {
+  type ChangeEvent as ReactChangeEvent,
   type FocusEvent as ReactFocusEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
@@ -32,8 +35,6 @@ import {
 
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
-import { InlineLatexEditor } from '@/shared/ui/inline-latex-editor';
-import { InlineRichEditor } from '@/shared/ui/inline-rich-editor';
 import { Input } from '@/shared/ui/input';
 import { SectionNav, type SectionNavItem } from '@/shared/ui/section-nav';
 
@@ -41,9 +42,11 @@ import type { Product } from '../model/types';
 
 import {
   ContentTree,
+  type LessonBlock,
   type LessonNode,
   type ModuleNode,
 } from './content-tree';
+import { LessonBlocks } from './lesson-blocks';
 import { ProductCover } from './product-cover';
 
 const SECTION_KEYS = [
@@ -100,6 +103,8 @@ export function ProductEditorView({
   const dragStateRef = useRef<{ startX: number; startWidth: number } | null>(
     null,
   );
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
 
   const sectionItems = useMemo<SectionNavItem<SectionKey>[]>(
     () => SECTION_KEYS.map((key) => ({ key, label: t(`sections.${key}`) })),
@@ -114,16 +119,26 @@ export function ProductEditorView({
         {
           id: 'lesson-welcome',
           title: 'Добро пожаловать',
-          contentHtml:
-            '<h2>Добро пожаловать на курс</h2><p>В этом уроке мы разберём, чего ждать от программы и как организован материал. К концу курса вы построите собственный мини-проект и сможете применять подход в реальных задачах.</p><ul><li>Что вы получите от курса</li><li>Как устроены модули и уроки</li><li>Какие инструменты понадобятся</li></ul>',
-          formula: '',
+          blocks: [
+            {
+              id: 'lesson-welcome-b1',
+              type: 'html',
+              content:
+                '<h2>Добро пожаловать на курс</h2><p>В этом уроке мы разберём, чего ждать от программы и как организован материал. К концу курса вы построите собственный мини-проект и сможете применять подход в реальных задачах.</p><ul><li>Что вы получите от курса</li><li>Как устроены модули и уроки</li><li>Какие инструменты понадобятся</li></ul>',
+            },
+          ],
         },
         {
           id: 'lesson-tools',
           title: 'Что понадобится',
-          contentHtml:
-            '<h2>Подготовка</h2><p>Минимум — современный браузер и желание учиться. Дальнейшие уроки сами подскажут, что именно установить под конкретную тему.</p>',
-          formula: '',
+          blocks: [
+            {
+              id: 'lesson-tools-b1',
+              type: 'html',
+              content:
+                '<h2>Подготовка</h2><p>Минимум — современный браузер и желание учиться. Дальнейшие уроки сами подскажут, что именно установить под конкретную тему.</p>',
+            },
+          ],
         },
       ],
     },
@@ -134,23 +149,48 @@ export function ProductEditorView({
         {
           id: 'lesson-principles',
           title: 'Базовые принципы',
-          contentHtml:
-            '<h2>Базовые принципы</h2><p>Прежде чем переходить к практике, договоримся об основной терминологии и базовых принципах подхода.</p>',
-          formula: 'a^2 + b^2 = c^2',
+          blocks: [
+            {
+              id: 'lesson-principles-b1',
+              type: 'html',
+              content:
+                '<h2>Базовые принципы</h2><p>Прежде чем переходить к практике, договоримся об основной терминологии и базовых принципах подхода.</p>',
+            },
+            {
+              id: 'lesson-principles-b2',
+              type: 'katex',
+              content: 'a^2 + b^2 = c^2',
+            },
+          ],
         },
         {
           id: 'lesson-workflow',
           title: 'Рабочий процесс',
-          contentHtml:
-            '<h2>Рабочий процесс</h2><p>Разберём типичный цикл работы: от постановки задачи до проверки результата.</p>',
-          formula: '',
+          blocks: [
+            {
+              id: 'lesson-workflow-b1',
+              type: 'html',
+              content:
+                '<h2>Рабочий процесс</h2><p>Разберём типичный цикл работы: от постановки задачи до проверки результата.</p>',
+            },
+          ],
         },
         {
           id: 'lesson-practice',
           title: 'Практика',
-          contentHtml:
-            '<h2>Практика</h2><p>Решим первую задачу вместе и закрепим материал самостоятельно.</p>',
-          formula: 'x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}',
+          blocks: [
+            {
+              id: 'lesson-practice-b1',
+              type: 'html',
+              content:
+                '<h2>Практика</h2><p>Решим первую задачу вместе и закрепим материал самостоятельно.</p>',
+            },
+            {
+              id: 'lesson-practice-b2',
+              type: 'katex',
+              content: 'x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}',
+            },
+          ],
         },
       ],
     },
@@ -161,9 +201,19 @@ export function ProductEditorView({
         {
           id: 'lesson-cases',
           title: 'Разбор кейсов',
-          contentHtml:
-            '<h2>Разбор кейсов</h2><p>Несколько разборов реальных задач с пояснением каждого решения шаг за шагом.</p>',
-          formula: '\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}',
+          blocks: [
+            {
+              id: 'lesson-cases-b1',
+              type: 'html',
+              content:
+                '<h2>Разбор кейсов</h2><p>Несколько разборов реальных задач с пояснением каждого решения шаг за шагом.</p>',
+            },
+            {
+              id: 'lesson-cases-b2',
+              type: 'katex',
+              content: '\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}',
+            },
+          ],
         },
       ],
     },
@@ -188,14 +238,14 @@ export function ProductEditorView({
     }
   }
 
-  const updateSelectedLesson = useCallback(
-    (updates: Partial<Pick<LessonNode, 'contentHtml' | 'formula'>>) => {
+  const updateSelectedLessonBlocks = useCallback(
+    (blocks: LessonBlock[]) => {
       if (!selectedLessonId) return;
       setModules((prev) =>
         prev.map((m) => ({
           ...m,
           lessons: m.lessons.map((l) =>
-            l.id === selectedLessonId ? { ...l, ...updates } : l,
+            l.id === selectedLessonId ? { ...l, blocks } : l,
           ),
         })),
       );
@@ -338,6 +388,23 @@ export function ProductEditorView({
     setSidebarWidth(SIDEBAR_DEFAULT_WIDTH);
   }, []);
 
+  const onReplaceCover = useCallback(() => {
+    coverFileInputRef.current?.click();
+  }, []);
+
+  const onDeleteCover = useCallback(() => {
+    setCoverFile(null);
+  }, []);
+
+  const onCoverFileChange = useCallback(
+    (event: ReactChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file) setCoverFile(file);
+      event.target.value = '';
+    },
+    [],
+  );
+
   const onCopyLink = useCallback(async () => {
     const link = t('share.linkValue');
     try {
@@ -352,7 +419,7 @@ export function ProductEditorView({
   const titleText = product.title.trim().length > 0 ? product.title : t('untitled');
 
   return (
-    <div className="mx-auto w-full max-w-[1280px] px-4 py-6 md:px-8 md:py-8">
+    <div className="mx-auto w-full max-w-[1440px] px-4 py-6 md:px-8 md:py-8">
       {/* Cover */}
       <motion.div
         initial={reduceMotion ? false : { opacity: 0, y: 6 }}
@@ -363,8 +430,40 @@ export function ProductEditorView({
         <ProductCover
           productId={product.id}
           initialProduct={product}
+          previewFile={coverFile}
           className="h-full rounded-2xl ring-1 ring-foreground/5"
-        />
+        >
+          <div className="absolute right-3 top-3 z-10 flex items-center gap-1.5">
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon-sm"
+              onClick={onReplaceCover}
+              aria-label={t('cover.replace')}
+              className="bg-background/85 text-foreground shadow-sm backdrop-blur-md hover:bg-background"
+            >
+              <ImageUpIcon />
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon-sm"
+              onClick={onDeleteCover}
+              disabled={!coverFile}
+              aria-label={t('cover.delete')}
+              className="bg-background/85 text-foreground shadow-sm backdrop-blur-md hover:bg-background"
+            >
+              <Trash2Icon />
+            </Button>
+          </div>
+          <input
+            ref={coverFileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onCoverFileChange}
+          />
+        </ProductCover>
       </motion.div>
 
       {/* Header */}
@@ -499,18 +598,9 @@ export function ProductEditorView({
                         {selectedLesson.lesson.title}
                       </h2>
                     </div>
-                    <InlineRichEditor
-                      value={selectedLesson.lesson.contentHtml ?? ''}
-                      onChange={(html) =>
-                        updateSelectedLesson({ contentHtml: html })
-                      }
-                      placeholder={t('contentEditor.placeholder')}
-                      emptyText={t('contentEditor.empty')}
-                    />
-                    <InlineLatexEditor
-                      value={selectedLesson.lesson.formula ?? ''}
-                      onChange={(formula) => updateSelectedLesson({ formula })}
-                      emptyText={t('formula.empty')}
+                    <LessonBlocks
+                      blocks={selectedLesson.lesson.blocks}
+                      onChange={updateSelectedLessonBlocks}
                     />
                   </motion.div>
                 ) : (
@@ -548,21 +638,6 @@ export function ProductEditorView({
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
-
-          {/* Add section */}
-          <div className="relative mt-8 flex items-center justify-center">
-            <span
-              aria-hidden
-              className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border"
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              className="relative gap-1.5 bg-background"
-            >
-              <PlusIcon /> {t('actions.addSection')}
-            </Button>
           </div>
         </main>
 
@@ -820,7 +895,7 @@ function ContentNavItem({
             style={{ overflow: 'hidden' }}
             className="mt-1"
           >
-            <div className="max-h-[min(60vh,520px)] overflow-y-auto pr-1 [scrollbar-gutter:stable]">
+            <div className="max-h-[min(60vh,520px)] overflow-x-hidden overflow-y-auto pr-1 [scrollbar-gutter:stable]">
               {children}
             </div>
           </motion.div>

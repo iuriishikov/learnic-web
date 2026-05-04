@@ -5,6 +5,7 @@ import { AlertCircleIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { useObjectUrl } from '@/shared/hooks/use-object-url';
 import { cn } from '@/shared/lib/utils';
 import {
   Avatar,
@@ -53,6 +54,12 @@ type UserAvatarProps = VariantProps<typeof userAvatarVariants> & {
   online?: boolean;
   /** Avatar silhouette. Defaults to `square` (rounded square) per design. */
   shape?: AvatarShape;
+  /**
+   * Local file preview (e.g. picked from `<input type="file">` before save).
+   * Takes precedence over `user.avatarUrl` and is shown immediately via a
+   * managed object URL — no network request involved.
+   */
+  previewFile?: File | Blob | null;
 };
 
 const SHAPE_RADIUS: Record<AvatarShape, { root: string; image: string; fallback: string; after: string }> = {
@@ -77,9 +84,12 @@ export function UserAvatar({
   showLoadErrorIndicator = true,
   online = false,
   shape = 'square',
+  previewFile,
 }: UserAvatarProps) {
   const t = useTranslations('app');
-  const hasUrl = Boolean(user?.avatarUrl);
+  const previewUrl = useObjectUrl(previewFile);
+  const effectiveSrc = previewUrl ?? user?.avatarUrl ?? null;
+  const hasUrl = Boolean(effectiveSrc);
   const [status, setStatus] = useState<AvatarLoadStatus>(
     hasUrl ? 'loading' : 'idle',
   );
@@ -108,9 +118,9 @@ export function UserAvatar({
         className,
       )}
     >
-      {user?.avatarUrl ? (
+      {effectiveSrc ? (
         <AvatarImage
-          src={user.avatarUrl}
+          src={effectiveSrc}
           alt={displayName}
           onLoadingStatusChange={setStatus}
           className={radius.image}

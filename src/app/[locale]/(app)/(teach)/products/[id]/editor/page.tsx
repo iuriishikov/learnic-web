@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
+import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { ProductEditorView, type Product } from '@/features/products';
+import { ProductEditorView } from '@/features/products';
 import { getProductById } from '@/features/products/server';
 import { buildPageMetadata } from '@/shared/lib/page-metadata';
 import { BreadcrumbConfig } from '@/widgets/app-header';
@@ -40,7 +41,11 @@ export default async function ProductEditorPage({ params }: PageProps) {
   setRequestLocale(locale);
 
   const result = await getProductById(id);
-  const product = result.ok ? result.product : buildMockProduct(id);
+  if (!result.ok) {
+    if (result.reason === 'not-found') notFound();
+    throw new Error(`Failed to load product ${id}: ${result.reason}`);
+  }
+  const product = result.product;
 
   const t = await getTranslations({
     locale,
@@ -71,26 +76,3 @@ export default async function ProductEditorPage({ params }: PageProps) {
   );
 }
 
-function buildMockProduct(id: string): Product {
-  const now = new Date().toISOString();
-  return {
-    id,
-    type: 'course',
-    status: 'draft',
-    title: 'Marketing site redesign',
-    description: '',
-    durationHours: 0,
-    priceAmount: '0',
-    priceCurrency: 'RUB',
-    author: {
-      id: 'mock-author',
-      firstName: 'Olivia',
-      lastName: 'Rhye',
-      patronymic: null,
-    },
-    webinarDetails: null,
-    publishedAt: null,
-    createdAt: now,
-    updatedAt: now,
-  };
-}

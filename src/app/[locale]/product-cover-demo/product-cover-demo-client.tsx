@@ -3,7 +3,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { GraduationCapIcon, RadioIcon, RotateCwIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { type ChangeEvent, useRef, useState } from 'react';
 
 import { ProductCover, type Product } from '@/features/products';
 import { QueryProvider } from '@/shared/api/query-provider';
@@ -151,6 +151,8 @@ function Demo() {
               </div>
             </div>
           </DemoCard>
+
+          <PreviewFileDemoCard product={SEEDED_PRODUCT} />
         </div>
       </section>
 
@@ -242,6 +244,60 @@ function SizeCase({
       {children}
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
     </div>
+  );
+}
+
+function PreviewFileDemoCard({ product }: { product: Product }) {
+  const t = useTranslations('product-cover-demo');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
+
+  function onChange(event: ChangeEvent<HTMLInputElement>) {
+    const next = event.target.files?.[0] ?? null;
+    setFile(next);
+    event.target.value = '';
+  }
+
+  return (
+    <DemoCard
+      title={t('cases.preview.title')}
+      description={t('cases.preview.description')}
+      actions={
+        <div className="flex items-center gap-1.5">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => inputRef.current?.click()}
+          >
+            {t('cases.preview.choose')}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setFile(null)}
+            disabled={!file}
+          >
+            {t('cases.preview.clear')}
+          </Button>
+        </div>
+      }
+    >
+      <div className="overflow-hidden rounded-2xl ring-1 ring-foreground/10">
+        <ProductCover
+          productId={product.id}
+          initialProduct={product}
+          previewFile={file}
+          className="h-32"
+        />
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={onChange}
+      />
+    </DemoCard>
   );
 }
 

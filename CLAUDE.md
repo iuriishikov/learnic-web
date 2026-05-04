@@ -821,6 +821,46 @@ Whenever you introduce a new `process.env.X` reference, rename one, change its m
 - Validate all external input (form submissions, search params, webhook bodies) with zod.
 - Don't leak stack traces or internal error messages to the client. Log server-side, return a safe message to the user.
 
+### Page-Level Failures — Redirect to 404 / 500, Don't Fake It
+
+When a page's **primary resource** fails to load — the entity that gives the page its identity (the product on `/products/[id]/editor`, the user on `/profile`, the list on `/products`) — the page is broken. Send the user to a real error screen. Don't render a stub, mock, or "best-effort" version of the page.
+
+The two destinations are the global error pages built on `<ErrorContent>`:
+
+- **Entity not found** (HTTP 404, or a discriminated `{ ok: false, reason: 'not-found' }`): call `notFound()` from `next/navigation`. Renders `app/not-found.tsx`.
+- **Network or server error** (HTTP 5xx, timeout, parse failure, `{ ok: false, reason: 'network' | 'unknown' }`): `throw new Error(...)`. The closest `error.tsx` boundary catches it and renders the 500 page (`src/app/[locale]/error.tsx`).
+
+Both pages share the look — they render `<ErrorContent>` from `src/widgets/error-content` with the relevant translation namespace (`not-found`, `error-500`, …). When you need a new error variant, add a namespace JSON and reuse `<ErrorContent>` rather than building a new layout.
+
+**Primary vs. secondary** — the redirect rule applies **only** to the primary fetch:
+
+- **Primary** — the resource the page IS about. Removing it leaves no page. The product on the editor route. The user on the profile route. The list on a list page. Failure → redirect (`notFound()` / `throw`).
+- **Secondary** — supporting content: a side widget, an optional list inside a richer page, an inline preview, an avatar lookup, a "related items" rail, a button-triggered action. Failure → handle inline (empty state, retry button, dismissable error). **Don't** kick the user off the page they were on because a side panel went down.
+
+**Don't substitute a mock or stub** when the primary load fails. A page that silently renders a fake product or an empty list on error hides bugs and makes data loss look like normal state. The user must see they hit an error.
+
+**Pattern (Server Components):**
+
+```ts
+// src/app/[locale]/(app)/(teach)/products/[id]/editor/page.tsx
+import { notFound } from 'next/navigation';
+
+const result = await getProductById(id);
+if (!result.ok) {
+  if (result.reason === 'not-found') notFound();
+  throw new Error(`Failed to load product ${id}: ${result.reason}`);
+}
+const product = result.product;
+```
+
+**Pattern (Client Components / TanStack Query):** when the primary query errors, call `notFound()` from `next/navigation` (it works in Client Components too) for missing entities, or `throw` from inside render to trigger the closest `error.tsx`. Don't render a "best-effort" version of the screen.
+
+Cases that look like primary failures but aren't:
+
+- **Auth gate** (`unauthorized` from a server fetch inside an authenticated route): already handled by the `(app)` layout's redirect to `/login`. Don't double-handle inside the page.
+- **Optimistic mutation rollback**: surface inline (toast + revert), not a page redirect.
+- **Stale revalidation failure**: keep the previous data, log, surface inline if needed.
+
 ---
 
 ## TypeScript
@@ -1219,6 +1259,7 @@ If the Playwright MCP is genuinely unavailable (server not connected, `mcp__play
 - **Don't** add a `process.env.X` read without adding `X` to `.env.dist` in the same change. Every env var the app reads must appear in the committed `.env.dist` template with a comment and a safe local-dev default — no orphans in either direction. See "Environment Variables — `.env.dist` is the contract".
 - **Don't** put real secrets in `.env.dist` (it's committed) and don't prefix a server secret with `NEXT_PUBLIC_` to expose it to the browser.
 - **Don't** throw from Server Actions for expected failures — return a discriminated result.
+- **Don't** render a page with a mock, stub, or empty fallback when its **primary resource** fails to load. Missing entity → `notFound()` (renders `app/not-found.tsx`). Network / server error → `throw new Error(...)` (caught by the closest `error.tsx`, renders `[locale]/error.tsx`). Inline error/empty states are for **secondary** content only — side widgets, optional lists, button actions. See "Page-Level Failures — Redirect to 404 / 500, Don't Fake It".
 - **Don't** invent new architectural patterns without updating this file first.
 
 ---
