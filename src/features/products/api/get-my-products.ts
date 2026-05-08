@@ -7,7 +7,16 @@ import type { Product } from '../model/types';
 
 export type GetMyProductsResult =
   | { ok: true; products: Product[] }
-  | { ok: false; reason: 'unauthorized' | 'network' | 'unknown' };
+  | {
+      ok: false;
+      reason:
+        | 'unauthorized'
+        | 'forbidden'
+        | 'bad-request'
+        | 'service-unavailable'
+        | 'network'
+        | 'unknown';
+    };
 
 export async function getMyProducts({
   offset = 0,
@@ -23,6 +32,9 @@ export async function getMyProducts({
     });
 
     if (res.status === 401) return { ok: false, reason: 'unauthorized' };
+    if (res.status === 403) return { ok: false, reason: 'forbidden' };
+    if (res.status === 400) return { ok: false, reason: 'bad-request' };
+    if (res.status === 503) return { ok: false, reason: 'service-unavailable' };
     if (!res.ok) return { ok: false, reason: 'unknown' };
 
     const raw = (await res.json()) as ProductSchemaResponse[];

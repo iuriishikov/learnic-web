@@ -3,6 +3,7 @@ import { setRequestLocale } from 'next-intl/server';
 
 import { ProductsGeneralView } from '@/features/products';
 import { getMyProducts } from '@/features/products/server';
+import { httpStatusForReason } from '@/shared/lib/http-error';
 import { buildPageMetadata } from '@/shared/lib/page-metadata';
 
 type PageProps = {
@@ -25,10 +26,9 @@ export default async function TeachProductsGeneralPage({ params }: PageProps) {
   setRequestLocale(locale);
 
   const result = await getMyProducts({ limit: 20 });
-  if (!result.ok && result.reason !== 'unauthorized') {
-    throw new Error(`Failed to load products: ${result.reason}`);
+  if (!result.ok) {
+    throw httpStatusForReason(result.reason, 'Failed to load products');
   }
-  const products = result.ok ? result.products : [];
 
-  return <ProductsGeneralView initialProducts={products} />;
+  return <ProductsGeneralView initialProducts={result.products} />;
 }

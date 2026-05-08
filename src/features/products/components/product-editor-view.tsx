@@ -2,11 +2,14 @@
 
 import {
   CheckIcon,
+  ChevronRightIcon,
   CopyIcon,
   ImageUpIcon,
+  ListTreeIcon,
   MailIcon,
   PencilIcon,
   PlusIcon,
+  RotateCwIcon,
   Share2Icon,
   Trash2Icon,
   UserPlusIcon,
@@ -21,7 +24,6 @@ import {
 import { useTranslations } from 'next-intl';
 import {
   type ChangeEvent as ReactChangeEvent,
-  type FocusEvent as ReactFocusEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
@@ -37,21 +39,68 @@ import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { SectionNav, type SectionNavItem } from '@/shared/ui/section-nav';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/shared/ui/sheet';
+import { Skeleton } from '@/shared/ui/skeleton';
 
+import type {
+  CourseDraft,
+  DraftLesson,
+  DraftModule,
+  LessonBlock,
+} from '../model/draft';
 import type { Product } from '../model/types';
 
 import {
+  CourseDraftError,
+  useCourseDraft,
+} from '../api/use-course-draft';
+import { useCourseContentWs } from '../api/use-course-content-ws';
+import { useProductEventsWs } from '../api/use-product-events-ws';
+import {
+  useAddBlockMutation,
+  useAddLessonMutation,
+  useAddModuleMutation,
+  useDeleteBlockMutation,
+  useDeleteLessonMutation,
+  useDeleteModuleMutation,
+  useMoveLessonMutation,
+  useRenameLessonMutation,
+  useRenameModuleMutation,
+  useReorderBlocksMutation,
+  useReorderLessonsMutation,
+  useReorderModulesMutation,
+  useUpdateHtmlBlockMutation,
+  useUpdateKatexBlockMutation,
+} from '../api/use-course-mutations';
+import { useProductQuery } from '../api/use-product';
+import {
+  useChangeProductNameMutation,
+  useRemoveProductCoverMutation,
+  useSetProductCoverMutation,
+} from '../api/use-product-mutations';
+
+import {
   ContentTree,
-  type LessonBlock,
-  type LessonNode,
-  type ModuleNode,
+  type ContentTreeModule,
 } from './content-tree';
-import { LessonBlocks } from './lesson-blocks';
+import {
+  LessonBlocks,
+  type CreatableBlockType,
+} from './lesson-blocks';
 import { ProductCover } from './product-cover';
+import { ProductDescriptionSection } from './product-description-section';
+import { ProductQASection } from './product-qa-section';
+import { ProductSettingsSection } from './product-settings-section';
+import { ProductTeamSection } from './product-team-section';
 
 const SECTION_KEYS = [
   'content',
-  'qa',
   'description',
   'team',
   'settings',
@@ -77,8 +126,20 @@ function clampSidebarWidth(value: number): number {
   return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, value));
 }
 
+function findLessonInDraft(
+  draft: CourseDraft | undefined,
+  lessonId: string | null,
+): { module: DraftModule; lesson: DraftLesson } | null {
+  if (!draft || !lessonId) return null;
+  for (const m of draft.modules) {
+    const lesson = m.lessons.find((l) => l.id === lessonId);
+    if (lesson) return { module: m, lesson };
+  }
+  return null;
+}
+
 export function ProductEditorView({
-  product,
+  product: initialProduct,
   initialRailOpen = true,
   initialSidebarWidth = SIDEBAR_DEFAULT_WIDTH,
 }: ProductEditorViewProps) {
@@ -86,6 +147,39 @@ export function ProductEditorView({
   const reduceMotion = useReducedMotion();
   const emailIdSeed = useId();
   const emailCounterRef = useRef(2);
+
+  // Subscribe to the product query so name / description / cover edits surface
+  // here without re-mounting from props. The server-rendered prop seeds
+  // initialData, so the first paint matches the SSR HTML.
+  const productQuery = useProductQuery(initialProduct.id, initialProduct);
+  const product = productQuery.data ?? initialProduct;
+
+  const isCourse = product.type === 'course';
+
+  // Course draft (modules / lessons / blocks)
+  const draftQuery = useCourseDraft(product.id, isCourse);
+  useCourseContentWs(product.id, isCourse);
+  // Product-level deltas (metadata, cover, status, Q&A) — both courses and webinars.
+  useProductEventsWs(product.id, true);
+
+  // Mutations
+  const addModule = useAddModuleMutation(product.id);
+  const renameModule = useRenameModuleMutation(product.id);
+  const deleteModule = useDeleteModuleMutation(product.id);
+  const reorderModules = useReorderModulesMutation(product.id);
+  const addLesson = useAddLessonMutation(product.id);
+  const renameLesson = useRenameLessonMutation(product.id);
+  const deleteLesson = useDeleteLessonMutation(product.id);
+  const reorderLessons = useReorderLessonsMutation(product.id);
+  const moveLesson = useMoveLessonMutation(product.id);
+  const addBlock = useAddBlockMutation(product.id);
+  const updateHtmlBlock = useUpdateHtmlBlockMutation(product.id);
+  const updateKatexBlock = useUpdateKatexBlockMutation(product.id);
+  const deleteBlock = useDeleteBlockMutation(product.id);
+  const reorderBlocks = useReorderBlocksMutation(product.id);
+  const renameProduct = useChangeProductNameMutation(product.id);
+  const setCover = useSetProductCoverMutation(product.id);
+  const removeCover = useRemoveProductCoverMutation(product.id);
 
   const [activeSection, setActiveSection] = useState<SectionKey>('content');
   const [emails, setEmails] = useState<EmailRow[]>(() => [
@@ -105,153 +199,181 @@ export function ProductEditorView({
   );
   const coverFileInputRef = useRef<HTMLInputElement>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [userSelectedLessonId, setUserSelectedLessonId] = useState<
+    string | null
+  >(null);
+  const [pendingRenameId, setPendingRenameId] = useState<string | null>(null);
+  const [titleEditing, setTitleEditing] = useState(false);
+  const [mobileTreeOpen, setMobileTreeOpen] = useState(false);
+
+  // Effective selection: respect the user's pick when the lesson still exists
+  // in the draft; otherwise fall back to the first available lesson. This is
+  // a derived value — no effect needed, no flicker on draft changes after
+  // a delete or DRAFT_RESET.
+  const selectedLessonId = useMemo(() => {
+    if (!draftQuery.data) return userSelectedLessonId;
+    if (
+      userSelectedLessonId &&
+      findLessonInDraft(draftQuery.data, userSelectedLessonId)
+    ) {
+      return userSelectedLessonId;
+    }
+    const fallback = draftQuery.data.modules.find((m) => m.lessons.length > 0)
+      ?.lessons[0]?.id;
+    return fallback ?? null;
+  }, [draftQuery.data, userSelectedLessonId]);
+
 
   const sectionItems = useMemo<SectionNavItem<SectionKey>[]>(
     () => SECTION_KEYS.map((key) => ({ key, label: t(`sections.${key}`) })),
     [t],
   );
 
-  const [modules, setModules] = useState<ModuleNode[]>(() => [
-    {
-      id: 'mod-intro',
-      title: 'Введение',
-      lessons: [
-        {
-          id: 'lesson-welcome',
-          title: 'Добро пожаловать',
-          blocks: [
-            {
-              id: 'lesson-welcome-b1',
-              type: 'html',
-              content:
-                '<h2>Добро пожаловать на курс</h2><p>В этом уроке мы разберём, чего ждать от программы и как организован материал. К концу курса вы построите собственный мини-проект и сможете применять подход в реальных задачах.</p><ul><li>Что вы получите от курса</li><li>Как устроены модули и уроки</li><li>Какие инструменты понадобятся</li></ul>',
-            },
-          ],
-        },
-        {
-          id: 'lesson-tools',
-          title: 'Что понадобится',
-          blocks: [
-            {
-              id: 'lesson-tools-b1',
-              type: 'html',
-              content:
-                '<h2>Подготовка</h2><p>Минимум — современный браузер и желание учиться. Дальнейшие уроки сами подскажут, что именно установить под конкретную тему.</p>',
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'mod-foundations',
-      title: 'Основы',
-      lessons: [
-        {
-          id: 'lesson-principles',
-          title: 'Базовые принципы',
-          blocks: [
-            {
-              id: 'lesson-principles-b1',
-              type: 'html',
-              content:
-                '<h2>Базовые принципы</h2><p>Прежде чем переходить к практике, договоримся об основной терминологии и базовых принципах подхода.</p>',
-            },
-            {
-              id: 'lesson-principles-b2',
-              type: 'katex',
-              content: 'a^2 + b^2 = c^2',
-            },
-          ],
-        },
-        {
-          id: 'lesson-workflow',
-          title: 'Рабочий процесс',
-          blocks: [
-            {
-              id: 'lesson-workflow-b1',
-              type: 'html',
-              content:
-                '<h2>Рабочий процесс</h2><p>Разберём типичный цикл работы: от постановки задачи до проверки результата.</p>',
-            },
-          ],
-        },
-        {
-          id: 'lesson-practice',
-          title: 'Практика',
-          blocks: [
-            {
-              id: 'lesson-practice-b1',
-              type: 'html',
-              content:
-                '<h2>Практика</h2><p>Решим первую задачу вместе и закрепим материал самостоятельно.</p>',
-            },
-            {
-              id: 'lesson-practice-b2',
-              type: 'katex',
-              content: 'x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}',
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'mod-advanced',
-      title: 'Продвинутые темы',
-      lessons: [
-        {
-          id: 'lesson-cases',
-          title: 'Разбор кейсов',
-          blocks: [
-            {
-              id: 'lesson-cases-b1',
-              type: 'html',
-              content:
-                '<h2>Разбор кейсов</h2><p>Несколько разборов реальных задач с пояснением каждого решения шаг за шагом.</p>',
-            },
-            {
-              id: 'lesson-cases-b2',
-              type: 'katex',
-              content: '\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}',
-            },
-          ],
-        },
-      ],
-    },
-  ]);
-  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(
-    'lesson-welcome',
-  );
+  const treeModules = useMemo<ContentTreeModule[]>(() => {
+    if (!draftQuery.data) return [];
+    return draftQuery.data.modules.map((m) => ({
+      id: m.id,
+      title: m.title,
+      lessons: m.lessons.map((l) => ({ id: l.id, title: l.title })),
+    }));
+  }, [draftQuery.data]);
 
-  // Plain derivation — React Compiler will memoize. A manual `useMemo` here
-  // tripped `react-hooks/preserve-manual-memoization` because the imperative
-  // early-return body wasn't analyzable.
-  let selectedLesson:
-    | { module: ModuleNode; lesson: LessonNode }
-    | null = null;
-  if (selectedLessonId) {
-    for (const m of modules) {
-      const found = m.lessons.find((l) => l.id === selectedLessonId);
-      if (found) {
-        selectedLesson = { module: m, lesson: found };
-        break;
-      }
+  const selectedLesson = findLessonInDraft(draftQuery.data, selectedLessonId);
+
+  /* ---------- Tree mutation handlers ---------- */
+
+  const handleAddModule = useCallback(async () => {
+    try {
+      const result = await addModule.mutateAsync({
+        title: t('tree.newModule'),
+      });
+      setPendingRenameId(result.id);
+    } catch {
+      // toast handled by mutation
     }
-  }
+  }, [addModule, t]);
 
-  const updateSelectedLessonBlocks = useCallback(
-    (blocks: LessonBlock[]) => {
-      if (!selectedLessonId) return;
-      setModules((prev) =>
-        prev.map((m) => ({
-          ...m,
-          lessons: m.lessons.map((l) =>
-            l.id === selectedLessonId ? { ...l, blocks } : l,
-          ),
-        })),
-      );
+  const handleRenameModule = useCallback(
+    (moduleId: string, title: string) => {
+      renameModule.mutate({ moduleId, title });
     },
-    [selectedLessonId],
+    [renameModule],
   );
+
+  const handleDeleteModule = useCallback(
+    (moduleId: string) => {
+      deleteModule.mutate({ moduleId });
+    },
+    [deleteModule],
+  );
+
+  const handleReorderModules = useCallback(
+    (orderedIds: string[]) => {
+      reorderModules.mutate({ orderedIds });
+    },
+    [reorderModules],
+  );
+
+  const handleAddLesson = useCallback(
+    async (moduleId: string) => {
+      try {
+        const result = await addLesson.mutateAsync({
+          moduleId,
+          title: t('tree.newLesson'),
+        });
+        setUserSelectedLessonId(result.id);
+        setPendingRenameId(result.id);
+      } catch {
+        // toast handled by mutation
+      }
+    },
+    [addLesson, t],
+  );
+
+  const handleRenameLesson = useCallback(
+    (lessonId: string, title: string) => {
+      renameLesson.mutate({ lessonId, title });
+    },
+    [renameLesson],
+  );
+
+  const handleDeleteLesson = useCallback(
+    (lessonId: string) => {
+      if (selectedLessonId === lessonId) setUserSelectedLessonId(null);
+      deleteLesson.mutate({ lessonId });
+    },
+    [deleteLesson, selectedLessonId],
+  );
+
+  const handleReorderLessons = useCallback(
+    (moduleId: string, orderedIds: string[]) => {
+      reorderLessons.mutate({ moduleId, orderedIds });
+    },
+    [reorderLessons],
+  );
+
+  const handleMoveLesson = useCallback(
+    (lessonId: string, targetModuleId: string) => {
+      moveLesson.mutate({ lessonId, targetModuleId });
+    },
+    [moveLesson],
+  );
+
+  /* ---------- Block mutation handlers ---------- */
+
+  const handleAddBlock = useCallback(
+    async (type: CreatableBlockType) => {
+      if (!selectedLessonId) return;
+      await addBlock
+        .mutateAsync({ lessonId: selectedLessonId, type })
+        .catch(() => undefined);
+    },
+    [addBlock, selectedLessonId],
+  );
+
+  const handleUpdateHtmlBlock = useCallback(
+    (blockId: string, html: string) => {
+      updateHtmlBlock.mutate({ blockId, html });
+    },
+    [updateHtmlBlock],
+  );
+
+  const handleUpdateKatexBlock = useCallback(
+    (blockId: string, source: string) => {
+      updateKatexBlock.mutate({ blockId, source });
+    },
+    [updateKatexBlock],
+  );
+
+  const handleDeleteBlock = useCallback(
+    (blockId: string) => {
+      deleteBlock.mutate({ blockId });
+    },
+    [deleteBlock],
+  );
+
+  const handleReorderBlocks = useCallback(
+    (orderedIds: string[]) => {
+      if (!selectedLessonId) return;
+      reorderBlocks.mutate({ lessonId: selectedLessonId, orderedIds });
+    },
+    [reorderBlocks, selectedLessonId],
+  );
+
+  /* ---------- Title rename ---------- */
+
+  const handleCommitTitle = useCallback(
+    (next: string) => {
+      const trimmed = next.trim();
+      setTitleEditing(false);
+      if (trimmed && trimmed !== product.title) {
+        renameProduct.mutate({ value: trimmed });
+      }
+    },
+    [product.title, renameProduct],
+  );
+
+  /* ---------- Email rail ---------- */
 
   const onAddEmail = useCallback(() => {
     const next = emailCounterRef.current++;
@@ -271,7 +393,6 @@ export function ProductEditorView({
   const onCloseRail = useCallback(() => {
     setRailOpen(false);
     if (typeof document !== 'undefined') {
-      // 1 year, lax — non-sensitive UI preference
       document.cookie = `${RAIL_COOKIE}=1; path=/; max-age=31536000; samesite=lax`;
     }
   }, []);
@@ -281,8 +402,6 @@ export function ProductEditorView({
     if (typeof document !== 'undefined') {
       document.cookie = `${RAIL_COOKIE}=; path=/; max-age=0; samesite=lax`;
     }
-    // Only scroll on mobile/tablet — on desktop the rail is already in the
-    // sticky right column. Defer to next frame so the rail has mounted.
     if (
       typeof window !== 'undefined' &&
       window.matchMedia('(max-width: 1023px)').matches
@@ -393,16 +512,32 @@ export function ProductEditorView({
   }, []);
 
   const onDeleteCover = useCallback(() => {
-    setCoverFile(null);
-  }, []);
+    if (coverFile) {
+      // Just discard the local preview if user hasn't uploaded yet.
+      setCoverFile(null);
+      return;
+    }
+    removeCover.mutate();
+  }, [coverFile, removeCover]);
 
   const onCoverFileChange = useCallback(
     (event: ReactChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
-      if (file) setCoverFile(file);
       event.target.value = '';
+      if (!file) return;
+      setCoverFile(file);
+      setCover.mutate(
+        { file },
+        {
+          onSettled: (_data, error) => {
+            // On success, clear the local preview — server now has the new
+            // cover and the product query will be re-fetched.
+            if (!error) setCoverFile(null);
+          },
+        },
+      );
     },
-    [],
+    [setCover],
   );
 
   const onCopyLink = useCallback(async () => {
@@ -425,7 +560,7 @@ export function ProductEditorView({
         initial={reduceMotion ? false : { opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
-        className="h-32 w-full md:h-44 lg:h-56"
+        className="h-28 w-full md:h-44 lg:h-56"
       >
         <ProductCover
           productId={product.id}
@@ -467,29 +602,51 @@ export function ProductEditorView({
       </motion.div>
 
       {/* Header */}
-      <header className="mt-5 flex flex-col gap-3 md:mt-6 md:flex-row md:items-center md:justify-between md:gap-6">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground md:text-3xl lg:text-[28px]">
-          {titleText}
-        </h1>
-        <div className="flex items-center gap-2">
+      <header className="mt-4 flex items-center gap-2 md:mt-6 md:gap-6">
+        {titleEditing ? (
+          <TitleEditor
+            initial={product.title}
+            onCommit={handleCommitTitle}
+            onCancel={() => setTitleEditing(false)}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setTitleEditing(true)}
+            aria-label={t('actions.edit')}
+            className="group/title -mx-1 flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-muted/40"
+          >
+            <h1 className="font-heading truncate text-2xl font-semibold tracking-tight text-foreground md:text-3xl lg:text-[28px]">
+              {titleText}
+            </h1>
+            <PencilIcon
+              aria-hidden
+              className="size-4 shrink-0 text-muted-foreground opacity-100 transition-opacity md:opacity-0 group-hover/title:md:opacity-100 group-focus-visible/title:md:opacity-100"
+            />
+          </button>
+        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {/* Edit — only on tablet+; on mobile the title button itself opens the editor */}
           <Button
-            size="lg"
-            className="gap-1.5 bg-brand text-brand-foreground hover:bg-brand/90"
+            onClick={() => setTitleEditing(true)}
+            className="hidden h-9 gap-1.5 bg-brand px-4 text-brand-foreground hover:bg-brand/90 md:inline-flex"
           >
             <PencilIcon /> {t('actions.edit')}
           </Button>
+          {/* Share — icon-only on mobile, with label on sm+ */}
           <Button
             variant="outline"
-            size="lg"
             onClick={onOpenRail}
-            className="gap-1.5"
+            aria-label={t('actions.share')}
+            className="h-9 gap-1.5 px-3 md:px-4"
           >
-            <Share2Icon /> {t('actions.share')}
+            <Share2Icon />
+            <span className="hidden sm:inline">{t('actions.share')}</span>
           </Button>
         </div>
       </header>
 
-      <div className="mt-5 border-t border-border md:mt-6" />
+      <div className="mt-4 border-t border-border md:mt-6" />
 
       {/* Body */}
       <MotionConfig
@@ -513,16 +670,28 @@ export function ProductEditorView({
                 onActivate={() => setActiveSection('content')}
                 reduceMotion={!!reduceMotion}
               >
-                <ContentTree
-                  modules={modules}
-                  onChange={setModules}
+                <DraftTree
+                  isCourse={isCourse}
+                  query={draftQuery}
+                  modules={treeModules}
                   selectedLessonId={
                     activeSection === 'content' ? selectedLessonId : null
                   }
                   onSelectLesson={(_moduleId, lessonId) => {
-                    setSelectedLessonId(lessonId);
+                    setUserSelectedLessonId(lessonId);
                     setActiveSection('content');
                   }}
+                  onAddModule={handleAddModule}
+                  onRenameModule={handleRenameModule}
+                  onDeleteModule={handleDeleteModule}
+                  onReorderModules={handleReorderModules}
+                  onAddLesson={handleAddLesson}
+                  onRenameLesson={handleRenameLesson}
+                  onDeleteLesson={handleDeleteLesson}
+                  onReorderLessons={handleReorderLessons}
+                  onMoveLesson={handleMoveLesson}
+                  pendingRenameId={pendingRenameId}
+                  onPendingRenameResolved={() => setPendingRenameId(null)}
                 />
               </ContentNavItem>
               {SECTION_KEYS.filter((key) => key !== 'content').map((key) => (
@@ -577,49 +746,68 @@ export function ProductEditorView({
             />
           </div>
 
+          {/* Mobile/tablet only: list-cell trigger that opens the course tree
+              Sheet — desktop uses the persistent sidebar instead. */}
+          {isCourse && activeSection === 'content' ? (
+            <button
+              type="button"
+              onClick={() => setMobileTreeOpen(true)}
+              aria-label={t('tree.heading')}
+              className="-mx-1 mt-3 flex w-[calc(100%+0.5rem)] items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50 active:bg-muted lg:hidden"
+            >
+              <ListTreeIcon className="size-5 shrink-0 text-muted-foreground" />
+              <span className="flex min-w-0 flex-1 flex-col">
+                {selectedLesson ? (
+                  <>
+                    <span className="truncate text-sm font-semibold text-foreground">
+                      {selectedLesson.lesson.title}
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {selectedLesson.module.title}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-sm font-medium text-foreground">
+                    {t('tree.heading')}
+                  </span>
+                )}
+              </span>
+              <ChevronRightIcon
+                aria-hidden
+                className="size-4 shrink-0 text-muted-foreground"
+              />
+            </button>
+          ) : null}
+
           {/* Section content */}
-          <div className="mt-2 lg:mt-0">
+          <div className="mt-5 lg:mt-0">
             <AnimatePresence mode="wait" initial={false}>
               {activeSection === 'content' ? (
-                selectedLesson ? (
-                  <motion.div
-                    key={`lesson-${selectedLesson.lesson.id}`}
-                    initial={reduceMotion ? false : { opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
-                    transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
-                    className="flex flex-col gap-6"
-                  >
-                    <div className="flex flex-col gap-1 px-1">
-                      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                        {selectedLesson.module.title}
-                      </p>
-                      <h2 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-                        {selectedLesson.lesson.title}
-                      </h2>
-                    </div>
-                    <LessonBlocks
-                      blocks={selectedLesson.lesson.blocks}
-                      onChange={updateSelectedLessonBlocks}
-                    />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="no-lesson"
-                    initial={reduceMotion ? false : { opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
-                    transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
-                    className="rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center"
-                  >
-                    <h3 className="font-heading text-base font-semibold tracking-tight text-foreground">
-                      {t('lessonEmpty.title')}
-                    </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                      {t('lessonEmpty.description')}
-                    </p>
-                  </motion.div>
-                )
+                <ContentSection
+                  key="content"
+                  reduceMotion={!!reduceMotion}
+                  isCourse={isCourse}
+                  query={draftQuery}
+                  selectedLesson={selectedLesson}
+                  onUpdateHtml={handleUpdateHtmlBlock}
+                  onUpdateKatex={handleUpdateKatexBlock}
+                  onAddBlock={handleAddBlock}
+                  onRemoveBlock={handleDeleteBlock}
+                  onReorderBlocks={handleReorderBlocks}
+                />
+              ) : activeSection === 'description' ? (
+                <div key="description" className="flex flex-col gap-10">
+                  <ProductDescriptionSection
+                    productId={product.id}
+                    description={product.description}
+                    durationHours={product.durationHours}
+                  />
+                  <ProductQASection productId={product.id} />
+                </div>
+              ) : activeSection === 'team' ? (
+                <ProductTeamSection key="team" />
+              ) : activeSection === 'settings' ? (
+                <ProductSettingsSection key="settings" product={product} />
               ) : (
                 <motion.div
                   key={`placeholder-${activeSection}`}
@@ -672,7 +860,7 @@ export function ProductEditorView({
                 )}
               >
                 {/* Share card */}
-                <div className="relative rounded-2xl bg-muted/40 p-5 dark:bg-muted/30">
+                <div className="relative rounded-2xl bg-muted p-5">
                   <h3 className="pr-7 font-heading text-base font-semibold tracking-tight text-foreground">
                     {t('share.title')}
                   </h3>
@@ -710,7 +898,7 @@ export function ProductEditorView({
                 </div>
 
                 {/* Invite card */}
-                <div className="rounded-2xl bg-muted/40 p-5 dark:bg-muted/30">
+                <div className="rounded-2xl bg-muted p-5">
                   <div className="flex size-10 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground">
                     <UserPlusIcon className="size-4" />
                   </div>
@@ -813,15 +1001,362 @@ export function ProductEditorView({
         </AnimatePresence>
       </div>
       </MotionConfig>
+
+      {/* Mobile/tablet course tree Sheet */}
+      <Sheet open={mobileTreeOpen} onOpenChange={setMobileTreeOpen}>
+        <SheetContent
+          side="left"
+          className="flex w-[88vw] flex-col gap-0 sm:max-w-md"
+        >
+          <SheetHeader className="border-b border-border">
+            <SheetTitle>{t('tree.heading')}</SheetTitle>
+            <SheetDescription className="sr-only">
+              {t('tree.heading')}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+            <DraftTree
+              isCourse={isCourse}
+              query={draftQuery}
+              modules={treeModules}
+              selectedLessonId={selectedLessonId}
+              onSelectLesson={(_moduleId, lessonId) => {
+                setUserSelectedLessonId(lessonId);
+                setActiveSection('content');
+                setMobileTreeOpen(false);
+              }}
+              onAddModule={handleAddModule}
+              onRenameModule={handleRenameModule}
+              onDeleteModule={handleDeleteModule}
+              onReorderModules={handleReorderModules}
+              onAddLesson={handleAddLesson}
+              onRenameLesson={handleRenameLesson}
+              onDeleteLesson={handleDeleteLesson}
+              onReorderLessons={handleReorderLessons}
+              onMoveLesson={handleMoveLesson}
+              pendingRenameId={pendingRenameId}
+              onPendingRenameResolved={() => setPendingRenameId(null)}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/* Sidebar tree wrapper — handles loading / error / empty / not-a-course      */
+/* -------------------------------------------------------------------------- */
+
+type DraftQuery = ReturnType<typeof useCourseDraft>;
+
+type DraftTreeProps = {
+  isCourse: boolean;
+  query: DraftQuery;
+  modules: ContentTreeModule[];
+  selectedLessonId: string | null;
+  onSelectLesson: (moduleId: string, lessonId: string) => void;
+  onAddModule: () => void;
+  onRenameModule: (moduleId: string, title: string) => void;
+  onDeleteModule: (moduleId: string) => void;
+  onReorderModules: (orderedIds: string[]) => void;
+  onAddLesson: (moduleId: string) => void;
+  onRenameLesson: (lessonId: string, title: string) => void;
+  onDeleteLesson: (lessonId: string) => void;
+  onReorderLessons: (moduleId: string, orderedIds: string[]) => void;
+  onMoveLesson: (lessonId: string, targetModuleId: string) => void;
+  pendingRenameId: string | null;
+  onPendingRenameResolved: () => void;
+};
+
+function DraftTree({
+  isCourse,
+  query,
+  modules,
+  selectedLessonId,
+  onSelectLesson,
+  onAddModule,
+  onRenameModule,
+  onDeleteModule,
+  onReorderModules,
+  onAddLesson,
+  onRenameLesson,
+  onDeleteLesson,
+  onReorderLessons,
+  onMoveLesson,
+  pendingRenameId,
+  onPendingRenameResolved,
+}: DraftTreeProps) {
+  const t = useTranslations('teach-products.editor.load');
+
+  if (!isCourse) {
+    return (
+      <p className="px-2.5 py-1.5 text-xs text-muted-foreground">
+        {t('notACourseDescription')}
+      </p>
+    );
+  }
+
+  if (query.isPending) {
+    return (
+      <div className="flex flex-col gap-1.5 py-1.5" aria-label={t('loading')}>
+        <Skeleton className="h-7 w-full" />
+        <Skeleton className="ml-3 h-6 w-[88%]" />
+        <Skeleton className="ml-3 h-6 w-[80%]" />
+        <Skeleton className="h-7 w-full" />
+        <Skeleton className="ml-3 h-6 w-[76%]" />
+      </div>
+    );
+  }
+
+  if (query.isError) {
+    const reason =
+      query.error instanceof CourseDraftError ? query.error.reason : 'unknown';
+    return (
+      <DraftLoadError
+        reason={reason}
+        onRetry={() => query.refetch()}
+        isRetrying={query.isFetching}
+      />
+    );
+  }
+
+  return (
+    <ContentTree
+      modules={modules}
+      selectedLessonId={selectedLessonId}
+      onSelectLesson={onSelectLesson}
+      onAddModule={onAddModule}
+      onRenameModule={onRenameModule}
+      onDeleteModule={onDeleteModule}
+      onReorderModules={onReorderModules}
+      onAddLesson={onAddLesson}
+      onRenameLesson={onRenameLesson}
+      onDeleteLesson={onDeleteLesson}
+      onReorderLessons={onReorderLessons}
+      onMoveLesson={onMoveLesson}
+      pendingRenameId={pendingRenameId}
+      onPendingRenameResolved={onPendingRenameResolved}
+    />
+  );
+}
+
+function DraftLoadError({
+  reason,
+  onRetry,
+  isRetrying,
+}: {
+  reason: 'forbidden' | 'not-found' | 'not-a-course' | 'unauthorized' | 'network' | 'unknown';
+  onRetry: () => void;
+  isRetrying: boolean;
+}) {
+  const t = useTranslations('teach-products.editor.load');
+  const titleKey =
+    reason === 'forbidden'
+      ? 'forbiddenTitle'
+      : reason === 'not-a-course'
+        ? 'notACourseTitle'
+        : 'errorTitle';
+  const descriptionKey =
+    reason === 'forbidden'
+      ? 'forbiddenDescription'
+      : reason === 'not-a-course'
+        ? 'notACourseDescription'
+        : 'errorDescription';
+  const showRetry = reason !== 'forbidden' && reason !== 'not-a-course';
+  return (
+    <div role="alert" className="flex flex-col gap-2 px-2.5 py-2">
+      <p className="text-xs font-semibold text-foreground">{t(titleKey)}</p>
+      <p className="text-xs leading-snug text-muted-foreground">
+        {t(descriptionKey)}
+      </p>
+      {showRetry ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onRetry}
+          disabled={isRetrying}
+          className="h-7 w-fit gap-1.5 px-2.5 text-xs"
+        >
+          <RotateCwIcon className={cn('size-3', isRetrying && 'animate-spin')} />
+          {t('retry')}
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Main content area                                                          */
+/* -------------------------------------------------------------------------- */
+
+type ContentSectionProps = {
+  reduceMotion: boolean;
+  isCourse: boolean;
+  query: DraftQuery;
+  selectedLesson: { module: DraftModule; lesson: DraftLesson } | null;
+  onUpdateHtml: (blockId: string, html: string) => void;
+  onUpdateKatex: (blockId: string, source: string) => void;
+  onAddBlock: (type: CreatableBlockType) => void;
+  onRemoveBlock: (blockId: string) => void;
+  onReorderBlocks: (orderedIds: string[]) => void;
+};
+
+function ContentSection({
+  reduceMotion,
+  isCourse,
+  query,
+  selectedLesson,
+  onUpdateHtml,
+  onUpdateKatex,
+  onAddBlock,
+  onRemoveBlock,
+  onReorderBlocks,
+}: ContentSectionProps) {
+  const t = useTranslations('teach-products.editor');
+  const tLoad = useTranslations('teach-products.editor.load');
+
+  if (!isCourse) {
+    return (
+      <motion.div
+        key="not-a-course"
+        initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+        transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+        className="rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center"
+      >
+        <h3 className="font-heading text-base font-semibold tracking-tight text-foreground">
+          {tLoad('notACourseTitle')}
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          {tLoad('notACourseDescription')}
+        </p>
+      </motion.div>
+    );
+  }
+
+  if (query.isPending) {
+    return (
+      <motion.div
+        key="loading"
+        initial={reduceMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="flex flex-col gap-6"
+        aria-label={tLoad('loading')}
+      >
+        <div className="flex flex-col gap-2 px-1">
+          <Skeleton className="h-3 w-32" />
+          <Skeleton className="h-7 w-2/3" />
+        </div>
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-[92%]" />
+          <Skeleton className="h-4 w-[78%]" />
+        </div>
+        <Skeleton className="h-32 w-full rounded-xl" />
+      </motion.div>
+    );
+  }
+
+  if (query.isError) {
+    const reason =
+      query.error instanceof CourseDraftError ? query.error.reason : 'unknown';
+    return (
+      <motion.div
+        key={`error-${reason}`}
+        initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+        transition={{ duration: 0.2 }}
+        role="alert"
+        className="rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center"
+      >
+        <h3 className="font-heading text-base font-semibold tracking-tight text-foreground">
+          {tLoad(reason === 'forbidden' ? 'forbiddenTitle' : 'errorTitle')}
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          {tLoad(
+            reason === 'forbidden' ? 'forbiddenDescription' : 'errorDescription',
+          )}
+        </p>
+        {reason !== 'forbidden' ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => query.refetch()}
+            disabled={query.isFetching}
+            className="mt-4 gap-1.5"
+          >
+            <RotateCwIcon
+              className={cn('size-3', query.isFetching && 'animate-spin')}
+            />
+            {tLoad('retry')}
+          </Button>
+        ) : null}
+      </motion.div>
+    );
+  }
+
+  if (!selectedLesson) {
+    return (
+      <motion.div
+        key="no-lesson"
+        initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+        transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+        className="rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center"
+      >
+        <h3 className="font-heading text-base font-semibold tracking-tight text-foreground">
+          {t('lessonEmpty.title')}
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          {t('lessonEmpty.description')}
+        </p>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div
+      key={`lesson-${selectedLesson.lesson.id}`}
+      initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+      transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+      className="flex flex-col gap-6"
+    >
+      {/* Lesson header — hidden on mobile/tablet, where the same context is
+          shown in the tree-trigger row above the section content. */}
+      <div className="hidden flex-col gap-1 px-1 lg:flex">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          {selectedLesson.module.title}
+        </p>
+        <h2 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
+          {selectedLesson.lesson.title}
+        </h2>
+      </div>
+      <LessonBlocks
+        blocks={selectedLesson.lesson.blocks satisfies LessonBlock[]}
+        onUpdateHtml={onUpdateHtml}
+        onUpdateKatex={onUpdateKatex}
+        onAddBlock={onAddBlock}
+        onRemoveBlock={onRemoveBlock}
+        onReorder={onReorderBlocks}
+      />
+    </motion.div>
+  );
+}
+
 /**
- * "Контент" sidebar entry that hosts the lesson tree. The tree expands
- * (animated open) only while the section is active OR the entry is being
- * hovered / has keyboard focus inside it; otherwise the entry collapses to
- * a single line, matching the rest of the section nav.
+ * "Содержание" sidebar entry that hosts the lesson tree. The tree expands
+ * only while the section is active — selecting the section opens it,
+ * picking another section collapses it back into a single-line nav row.
  */
 function ContentNavItem({
   active,
@@ -836,25 +1371,8 @@ function ContentNavItem({
   reduceMotion: boolean;
   children: ReactNode;
 }) {
-  const [hovered, setHovered] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const open = active || hovered || focused;
-
-  const onBlurCapture = (event: ReactFocusEvent<HTMLLIElement>) => {
-    // Only flip focused → false when focus actually leaves the entry, not
-    // when it just hops between descendants (e.g. tree row → kebab menu).
-    const next = event.relatedTarget as Node | null;
-    if (next && event.currentTarget.contains(next)) return;
-    setFocused(false);
-  };
-
   return (
-    <li
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onFocusCapture={() => setFocused(true)}
-      onBlurCapture={onBlurCapture}
-    >
+    <li>
       <button
         type="button"
         onClick={onActivate}
@@ -868,7 +1386,7 @@ function ContentNavItem({
         {label}
       </button>
       <AnimatePresence initial={false}>
-        {open ? (
+        {active ? (
           <motion.div
             key="tree"
             initial={
@@ -905,3 +1423,46 @@ function ContentNavItem({
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/* Inline title editor                                                        */
+/* -------------------------------------------------------------------------- */
+
+function TitleEditor({
+  initial,
+  onCommit,
+  onCancel,
+}: {
+  initial: string;
+  onCommit: (value: string) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState(initial);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  const onKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      onCommit(value);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      onCancel();
+    }
+  };
+
+  return (
+    <Input
+      ref={inputRef}
+      value={value}
+      onChange={(event) => setValue(event.target.value)}
+      onBlur={() => onCommit(value)}
+      onKeyDown={onKeyDown}
+      className="h-10 w-full max-w-xl text-2xl font-semibold tracking-tight md:text-3xl lg:text-[28px]"
+      aria-label={initial}
+    />
+  );
+}

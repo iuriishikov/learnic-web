@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 import { MonitorIcon, MoonIcon, SunIcon } from 'lucide-react';
 
+import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import {
   DropdownMenu,
@@ -12,7 +13,11 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 
-export function ThemeToggle() {
+type ThemeToggleProps = {
+  className?: string;
+};
+
+export function ThemeToggle({ className }: ThemeToggleProps = {}) {
   const t = useTranslations('home.header.theme');
   const { setTheme } = useTheme();
 
@@ -23,7 +28,7 @@ export function ThemeToggle() {
           <Button
             variant="ghost"
             size="icon"
-            className="size-10"
+            className={cn('size-10', className)}
             aria-label={t('toggle')}
           />
         }

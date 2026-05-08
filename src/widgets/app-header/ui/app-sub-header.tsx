@@ -52,7 +52,7 @@ export function AppSubHeader({
           }}
           transition={{ duration: swapDuration, ease: swapEase }}
           className={cn(
-            'sticky top-[73px] z-30 overflow-hidden bg-background',
+            'sticky top-[72px] z-30 overflow-hidden bg-background',
             className,
           )}
         >

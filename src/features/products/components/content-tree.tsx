@@ -34,7 +34,6 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   useCallback,
   useEffect,
-  useId,
   useRef,
   useState,
 } from 'react';
@@ -48,58 +47,83 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 
-export type LessonBlockType = 'html' | 'katex';
-
-export type LessonBlock = {
-  id: string;
-  type: LessonBlockType;
-  /** Block content — HTML for `html` blocks, LaTeX source for `katex` blocks. */
-  content: string;
-};
-
-export type LessonNode = {
+export type ContentTreeLesson = {
   id: string;
   title: string;
-  blocks: LessonBlock[];
 };
-export type ModuleNode = { id: string; title: string; lessons: LessonNode[] };
 
-type ContentTreeProps = {
-  modules: ModuleNode[];
-  onChange: (modules: ModuleNode[]) => void;
+export type ContentTreeModule = {
+  id: string;
+  title: string;
+  lessons: ContentTreeLesson[];
+};
+
+export type ContentTreeProps = {
+  modules: ContentTreeModule[];
   selectedLessonId?: string | null;
   onSelectLesson?: (moduleId: string, lessonId: string) => void;
+  onAddModule: () => void;
+  onRenameModule: (moduleId: string, title: string) => void;
+  onDeleteModule: (moduleId: string) => void;
+  onReorderModules: (orderedIds: string[]) => void;
+  onAddLesson: (moduleId: string) => void;
+  onRenameLesson: (lessonId: string, title: string) => void;
+  onDeleteLesson: (lessonId: string) => void;
+  onReorderLessons: (moduleId: string, orderedIds: string[]) => void;
+  onMoveLesson?: (lessonId: string, targetModuleId: string) => void;
+  /** Lesson id whose row should mount in inline-rename mode (e.g. just-created). */
+  pendingRenameId?: string | null;
+  /** Fired when an externally-requested rename has been resolved (commit / cancel). */
+  onPendingRenameResolved?: () => void;
   className?: string;
 };
 
 const MODULE_PREFIX = 'module:';
 const LESSON_PREFIX = 'lesson:';
 
-function uid(prefix: string, seed: string): string {
-  return `${seed}-${prefix}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
 /**
  * Modular content tree: a sortable list of modules, each with a sortable list
- * of lessons. Mock-only — drag-drop, add, delete and inline rename mutate the
- * `modules` array in place via `onChange`. No persistence yet.
- *
- * Drag scope is intentionally limited to "modules among modules" and "lessons
- * within their parent module" — cross-module lesson moves can come later.
+ * of lessons. All mutations go through the per-action callbacks supplied by
+ * the parent — the tree itself owns no business state.
  */
 export function ContentTree({
   modules,
-  onChange,
   selectedLessonId,
   onSelectLesson,
+  onAddModule,
+  onRenameModule,
+  onDeleteModule,
+  onReorderModules,
+  onAddLesson,
+  onRenameLesson,
+  onDeleteLesson,
+  onReorderLessons,
+  onMoveLesson,
+  pendingRenameId,
+  onPendingRenameResolved,
   className,
 }: ContentTreeProps) {
   const t = useTranslations('teach-products.editor.tree');
-  const seed = useId();
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(modules.map((m) => [m.id, true])),
   );
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [lastSeenPending, setLastSeenPending] = useState<string | null>(null);
+
+  // Mirror the parent's "rename this freshly created entity" prop into local
+  // editing state. We use the "store previous prop" pattern instead of an
+  // effect so a render with a new pendingRenameId enters edit mode in the
+  // same render — no flicker, no extra paint.
+  const normalizedPending = pendingRenameId ?? null;
+  if (normalizedPending !== lastSeenPending) {
+    setLastSeenPending(normalizedPending);
+    if (normalizedPending) setEditingId(normalizedPending);
+  }
+
+  const resolveRename = useCallback(() => {
+    setEditingId(null);
+    onPendingRenameResolved?.();
+  }, [onPendingRenameResolved]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -128,9 +152,9 @@ export function ContentTree({
         const newIndex = modules.findIndex(
           (m) => `${MODULE_PREFIX}${m.id}` === overId,
         );
-        if (oldIndex !== -1 && newIndex !== -1) {
-          onChange(arrayMove(modules, oldIndex, newIndex));
-        }
+        if (oldIndex === -1 || newIndex === -1) return;
+        const next = arrayMove(modules, oldIndex, newIndex);
+        onReorderModules(next.map((m) => m.id));
         return;
       }
 
@@ -144,84 +168,35 @@ export function ContentTree({
           );
         const fromModule = findParent(activeId);
         const toModule = findParent(overId);
-        if (!fromModule || !toModule || fromModule.id !== toModule.id) return;
+        if (!fromModule || !toModule) return;
+
+        if (fromModule.id !== toModule.id) {
+          // Cross-module move — append to target module then reorder by hand.
+          if (!onMoveLesson) return;
+          const lessonId = activeId.slice(LESSON_PREFIX.length);
+          onMoveLesson(lessonId, toModule.id);
+          return;
+        }
+
         const oldIndex = fromModule.lessons.findIndex(
           (l) => `${LESSON_PREFIX}${l.id}` === activeId,
         );
         const newIndex = fromModule.lessons.findIndex(
           (l) => `${LESSON_PREFIX}${l.id}` === overId,
         );
-        if (oldIndex !== -1 && newIndex !== -1) {
-          onChange(
-            modules.map((m) =>
-              m.id === fromModule.id
-                ? { ...m, lessons: arrayMove(m.lessons, oldIndex, newIndex) }
-                : m,
-            ),
-          );
-        }
+        if (oldIndex === -1 || newIndex === -1) return;
+        const next = arrayMove(fromModule.lessons, oldIndex, newIndex);
+        onReorderLessons(
+          fromModule.id,
+          next.map((l) => l.id),
+        );
       }
     },
-    [modules, onChange],
+    [modules, onReorderModules, onReorderLessons, onMoveLesson],
   );
 
-  const addModule = () => {
-    const id = uid('mod', seed);
-    onChange([...modules, { id, title: t('newModule'), lessons: [] }]);
-    setExpanded((prev) => ({ ...prev, [id]: true }));
-    setEditingId(id);
-  };
-
-  const addLesson = (moduleId: string) => {
-    const id = uid('les', seed);
-    onChange(
-      modules.map((m) =>
-        m.id === moduleId
-          ? {
-              ...m,
-              lessons: [
-                ...m.lessons,
-                { id, title: t('newLesson'), blocks: [] },
-              ],
-            }
-          : m,
-      ),
-    );
-    setExpanded((prev) => ({ ...prev, [moduleId]: true }));
-    setEditingId(id);
-  };
-
-  const deleteModule = (moduleId: string) => {
-    onChange(modules.filter((m) => m.id !== moduleId));
-  };
-
-  const deleteLesson = (moduleId: string, lessonId: string) => {
-    onChange(
-      modules.map((m) =>
-        m.id === moduleId
-          ? { ...m, lessons: m.lessons.filter((l) => l.id !== lessonId) }
-          : m,
-      ),
-    );
-  };
-
-  const renameModule = (moduleId: string, title: string) => {
-    onChange(modules.map((m) => (m.id === moduleId ? { ...m, title } : m)));
-  };
-
-  const renameLesson = (moduleId: string, lessonId: string, title: string) => {
-    onChange(
-      modules.map((m) =>
-        m.id === moduleId
-          ? {
-              ...m,
-              lessons: m.lessons.map((l) =>
-                l.id === lessonId ? { ...l, title } : l,
-              ),
-            }
-          : m,
-      ),
-    );
+  const handleAddModule = () => {
+    onAddModule();
   };
 
   const toggleExpanded = (moduleId: string) =>
@@ -251,22 +226,25 @@ export function ContentTree({
                 onToggle={() => toggleExpanded(module.id)}
                 onStartRename={() => setEditingId(module.id)}
                 onCommitRename={(title) => {
-                  renameModule(module.id, title);
-                  setEditingId(null);
+                  onRenameModule(module.id, title);
+                  resolveRename();
                 }}
-                onCancelRename={() => setEditingId(null)}
-                onDelete={() => deleteModule(module.id)}
-                onAddLesson={() => addLesson(module.id)}
+                onCancelRename={resolveRename}
+                onDelete={() => onDeleteModule(module.id)}
+                onAddLesson={() => {
+                  setExpanded((prev) => ({ ...prev, [module.id]: true }));
+                  onAddLesson(module.id);
+                }}
                 onLessonSelect={(lessonId) =>
                   onSelectLesson?.(module.id, lessonId)
                 }
                 onLessonStartRename={(lessonId) => setEditingId(lessonId)}
                 onLessonCommitRename={(lessonId, title) => {
-                  renameLesson(module.id, lessonId, title);
-                  setEditingId(null);
+                  onRenameLesson(lessonId, title);
+                  resolveRename();
                 }}
-                onLessonCancelRename={() => setEditingId(null)}
-                onLessonDelete={(lessonId) => deleteLesson(module.id, lessonId)}
+                onLessonCancelRename={resolveRename}
+                onLessonDelete={(lessonId) => onDeleteLesson(lessonId)}
               />
             ))}
           </ul>
@@ -277,7 +255,7 @@ export function ContentTree({
         type="button"
         variant="ghost"
         size="sm"
-        onClick={addModule}
+        onClick={handleAddModule}
         className="mt-1.5 h-8 w-full justify-start gap-1.5 px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
       >
         <PlusIcon className="size-3.5" /> {t('addModule')}
@@ -291,7 +269,7 @@ export function ContentTree({
 /* -------------------------------------------------------------------------- */
 
 type SortableModuleProps = {
-  module: ModuleNode;
+  module: ContentTreeModule;
   expanded: boolean;
   editing: boolean;
   editingLessonId: string | null;
@@ -471,7 +449,7 @@ function SortableModule({
 /* -------------------------------------------------------------------------- */
 
 type SortableLessonProps = {
-  lesson: LessonNode;
+  lesson: ContentTreeLesson;
   selected: boolean;
   editing: boolean;
   onSelect: () => void;
@@ -661,7 +639,7 @@ function RowRename({
         else onCancel();
       }}
       onKeyDown={onKeyDown}
-      className="h-7 flex-1 rounded border border-ring bg-background px-1.5 text-sm text-foreground outline-none ring-2 ring-ring/30"
+      className="h-7 min-w-0 flex-1 rounded border border-ring bg-background px-1.5 text-sm text-foreground outline-none ring-2 ring-ring/30"
     />
   );
 }
@@ -721,15 +699,12 @@ function RowMenu({
       >
         <MoreVerticalIcon className="size-3.5" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
+      <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={onRename}>
           <PencilIcon /> {renameLabel}
         </DropdownMenuItem>
         {extraItems}
-        <DropdownMenuItem
-          onClick={onDelete}
-          className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-        >
+        <DropdownMenuItem variant="destructive" onClick={onDelete}>
           <Trash2Icon /> {deleteLabel}
         </DropdownMenuItem>
       </DropdownMenuContent>

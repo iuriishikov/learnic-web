@@ -861,6 +861,66 @@ Cases that look like primary failures but aren't:
 - **Optimistic mutation rollback**: surface inline (toast + revert), not a page redirect.
 - **Stale revalidation failure**: keep the previous data, log, surface inline if needed.
 
+### Surfacing Errors — Inline (Alert / FieldError) vs Toast
+
+Once Page-Level Failures are out of the way, the remaining errors need to land where the user actually is. The choice between **inline** (`Alert` / `FieldError`) and **Toast** (`sonner`) is not a styling preference — it follows from whether the error is **persistent state the user must act on** or a **transient event that has already passed**.
+
+**The rule**
+
+- **Inline** — the error reflects the current state of the surface (form, section, action) and the user must do something before moving forward. It does not go away on its own. Lives until the user retries, edits, or otherwise resolves it.
+- **Toast** — the error is about a transient event with no surviving inline anchor: a background sync failed, an optimistic mutation rolled back, an action that already navigated away from its trigger. Auto-dismisses; non-blocking.
+
+If the form/section is still on the screen and the error blocks completion → **inline**. If the trigger is gone and there's nothing inline to point to → **toast**. Never both for the same error.
+
+**Decision table**
+
+| Situation | Where | Why |
+| --- | --- | --- |
+| Field validation (zod, client) | `FieldError` under the input | Tied to a specific field; user must fix it |
+| Backend per-field error (`first_name` invalid, returned by 422) | `FieldError` mapped via `form.setError(field, ...)` | Backend pinpointed the field — show it there |
+| Backend rejected with no specific field (wrong credentials, account locked, conflict, rate-limited) | Form-level `Alert variant="destructive"` near the submit | Persistent form state; user must change input or wait |
+| Network/timeout on a submit while the form is still open | Form-level `Alert` near the submit, button switches to "Retry" | A disappearing toast loses the context; user wants to retry from where they are |
+| Permission denied on an action just attempted | Inline near the action / form-level `Alert` | User needs to understand *why* — toast is too thin |
+| Secondary widget failed to load | Inline empty/error state inside the widget, with retry | Already covered by Page-Level Failures: secondary failure → handle inline |
+| Optimistic mutation rolled back (delete, archive, reorder, like) | Toast + UI revert | The trigger is no longer present; toast announces and the UI reverts |
+| Action completed and navigated away (delete from detail → list) | Toast on the destination | No inline anchor remains |
+| Background / auto-save / sync failure | Inline status indicator ("Saved 2s ago" / "Save failed — retrying"); escalate to a banner if it persists | Sustained state, not a one-shot event — don't bury it in a toast |
+| Cross-cutting transient ("Couldn't refresh activity feed") | Toast | Non-blocking, no action required |
+| Cross-cutting persistent ("Connection lost — reconnecting") | Top banner (not a toast) | Sustained state; user needs ongoing visibility |
+| Success of a navigated-away action | Toast on the destination | Confirmation, no further action |
+| Success while staying on the form | Usually nothing (form state changes — disabled button, redirect, fresh data); toast only if the user has no other signal | Avoid toast spam for outcomes the UI already shows |
+
+**Patterns**
+
+*Auth forms* — inline `Alert` for the form-level error (`invalidCredentials`, `emailNotVerified`, `accountLocked`, `rateLimited`, `network`); `FieldError` for field validation. **Never a toast** for an auth failure — toasts disappear, and auth feedback must persist while the form is open.
+
+*Server Action returning a discriminated result* — see `features/auth/api/login.ts` for the canonical shape. Map per-field errors via `form.setError(field, ...)` (renders in `FieldError`); map form-level reasons (`invalidCredentials`, `network`, `unknown`) to local component state that renders in an `Alert` above/near the submit. Never throw for expected failures (already covered above).
+
+*Mutation that stays on the page with retry* — `Alert` next to the trigger, button label switches to "Retry". Don't toast.
+
+*Mutation that completes and moves on* — toast on the destination (success or failure).
+
+*Optimistic rollback* — toast announcing the rollback ("Couldn't archive post — restored"). The UI has already reverted; the toast explains why. Include an action button when retry makes sense.
+
+**Components in this codebase**
+
+- **`FieldError`** from `@/shared/ui/field` — field-level error, integrated with `react-hook-form` via the shadcn `Field` primitives.
+- **`Alert variant="destructive"`** from `@/shared/ui/alert` — form-level / section-level persistent error. Lives **inside** the form/section near the action, not floating.
+- **`sonner`** from `@/shared/ui/sonner` — transient toast. Auto-dismisses; supports an action button (use it for retry on rollback).
+- All strings (alert title/body, field message, toast text) go through `next-intl` like every other user-facing string.
+
+**Forbidden**
+
+- **Don't** show the same error in both an `Alert` and a Toast. Pick one.
+- **Don't** use a Toast for a form/auth error while the form is still open. Inline `Alert` — period.
+- **Don't** use a Toast for a network failure on a submit while the form is on screen. Inline `Alert` + Retry.
+- **Don't** use an `Alert` for a transient event with no inline anchor (post-navigation rollback, background sync). Toast.
+- **Don't** auto-dismiss a form-level `Alert`. It clears when the user changes input or retries — not on a timer.
+- **Don't** use a confirm dialog as an error surface for anything an inline `Alert` could carry.
+- **Don't** place errors at the top of the page when the trigger is at the bottom. Anchor the error to the action that produced it.
+- **Don't** swallow errors silently. If the user might wonder "did that work?" — surface it (inline or toast).
+- **Don't** toast every successful save. If the UI already reflects the change (button disabled → enabled, redirect, fresh data), the toast is noise.
+
 ---
 
 ## TypeScript
@@ -1260,6 +1320,8 @@ If the Playwright MCP is genuinely unavailable (server not connected, `mcp__play
 - **Don't** put real secrets in `.env.dist` (it's committed) and don't prefix a server secret with `NEXT_PUBLIC_` to expose it to the browser.
 - **Don't** throw from Server Actions for expected failures — return a discriminated result.
 - **Don't** render a page with a mock, stub, or empty fallback when its **primary resource** fails to load. Missing entity → `notFound()` (renders `app/not-found.tsx`). Network / server error → `throw new Error(...)` (caught by the closest `error.tsx`, renders `[locale]/error.tsx`). Inline error/empty states are for **secondary** content only — side widgets, optional lists, button actions. See "Page-Level Failures — Redirect to 404 / 500, Don't Fake It".
+- **Don't** use a Toast for a form/auth/submit error while the form or action is still on screen. Persistent, actionable errors go inline — `FieldError` for field-level, `Alert variant="destructive"` for form/section-level. Toasts are for transient events with no surviving inline anchor (optimistic rollback, post-navigation outcome, background sync). See "Surfacing Errors — Inline (Alert / FieldError) vs Toast".
+- **Don't** show the same error in both an `Alert` and a Toast, and don't auto-dismiss a form-level `Alert` on a timer — it clears when the user changes input or retries.
 - **Don't** invent new architectural patterns without updating this file first.
 
 ---

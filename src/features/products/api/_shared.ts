@@ -78,3 +78,55 @@ function fromWebinarDetails(raw: WebinarDetailsSchemaResponse): WebinarDetails {
     accessWindowMinutes: raw.access_window_minutes,
   };
 }
+
+export type MutationResult =
+  | { ok: true }
+  | {
+      ok: false;
+      reason:
+        | 'unauthorized'
+        | 'forbidden'
+        | 'not-found'
+        | 'conflict'
+        | 'validation'
+        | 'network'
+        | 'unknown';
+      message?: string;
+    };
+
+export type CreatedResult =
+  | { ok: true; id: string }
+  | {
+      ok: false;
+      reason:
+        | 'unauthorized'
+        | 'forbidden'
+        | 'not-found'
+        | 'conflict'
+        | 'validation'
+        | 'network'
+        | 'unknown';
+      message?: string;
+    };
+
+export function mapMutationStatus(
+  status: number,
+): MutationResult | null {
+  if (status === 204 || (status >= 200 && status < 300)) return { ok: true };
+  if (status === 401) return { ok: false, reason: 'unauthorized' };
+  if (status === 403) return { ok: false, reason: 'forbidden' };
+  if (status === 404) return { ok: false, reason: 'not-found' };
+  if (status === 409) return { ok: false, reason: 'conflict' };
+  if (status === 422) return { ok: false, reason: 'validation' };
+  return { ok: false, reason: 'unknown' };
+}
+
+export async function safeJson(
+  res: Response,
+): Promise<Record<string, unknown> | null> {
+  try {
+    return (await res.json()) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}

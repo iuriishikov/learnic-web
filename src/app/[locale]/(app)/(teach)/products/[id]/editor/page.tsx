@@ -5,6 +5,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { ProductEditorView } from '@/features/products';
 import { getProductById } from '@/features/products/server';
+import { httpStatusForReason } from '@/shared/lib/http-error';
 import { buildPageMetadata } from '@/shared/lib/page-metadata';
 import { BreadcrumbConfig } from '@/widgets/app-header';
 
@@ -43,7 +44,7 @@ export default async function ProductEditorPage({ params }: PageProps) {
   const result = await getProductById(id);
   if (!result.ok) {
     if (result.reason === 'not-found') notFound();
-    throw new Error(`Failed to load product ${id}: ${result.reason}`);
+    throw httpStatusForReason(result.reason, `Failed to load product ${id}`);
   }
   const product = result.product;
 

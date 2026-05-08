@@ -62,6 +62,7 @@ export function parseSetCookie(raw: string): ParsedSetCookie | null {
 
 export function forwardSetCookies(response: Response, store: CookieStore) {
   const raw = response.headers.getSetCookie?.() ?? [];
+  if (raw.length === 0) return;
   const isDev = process.env.NODE_ENV !== 'production';
   for (const entry of raw) {
     const parsed = parseSetCookie(entry);
@@ -74,6 +75,12 @@ export function forwardSetCookies(response: Response, store: CookieStore) {
     // Drop Secure on http://localhost — otherwise the browser refuses to store
     // the cookie and the next request has nothing to forward.
     if (isDev) options.secure = false;
-    store.set(parsed.name, parsed.value, options);
+    try {
+      store.set(parsed.name, parsed.value, options);
+    } catch {
+      // cookies() is read-only outside Server Actions and Route Handlers
+      // (i.e. during RSC render). The proactive refresh in middleware
+      // handles the RSC path, so silently skip here.
+    }
   }
 }

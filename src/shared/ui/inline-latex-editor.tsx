@@ -25,8 +25,15 @@ export type InlineLatexEditorProps = {
   className?: string;
 };
 
+// LaTeX commands that produce horizontal spacing only — used as the empty
+// placeholder for newly-created KaTeX blocks (the server rejects whitespace-
+// only source). Treat a value made entirely of these as blank so the editor
+// still shows the "click to add formula" prompt for a fresh block.
+const LATEX_SPACING_COMMANDS = /\\(?:[,;:!]|quad|qquad|hspace\{[^}]*\}|\s)/g;
+
 function isBlank(value: string | undefined): boolean {
-  return !value || !value.trim();
+  if (!value) return true;
+  return !value.replace(LATEX_SPACING_COMMANDS, '').trim();
 }
 
 /**

@@ -4,6 +4,7 @@ import { Link } from '@/shared/config/i18n/navigation';
 import { cn } from '@/shared/lib/utils';
 import { Badge } from '@/shared/ui/badge';
 import { BrandMark } from '@/shared/ui/brand-mark';
+import { ThemeToggle } from '@/shared/ui/theme-toggle';
 
 import { NewsletterForm } from './newsletter-form';
 import { SocialIcons } from './social-icons';
@@ -57,6 +58,10 @@ export async function SiteFooter({ variant = 'purple' }: SiteFooterProps = {}) {
   const newBadgeClasses = isPurple
     ? 'border-brand-foreground/30 text-brand-foreground/90'
     : 'border-border text-muted-foreground';
+
+  const themeToggleClasses = isPurple
+    ? 'text-brand-foreground/70 hover:bg-brand-foreground/10 hover:text-brand-foreground aria-expanded:bg-brand-foreground/10 aria-expanded:text-brand-foreground dark:hover:bg-brand-foreground/10'
+    : 'text-muted-foreground hover:text-foreground';
 
   return (
     <footer className={cn('w-full', surfaceClasses)}>
@@ -160,11 +165,14 @@ export async function SiteFooter({ variant = 'purple' }: SiteFooterProps = {}) {
           <p className={cn('text-sm', subduedToneClasses)}>
             {t('copyright', { year: currentYear })}
           </p>
-          <SocialIcons
-            items={socialItems}
-            variant={variant}
-            label={t('social.label')}
-          />
+          <div className="flex items-center gap-4 md:gap-6">
+            <SocialIcons
+              items={socialItems}
+              variant={variant}
+              label={t('social.label')}
+            />
+            <ThemeToggle className={themeToggleClasses} />
+          </div>
         </div>
       </div>
     </footer>

@@ -18,7 +18,7 @@ import {
 } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useState, type ReactElement, type ReactNode } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 
 import { useRouter } from '@/shared/config/i18n/navigation';
 import { useNotify } from '@/shared/lib/notify';
@@ -34,11 +34,13 @@ import {
 } from '@/shared/ui/dialog';
 import { Input } from '@/shared/ui/input';
 import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-  InputGroupText,
-} from '@/shared/ui/input-group';
+  NumberField,
+  NumberFieldAddon,
+  NumberFieldDecrement,
+  NumberFieldGroup,
+  NumberFieldIncrement,
+  NumberFieldInput,
+} from '@/shared/ui/number-field';
 import { Label } from '@/shared/ui/label';
 import { TextareaAutosize } from '@/shared/ui/textarea-autosize';
 
@@ -351,31 +353,43 @@ function DetailsStep({ productType, onBack, onCreated }: DetailsStepProps) {
             hint={t('fields.optional')}
             error={hoursError ? t(`errors.${hoursError}`) : null}
           >
-            <InputGroup className="h-10">
-              <InputGroupAddon>
-                <ClockIcon />
-              </InputGroupAddon>
-              <InputGroupInput
-                id="cp-hours"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={1000}
-                step={1}
-                placeholder={t('fields.hours.placeholder')}
-                aria-invalid={Boolean(hoursError)}
-                className="text-[15px] tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                {...form.register('hours', {
-                  setValueAs: (v) =>
-                    v === '' || v === null || v === undefined
-                      ? undefined
-                      : Number(v),
-                })}
-              />
-              <InputGroupAddon align="inline-end">
-                <InputGroupText>{t('fields.hours.suffix')}</InputGroupText>
-              </InputGroupAddon>
-            </InputGroup>
+            <Controller
+              control={form.control}
+              name="hours"
+              render={({ field }) => (
+                <NumberField
+                  id="cp-hours"
+                  value={field.value ?? null}
+                  onValueChange={(next) => field.onChange(next ?? undefined)}
+                  onBlur={field.onBlur}
+                  min={1}
+                  max={1000}
+                  step={1}
+                  largeStep={10}
+                  smallStep={1}
+                  required={false}
+                >
+                  <NumberFieldGroup
+                    aria-invalid={Boolean(hoursError)}
+                    className="h-10"
+                  >
+                    <NumberFieldAddon align="inline-start">
+                      <ClockIcon className="size-4" />
+                    </NumberFieldAddon>
+                    <NumberFieldInput
+                      placeholder={t('fields.hours.placeholder')}
+                      aria-invalid={Boolean(hoursError)}
+                      className="text-[15px]"
+                    />
+                    <NumberFieldAddon align="inline-end">
+                      {t('fields.hours.suffix')}
+                    </NumberFieldAddon>
+                    <NumberFieldDecrement aria-label={t('fields.hours.decrement')} />
+                    <NumberFieldIncrement aria-label={t('fields.hours.increment')} />
+                  </NumberFieldGroup>
+                </NumberField>
+              )}
+            />
           </FormRow>
         </div>
       </div>

@@ -162,7 +162,7 @@ export function ProductCard({ product }: ProductCardProps) {
                     <DropdownMenuItem>
                       <ArchiveIcon /> {t('actions.archive')}
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive">
+                    <DropdownMenuItem variant="destructive">
                       <Trash2Icon /> {t('actions.delete')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>

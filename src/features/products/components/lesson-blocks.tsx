@@ -19,6 +19,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import {
   GripVerticalIcon,
+  PlayIcon,
   PlusIcon,
   SigmaIcon,
   Trash2Icon,
@@ -29,7 +30,7 @@ import {
   type CSSProperties,
   type ReactNode,
   useCallback,
-  useId,
+  useEffect,
   useRef,
 } from 'react';
 
@@ -44,28 +45,36 @@ import {
 import { InlineLatexEditor } from '@/shared/ui/inline-latex-editor';
 import { InlineRichEditor } from '@/shared/ui/inline-rich-editor';
 
-import type { LessonBlock, LessonBlockType } from './content-tree';
+import type { LessonBlock } from '../model/draft';
 
-type LessonBlocksProps = {
+export type CreatableBlockType = 'html' | 'katex';
+
+export type LessonBlocksProps = {
   blocks: LessonBlock[];
-  onChange: (blocks: LessonBlock[]) => void;
+  onUpdateHtml: (blockId: string, html: string) => void;
+  onUpdateKatex: (blockId: string, source: string) => void;
+  onAddBlock: (type: CreatableBlockType) => void;
+  onRemoveBlock: (blockId: string) => void;
+  onReorder: (orderedIds: string[]) => void;
 };
 
-export function LessonBlocks({ blocks, onChange }: LessonBlocksProps) {
-  const idSeed = useId();
-  const counterRef = useRef(0);
+const HTML_DEBOUNCE_MS = 600;
+const KATEX_DEBOUNCE_MS = 600;
 
+export function LessonBlocks({
+  blocks,
+  onUpdateHtml,
+  onUpdateKatex,
+  onAddBlock,
+  onRemoveBlock,
+  onReorder,
+}: LessonBlocksProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
-
-  const newBlockId = useCallback(() => {
-    counterRef.current += 1;
-    return `${idSeed}-${counterRef.current}`;
-  }, [idSeed]);
 
   const onDragEnd = useCallback(
     (event: DragEndEvent) => {
@@ -74,30 +83,10 @@ export function LessonBlocks({ blocks, onChange }: LessonBlocksProps) {
       const oldIndex = blocks.findIndex((b) => b.id === active.id);
       const newIndex = blocks.findIndex((b) => b.id === over.id);
       if (oldIndex < 0 || newIndex < 0) return;
-      onChange(arrayMove(blocks, oldIndex, newIndex));
+      const next = arrayMove(blocks, oldIndex, newIndex);
+      onReorder(next.map((b) => b.id));
     },
-    [blocks, onChange],
-  );
-
-  const onUpdate = useCallback(
-    (id: string, content: string) => {
-      onChange(blocks.map((b) => (b.id === id ? { ...b, content } : b)));
-    },
-    [blocks, onChange],
-  );
-
-  const onRemove = useCallback(
-    (id: string) => {
-      onChange(blocks.filter((b) => b.id !== id));
-    },
-    [blocks, onChange],
-  );
-
-  const onAdd = useCallback(
-    (type: LessonBlockType) => {
-      onChange([...blocks, { id: newBlockId(), type, content: '' }]);
-    },
-    [blocks, newBlockId, onChange],
+    [blocks, onReorder],
   );
 
   const itemIds = blocks.map((b) => b.id);
@@ -117,15 +106,16 @@ export function LessonBlocks({ blocks, onChange }: LessonBlocksProps) {
                 key={block.id}
                 block={block}
                 isFirst={idx === 0}
-                onUpdate={(content) => onUpdate(block.id, content)}
-                onRemove={() => onRemove(block.id)}
+                onUpdateHtml={(html) => onUpdateHtml(block.id, html)}
+                onUpdateKatex={(source) => onUpdateKatex(block.id, source)}
+                onRemove={() => onRemoveBlock(block.id)}
               />
             ))}
           </ul>
         </SortableContext>
       </DndContext>
 
-      <AddBlockMenu onSelect={onAdd} hasBlocks={blocks.length > 0} />
+      <AddBlockMenu onSelect={onAddBlock} hasBlocks={blocks.length > 0} />
     </div>
   );
 }
@@ -133,14 +123,16 @@ export function LessonBlocks({ blocks, onChange }: LessonBlocksProps) {
 type SortableBlockProps = {
   block: LessonBlock;
   isFirst: boolean;
-  onUpdate: (content: string) => void;
+  onUpdateHtml: (html: string) => void;
+  onUpdateKatex: (source: string) => void;
   onRemove: () => void;
 };
 
 function SortableBlock({
   block,
   isFirst,
-  onUpdate,
+  onUpdateHtml,
+  onUpdateKatex,
   onRemove,
 }: SortableBlockProps) {
   const t = useTranslations('teach-products.editor');
@@ -200,25 +192,170 @@ function SortableBlock({
       </button>
 
       {block.type === 'html' ? (
-        <InlineRichEditor
-          value={block.content}
-          onChange={onUpdate}
+        <DebouncedHtmlEditor
+          blockId={block.id}
+          value={block.html}
+          onChange={onUpdateHtml}
           placeholder={t('contentEditor.placeholder')}
           emptyText={t('contentEditor.empty')}
         />
-      ) : (
-        <InlineLatexEditor
-          value={block.content}
-          onChange={onUpdate}
+      ) : block.type === 'katex' ? (
+        <DebouncedKatexEditor
+          blockId={block.id}
+          value={block.source}
+          onChange={onUpdateKatex}
           emptyText={t('formula.empty')}
+        />
+      ) : (
+        <RutubeBlockView
+          embedUrl={block.embedUrl}
+          title={block.title}
         />
       )}
     </li>
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/* Debounced editors                                                          */
+/* -------------------------------------------------------------------------- */
+
+type DebouncedEditorProps = {
+  blockId: string;
+  value: string;
+  onChange: (value: string) => void;
+};
+
+/**
+ * Wrap inline editors in a debounce so high-frequency keystrokes don't flood
+ * the API. We send the latest value at most every `HTML_DEBOUNCE_MS` ms; on
+ * unmount or when the block id changes we flush pending writes.
+ */
+function DebouncedHtmlEditor({
+  blockId,
+  value,
+  onChange,
+  placeholder,
+  emptyText,
+}: DebouncedEditorProps & { placeholder: string; emptyText: string }) {
+  const flush = useDebouncedFlush(blockId, value, onChange, HTML_DEBOUNCE_MS);
+  return (
+    <InlineRichEditor
+      key={blockId}
+      value={value}
+      onChange={flush}
+      placeholder={placeholder}
+      emptyText={emptyText}
+    />
+  );
+}
+
+function DebouncedKatexEditor({
+  blockId,
+  value,
+  onChange,
+  emptyText,
+}: DebouncedEditorProps & { emptyText: string }) {
+  const flush = useDebouncedFlush(blockId, value, onChange, KATEX_DEBOUNCE_MS);
+  return (
+    <InlineLatexEditor
+      key={blockId}
+      value={value}
+      onChange={flush}
+      emptyText={emptyText}
+    />
+  );
+}
+
+function useDebouncedFlush(
+  blockId: string,
+  serverValue: string,
+  onChange: (value: string) => void,
+  delayMs: number,
+) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRef = useRef<string | null>(null);
+  const onChangeRef = useRef(onChange);
+  const serverValueRef = useRef(serverValue);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => {
+    serverValueRef.current = serverValue;
+  }, [serverValue]);
+
+  // Flush pending writes whenever the active block changes (or on unmount):
+  // a debounced edit on the previous block must reach the server before the
+  // editor is reused for another id.
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      const value = pendingRef.current;
+      pendingRef.current = null;
+      if (value !== null && value !== serverValueRef.current) {
+        onChangeRef.current(value);
+      }
+    };
+  }, [blockId]);
+
+  return useCallback(
+    (next: string) => {
+      pendingRef.current = next;
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null;
+        const value = pendingRef.current;
+        pendingRef.current = null;
+        if (value !== null) onChangeRef.current(value);
+      }, delayMs);
+    },
+    [delayMs],
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Rutube block — read-only display (no editor UI yet)                        */
+/* -------------------------------------------------------------------------- */
+
+function RutubeBlockView({
+  embedUrl,
+  title,
+}: {
+  embedUrl: string;
+  title: string | null;
+}) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-muted/20">
+      <div className="aspect-video w-full">
+        <iframe
+          src={embedUrl}
+          title={title ?? 'Rutube'}
+          allow="autoplay; fullscreen"
+          allowFullScreen
+          className="h-full w-full"
+        />
+      </div>
+      {title ? (
+        <div className="flex items-center gap-2 border-t border-border px-3 py-2 text-sm text-foreground">
+          <PlayIcon className="size-3.5 shrink-0 text-muted-foreground" />
+          <span className="truncate">{title}</span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Add-block menu                                                             */
+/* -------------------------------------------------------------------------- */
+
 type AddBlockMenuProps = {
-  onSelect: (type: LessonBlockType) => void;
+  onSelect: (type: CreatableBlockType) => void;
   hasBlocks: boolean;
 };
 
@@ -241,7 +378,7 @@ function AddBlockMenu({ onSelect, hasBlocks }: AddBlockMenuProps) {
             <Button
               variant="outline"
               size="sm"
-              className="relative gap-1.5 bg-background"
+              className="relative gap-1.5 bg-background hover:bg-muted dark:bg-background dark:hover:bg-muted"
             />
           }
         >

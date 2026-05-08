@@ -24,3 +24,13 @@ export type {
   ProductType,
   WebinarDetails,
 } from './model/types';
+export type {
+  CourseDraft,
+  DraftLesson,
+  DraftModule,
+  HtmlBlock,
+  KatexBlock,
+  LessonBlock,
+  LessonBlockType,
+  RutubeVideoBlock,
+} from './model/draft';
