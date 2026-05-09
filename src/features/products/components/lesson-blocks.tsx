@@ -56,6 +56,10 @@ export type LessonBlocksProps = {
   onAddBlock: (type: CreatableBlockType) => void;
   onRemoveBlock: (blockId: string) => void;
   onReorder: (orderedIds: string[]) => void;
+  /** When false, all block-level mutations (add/edit/delete/reorder) are disabled. */
+  canEditLessons?: boolean;
+  /** Tooltip text shown on disabled controls when gated by permission. */
+  insufficientPermissionsTitle?: string;
 };
 
 const HTML_DEBOUNCE_MS = 600;
@@ -68,9 +72,15 @@ export function LessonBlocks({
   onAddBlock,
   onRemoveBlock,
   onReorder,
+  canEditLessons = true,
+  insufficientPermissionsTitle,
 }: LessonBlocksProps) {
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(PointerSensor, {
+      activationConstraint: canEditLessons
+        ? { distance: 6 }
+        : { distance: 999_999 },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
@@ -109,13 +119,20 @@ export function LessonBlocks({
                 onUpdateHtml={(html) => onUpdateHtml(block.id, html)}
                 onUpdateKatex={(source) => onUpdateKatex(block.id, source)}
                 onRemove={() => onRemoveBlock(block.id)}
+                canEditLessons={canEditLessons}
+                insufficientPermissionsTitle={insufficientPermissionsTitle}
               />
             ))}
           </ul>
         </SortableContext>
       </DndContext>
 
-      <AddBlockMenu onSelect={onAddBlock} hasBlocks={blocks.length > 0} />
+      <AddBlockMenu
+        onSelect={onAddBlock}
+        hasBlocks={blocks.length > 0}
+        disabled={!canEditLessons}
+        disabledTitle={insufficientPermissionsTitle}
+      />
     </div>
   );
 }
@@ -126,6 +143,8 @@ type SortableBlockProps = {
   onUpdateHtml: (html: string) => void;
   onUpdateKatex: (source: string) => void;
   onRemove: () => void;
+  canEditLessons: boolean;
+  insufficientPermissionsTitle?: string;
 };
 
 function SortableBlock({
@@ -134,6 +153,8 @@ function SortableBlock({
   onUpdateHtml,
   onUpdateKatex,
   onRemove,
+  canEditLessons,
+  insufficientPermissionsTitle,
 }: SortableBlockProps) {
   const t = useTranslations('teach-products.editor');
   const {
@@ -143,7 +164,7 @@ function SortableBlock({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: block.id });
+  } = useSortable({ id: block.id, disabled: !canEditLessons });
 
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -171,10 +192,15 @@ function SortableBlock({
       <button
         type="button"
         {...attributes}
-        {...listeners}
+        {...(canEditLessons ? listeners : {})}
+        disabled={!canEditLessons}
+        title={!canEditLessons ? insufficientPermissionsTitle : undefined}
         aria-label={t('block.drag')}
         className={cn(
-          'absolute -left-7 top-1 hidden size-6 cursor-grab touch-none items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:inline-flex',
+          'absolute -left-7 top-1 hidden size-6 touch-none items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:inline-flex',
+          canEditLessons
+            ? 'cursor-grab active:cursor-grabbing'
+            : 'cursor-not-allowed opacity-40',
           'opacity-0 group-hover/block:opacity-100 group-focus-within/block:opacity-100',
           isDragging && 'cursor-grabbing opacity-100',
         )}
@@ -185,8 +211,10 @@ function SortableBlock({
       <button
         type="button"
         onClick={onRemove}
+        disabled={!canEditLessons}
+        title={!canEditLessons ? insufficientPermissionsTitle : undefined}
         aria-label={t('block.delete')}
-        className="absolute -right-7 top-1 hidden size-6 items-center justify-center rounded text-muted-foreground opacity-0 transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover/block:opacity-100 lg:inline-flex"
+        className="absolute -right-7 top-1 hidden size-6 items-center justify-center rounded text-muted-foreground opacity-0 transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover/block:opacity-100 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-muted-foreground lg:inline-flex"
       >
         <Trash2Icon className="size-3.5" />
       </button>
@@ -357,9 +385,16 @@ function RutubeBlockView({
 type AddBlockMenuProps = {
   onSelect: (type: CreatableBlockType) => void;
   hasBlocks: boolean;
+  disabled?: boolean;
+  disabledTitle?: string;
 };
 
-function AddBlockMenu({ onSelect, hasBlocks }: AddBlockMenuProps) {
+function AddBlockMenu({
+  onSelect,
+  hasBlocks,
+  disabled,
+  disabledTitle,
+}: AddBlockMenuProps) {
   const t = useTranslations('teach-products.editor');
   return (
     <div
@@ -378,6 +413,8 @@ function AddBlockMenu({ onSelect, hasBlocks }: AddBlockMenuProps) {
             <Button
               variant="outline"
               size="sm"
+              disabled={disabled}
+              title={disabled ? disabledTitle : undefined}
               className="relative gap-1.5 bg-background hover:bg-muted dark:bg-background dark:hover:bg-muted"
             />
           }

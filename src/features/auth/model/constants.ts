@@ -6,3 +6,4 @@ export const EMAIL_MAX = 320;
 export const FIRST_NAME_MAX = 100;
 export const LAST_NAME_MAX = 100;
 export const PATRONYMIC_MAX = 100;
+export const DESCRIPTION_MAX = 50_000;

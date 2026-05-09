@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import {
   BreadcrumbConfig,
   HeaderConfig,
+  ModeTracker,
   type AppHeaderNavItem,
 } from '@/widgets/app-header';
 
@@ -22,11 +23,11 @@ export default async function TeachLayout({
   const navItems: AppHeaderNavItem[] = [
     { key: 'products', href: '/products', label: t('nav.products') },
     { key: 'dashboard', href: '/dashboard', label: t('nav.dashboard') },
-    { key: 'settings', href: '/settings', label: t('nav.settings') },
   ];
 
   return (
     <>
+      <ModeTracker mode="teach" />
       <HeaderConfig
         navItems={navItems}
         brandHref="/dashboard"

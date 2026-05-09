@@ -1,19 +1,13 @@
 'use client';
 
 import {
-  CheckIcon,
   ChevronRightIcon,
-  CopyIcon,
   ImageUpIcon,
   ListTreeIcon,
-  MailIcon,
   PencilIcon,
-  PlusIcon,
   RotateCwIcon,
   Share2Icon,
   Trash2Icon,
-  UserPlusIcon,
-  XIcon,
 } from 'lucide-react';
 import {
   AnimatePresence,
@@ -29,7 +23,6 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
-  useId,
   useMemo,
   useRef,
   useState,
@@ -37,7 +30,6 @@ import {
 
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
-import { Input } from '@/shared/ui/input';
 import { SectionNav, type SectionNavItem } from '@/shared/ui/section-nav';
 import {
   Sheet,
@@ -80,10 +72,11 @@ import {
 } from '../api/use-course-mutations';
 import { useProductQuery } from '../api/use-product';
 import {
-  useChangeProductNameMutation,
   useRemoveProductCoverMutation,
   useSetProductCoverMutation,
 } from '../api/use-product-mutations';
+import { useProductPermissions } from '../api/use-product-permissions';
+import { useProductRoles } from '../api/use-team';
 
 import {
   ContentTree,
@@ -98,6 +91,7 @@ import { ProductDescriptionSection } from './product-description-section';
 import { ProductQASection } from './product-qa-section';
 import { ProductSettingsSection } from './product-settings-section';
 import { ProductTeamSection } from './product-team-section';
+import { TeamInviteDialog } from './team/team-invite-dialog';
 
 const SECTION_KEYS = [
   'content',
@@ -107,16 +101,12 @@ const SECTION_KEYS = [
 ] as const;
 type SectionKey = (typeof SECTION_KEYS)[number];
 
-type EmailRow = { id: string; value: string };
-
 type ProductEditorViewProps = {
   product: Product;
-  initialRailOpen?: boolean;
   initialSidebarWidth?: number;
 };
 
 const SPRING = { type: 'spring' as const, stiffness: 380, damping: 34, mass: 0.6 };
-const RAIL_COOKIE = 'learnic.product-editor.rail-closed';
 const SIDEBAR_WIDTH_COOKIE = 'learnic.product-editor.sidebar-width';
 const SIDEBAR_MIN_WIDTH = 160;
 const SIDEBAR_MAX_WIDTH = 360;
@@ -140,13 +130,10 @@ function findLessonInDraft(
 
 export function ProductEditorView({
   product: initialProduct,
-  initialRailOpen = true,
   initialSidebarWidth = SIDEBAR_DEFAULT_WIDTH,
 }: ProductEditorViewProps) {
   const t = useTranslations('teach-products.editor');
   const reduceMotion = useReducedMotion();
-  const emailIdSeed = useId();
-  const emailCounterRef = useRef(2);
 
   // Subscribe to the product query so name / description / cover edits surface
   // here without re-mounting from props. The server-rendered prop seeds
@@ -155,6 +142,8 @@ export function ProductEditorView({
   const product = productQuery.data ?? initialProduct;
 
   const isCourse = product.type === 'course';
+  const perms = useProductPermissions(product.id);
+  const insufficientTitle = t('insufficientPermissions');
 
   // Course draft (modules / lessons / blocks)
   const draftQuery = useCourseDraft(product.id, isCourse);
@@ -177,23 +166,16 @@ export function ProductEditorView({
   const updateKatexBlock = useUpdateKatexBlockMutation(product.id);
   const deleteBlock = useDeleteBlockMutation(product.id);
   const reorderBlocks = useReorderBlocksMutation(product.id);
-  const renameProduct = useChangeProductNameMutation(product.id);
   const setCover = useSetProductCoverMutation(product.id);
   const removeCover = useRemoveProductCoverMutation(product.id);
 
+  const rolesQuery = useProductRoles(product.id);
+
   const [activeSection, setActiveSection] = useState<SectionKey>('content');
-  const [emails, setEmails] = useState<EmailRow[]>(() => [
-    { id: `${emailIdSeed}-0`, value: '' },
-    { id: `${emailIdSeed}-1`, value: '' },
-  ]);
-  const [copied, setCopied] = useState(false);
-  const [railOpen, setRailOpen] = useState(initialRailOpen);
-  const [shareHighlight, setShareHighlight] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(() =>
     clampSidebarWidth(initialSidebarWidth),
   );
-  const railRef = useRef<HTMLDivElement>(null);
-  const highlightTimerRef = useRef<number | null>(null);
   const dragStateRef = useRef<{ startX: number; startWidth: number } | null>(
     null,
   );
@@ -203,8 +185,17 @@ export function ProductEditorView({
     string | null
   >(null);
   const [pendingRenameId, setPendingRenameId] = useState<string | null>(null);
-  const [titleEditing, setTitleEditing] = useState(false);
+  const [nameFocusToken, setNameFocusToken] = useState(0);
   const [mobileTreeOpen, setMobileTreeOpen] = useState(false);
+
+  // Default-pick the lowest-rank role (largest position) so the initial
+  // selection in the invite dialog cannot accidentally outrank existing members.
+  const memberRoleId = useMemo(() => {
+    const roles = rolesQuery.data ?? [];
+    if (roles.length === 0) return null;
+    const sorted = [...roles].sort((a, b) => b.position - a.position);
+    return sorted[0]?.id ?? null;
+  }, [rolesQuery.data]);
 
   // Effective selection: respect the user's pick when the lesson still exists
   // in the draft; otherwise fall back to the first available lesson. This is
@@ -360,72 +351,11 @@ export function ProductEditorView({
     [reorderBlocks, selectedLessonId],
   );
 
-  /* ---------- Title rename ---------- */
+  /* ---------- Edit name shortcut ---------- */
 
-  const handleCommitTitle = useCallback(
-    (next: string) => {
-      const trimmed = next.trim();
-      setTitleEditing(false);
-      if (trimmed && trimmed !== product.title) {
-        renameProduct.mutate({ value: trimmed });
-      }
-    },
-    [product.title, renameProduct],
-  );
-
-  /* ---------- Email rail ---------- */
-
-  const onAddEmail = useCallback(() => {
-    const next = emailCounterRef.current++;
-    setEmails((prev) => [...prev, { id: `${emailIdSeed}-${next}`, value: '' }]);
-  }, [emailIdSeed]);
-
-  const onChangeEmail = useCallback((id: string, value: string) => {
-    setEmails((prev) =>
-      prev.map((row) => (row.id === id ? { ...row, value } : row)),
-    );
-  }, []);
-
-  const onRemoveEmail = useCallback((id: string) => {
-    setEmails((prev) => prev.filter((row) => row.id !== id));
-  }, []);
-
-  const onCloseRail = useCallback(() => {
-    setRailOpen(false);
-    if (typeof document !== 'undefined') {
-      document.cookie = `${RAIL_COOKIE}=1; path=/; max-age=31536000; samesite=lax`;
-    }
-  }, []);
-
-  const onOpenRail = useCallback(() => {
-    setRailOpen(true);
-    if (typeof document !== 'undefined') {
-      document.cookie = `${RAIL_COOKIE}=; path=/; max-age=0; samesite=lax`;
-    }
-    if (
-      typeof window !== 'undefined' &&
-      window.matchMedia('(max-width: 1023px)').matches
-    ) {
-      requestAnimationFrame(() => {
-        railRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    }
-    setShareHighlight(true);
-    if (highlightTimerRef.current !== null) {
-      window.clearTimeout(highlightTimerRef.current);
-    }
-    highlightTimerRef.current = window.setTimeout(() => {
-      setShareHighlight(false);
-      highlightTimerRef.current = null;
-    }, 1800);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (highlightTimerRef.current !== null) {
-        window.clearTimeout(highlightTimerRef.current);
-      }
-    };
+  const openDescriptionAndFocusName = useCallback(() => {
+    setActiveSection('description');
+    setNameFocusToken((token) => token + 1);
   }, []);
 
   useEffect(() => {
@@ -540,17 +470,6 @@ export function ProductEditorView({
     [setCover],
   );
 
-  const onCopyLink = useCallback(async () => {
-    const link = t('share.linkValue');
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // ignore — clipboard is best-effort
-    }
-  }, [t]);
-
   const titleText = product.title.trim().length > 0 ? product.title : t('untitled');
 
   return (
@@ -574,6 +493,8 @@ export function ProductEditorView({
               variant="secondary"
               size="icon-sm"
               onClick={onReplaceCover}
+              disabled={!perms.canEditCover}
+              title={!perms.canEditCover ? insufficientTitle : undefined}
               aria-label={t('cover.replace')}
               className="bg-background/85 text-foreground shadow-sm backdrop-blur-md hover:bg-background"
             >
@@ -584,7 +505,8 @@ export function ProductEditorView({
               variant="secondary"
               size="icon-sm"
               onClick={onDeleteCover}
-              disabled={!coverFile}
+              disabled={!coverFile || !perms.canEditCover}
+              title={!perms.canEditCover ? insufficientTitle : undefined}
               aria-label={t('cover.delete')}
               className="bg-background/85 text-foreground shadow-sm backdrop-blur-md hover:bg-background"
             >
@@ -603,32 +525,12 @@ export function ProductEditorView({
 
       {/* Header */}
       <header className="mt-4 flex items-center gap-2 md:mt-6 md:gap-6">
-        {titleEditing ? (
-          <TitleEditor
-            initial={product.title}
-            onCommit={handleCommitTitle}
-            onCancel={() => setTitleEditing(false)}
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setTitleEditing(true)}
-            aria-label={t('actions.edit')}
-            className="group/title -mx-1 flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-muted/40"
-          >
-            <h1 className="font-heading truncate text-2xl font-semibold tracking-tight text-foreground md:text-3xl lg:text-[28px]">
-              {titleText}
-            </h1>
-            <PencilIcon
-              aria-hidden
-              className="size-4 shrink-0 text-muted-foreground opacity-100 transition-opacity md:opacity-0 group-hover/title:md:opacity-100 group-focus-visible/title:md:opacity-100"
-            />
-          </button>
-        )}
+        <h1 className="font-heading min-w-0 flex-1 truncate text-2xl font-semibold tracking-tight text-foreground md:text-3xl lg:text-[28px]">
+          {titleText}
+        </h1>
         <div className="flex shrink-0 items-center gap-2">
-          {/* Edit — only on tablet+; on mobile the title button itself opens the editor */}
           <Button
-            onClick={() => setTitleEditing(true)}
+            onClick={openDescriptionAndFocusName}
             className="hidden h-9 gap-1.5 bg-brand px-4 text-brand-foreground hover:bg-brand/90 md:inline-flex"
           >
             <PencilIcon /> {t('actions.edit')}
@@ -636,7 +538,9 @@ export function ProductEditorView({
           {/* Share — icon-only on mobile, with label on sm+ */}
           <Button
             variant="outline"
-            onClick={onOpenRail}
+            onClick={() => setInviteOpen(true)}
+            disabled={!perms.canManageCollaborators}
+            title={!perms.canManageCollaborators ? insufficientTitle : undefined}
             aria-label={t('actions.share')}
             className="h-9 gap-1.5 px-3 md:px-4"
           >
@@ -692,6 +596,9 @@ export function ProductEditorView({
                   onMoveLesson={handleMoveLesson}
                   pendingRenameId={pendingRenameId}
                   onPendingRenameResolved={() => setPendingRenameId(null)}
+                  canEditModules={perms.canEditModules}
+                  canEditLessons={perms.canEditLessons}
+                  insufficientPermissionsTitle={insufficientTitle}
                 />
               </ContentNavItem>
               {SECTION_KEYS.filter((key) => key !== 'content').map((key) => (
@@ -794,18 +701,22 @@ export function ProductEditorView({
                   onAddBlock={handleAddBlock}
                   onRemoveBlock={handleDeleteBlock}
                   onReorderBlocks={handleReorderBlocks}
+                  canEditLessons={perms.canEditLessons}
+                  insufficientPermissionsTitle={insufficientTitle}
                 />
               ) : activeSection === 'description' ? (
                 <div key="description" className="flex flex-col gap-10">
                   <ProductDescriptionSection
                     productId={product.id}
+                    title={product.title}
                     description={product.description}
                     durationHours={product.durationHours}
+                    focusNameToken={nameFocusToken}
                   />
                   <ProductQASection productId={product.id} />
                 </div>
               ) : activeSection === 'team' ? (
-                <ProductTeamSection key="team" />
+                <ProductTeamSection key="team" product={product} />
               ) : activeSection === 'settings' ? (
                 <ProductSettingsSection key="settings" product={product} />
               ) : (
@@ -828,179 +739,17 @@ export function ProductEditorView({
             </AnimatePresence>
           </div>
         </main>
-
-        {/* Right rail */}
-        <AnimatePresence initial={false} mode="popLayout">
-          {railOpen ? (
-            <motion.aside
-              key="rail"
-              initial={
-                reduceMotion
-                  ? { opacity: 0 }
-                  : { opacity: 0, x: 20, width: 0 }
-              }
-              animate={
-                reduceMotion
-                  ? { opacity: 1 }
-                  : { opacity: 1, x: 0, width: 'auto' }
-              }
-              exit={
-                reduceMotion
-                  ? { opacity: 0 }
-                  : { opacity: 0, x: 20, width: 0 }
-              }
-              transition={reduceMotion ? { duration: 0 } : SPRING}
-              className="flex flex-col gap-5 lg:shrink-0 lg:overflow-visible"
-            >
-              <div
-                ref={railRef}
-                className={cn(
-                  'flex scroll-mt-32 flex-col gap-5 rounded-2xl transition-shadow duration-300 lg:w-[320px] lg:sticky lg:top-32 lg:self-start',
-                  shareHighlight && 'ring-3 ring-brand/50',
-                )}
-              >
-                {/* Share card */}
-                <div className="relative rounded-2xl bg-muted p-5">
-                  <h3 className="pr-7 font-heading text-base font-semibold tracking-tight text-foreground">
-                    {t('share.title')}
-                  </h3>
-                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                    {t('share.description')}
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={t('rail.close')}
-                    onClick={onCloseRail}
-                    className="absolute right-3 top-3 text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-                  >
-                    <XIcon />
-                  </Button>
-                  <label className="mt-4 block text-sm font-medium text-foreground">
-                    {t('share.linkLabel')}
-                  </label>
-                  <div className="mt-1.5 flex items-center gap-1.5">
-                    <Input
-                      readOnly
-                      value={t('share.linkValue')}
-                      className="h-10 flex-1 bg-background text-sm"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon-lg"
-                      aria-label={t('share.copy')}
-                      onClick={onCopyLink}
-                      className="shrink-0 text-muted-foreground hover:text-foreground"
-                    >
-                      {copied ? <CheckIcon className="text-brand" /> : <CopyIcon />}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Invite card */}
-                <div className="rounded-2xl bg-muted p-5">
-                  <div className="flex size-10 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground">
-                    <UserPlusIcon className="size-4" />
-                  </div>
-                  <h3 className="mt-4 font-heading text-base font-semibold tracking-tight text-foreground">
-                    {t('invite.title')}
-                  </h3>
-                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                    {t('invite.description')}
-                  </p>
-                  <label className="mt-4 block text-sm font-medium text-foreground">
-                    {t('invite.emailLabel')}
-                  </label>
-                  <ul className="mt-1.5 flex flex-col gap-2">
-                    <AnimatePresence initial={false}>
-                      {emails.map((email) => (
-                        <motion.li
-                          key={email.id}
-                          layout
-                          initial={
-                            reduceMotion
-                              ? { opacity: 0 }
-                              : { opacity: 0, height: 0, overflow: 'hidden' }
-                          }
-                          animate={
-                            reduceMotion
-                              ? { opacity: 1 }
-                              : {
-                                  opacity: 1,
-                                  height: 'auto',
-                                  transitionEnd: { overflow: 'visible' },
-                                }
-                          }
-                          exit={
-                            reduceMotion
-                              ? { opacity: 0 }
-                              : { opacity: 0, height: 0, overflow: 'hidden' }
-                          }
-                          transition={
-                            reduceMotion ? { duration: 0 } : { ...SPRING, mass: 0.8 }
-                          }
-                        >
-                          <div className="group/email relative flex items-center gap-1.5">
-                            <div className="relative flex-1">
-                              <MailIcon
-                                aria-hidden
-                                className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-                              />
-                              <Input
-                                type="email"
-                                value={email.value}
-                                onChange={(event) =>
-                                  onChangeEmail(email.id, event.target.value)
-                                }
-                                placeholder={t('invite.emailPlaceholder')}
-                                className="h-10 bg-background pl-8 pr-2 text-sm"
-                              />
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t('invite.remove')}
-                              onClick={() => onRemoveEmail(email.id)}
-                              className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:bg-foreground/5 hover:text-foreground focus-visible:opacity-100 group-hover/email:opacity-100"
-                            >
-                              <XIcon />
-                            </Button>
-                          </div>
-                        </motion.li>
-                      ))}
-                    </AnimatePresence>
-                  </ul>
-                  <button
-                    type="button"
-                    onClick={onAddEmail}
-                    className="mt-2.5 inline-flex items-center gap-1 text-sm font-medium text-brand transition-colors hover:text-brand/80"
-                  >
-                    <PlusIcon className="size-4" /> {t('invite.addAnother')}
-                  </button>
-                  <div className="mt-5 flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      onClick={onCloseRail}
-                      className="h-10 flex-1 bg-background"
-                    >
-                      {t('invite.cancel')}
-                    </Button>
-                    <Button
-                      size="lg"
-                      onClick={onCloseRail}
-                      className="h-10 flex-1 bg-brand text-brand-foreground hover:bg-brand/90"
-                    >
-                      {t('invite.confirm')}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </motion.aside>
-          ) : null}
-        </AnimatePresence>
       </div>
       </MotionConfig>
+
+      <TeamInviteDialog
+        open={inviteOpen}
+        onOpenChange={setInviteOpen}
+        productId={product.id}
+        ownerId={product.author.id}
+        roles={rolesQuery.data ?? []}
+        defaultRoleId={memberRoleId}
+      />
 
       {/* Mobile/tablet course tree Sheet */}
       <Sheet open={mobileTreeOpen} onOpenChange={setMobileTreeOpen}>
@@ -1036,6 +785,9 @@ export function ProductEditorView({
               onMoveLesson={handleMoveLesson}
               pendingRenameId={pendingRenameId}
               onPendingRenameResolved={() => setPendingRenameId(null)}
+              canEditModules={perms.canEditModules}
+              canEditLessons={perms.canEditLessons}
+              insufficientPermissionsTitle={insufficientTitle}
             />
           </div>
         </SheetContent>
@@ -1067,6 +819,9 @@ type DraftTreeProps = {
   onMoveLesson: (lessonId: string, targetModuleId: string) => void;
   pendingRenameId: string | null;
   onPendingRenameResolved: () => void;
+  canEditModules: boolean;
+  canEditLessons: boolean;
+  insufficientPermissionsTitle: string;
 };
 
 function DraftTree({
@@ -1086,6 +841,9 @@ function DraftTree({
   onMoveLesson,
   pendingRenameId,
   onPendingRenameResolved,
+  canEditModules,
+  canEditLessons,
+  insufficientPermissionsTitle,
 }: DraftTreeProps) {
   const t = useTranslations('teach-products.editor.load');
 
@@ -1137,6 +895,9 @@ function DraftTree({
       onMoveLesson={onMoveLesson}
       pendingRenameId={pendingRenameId}
       onPendingRenameResolved={onPendingRenameResolved}
+      canEditModules={canEditModules}
+      canEditLessons={canEditLessons}
+      insufficientPermissionsTitle={insufficientPermissionsTitle}
     />
   );
 }
@@ -1201,6 +962,8 @@ type ContentSectionProps = {
   onAddBlock: (type: CreatableBlockType) => void;
   onRemoveBlock: (blockId: string) => void;
   onReorderBlocks: (orderedIds: string[]) => void;
+  canEditLessons: boolean;
+  insufficientPermissionsTitle: string;
 };
 
 function ContentSection({
@@ -1213,6 +976,8 @@ function ContentSection({
   onAddBlock,
   onRemoveBlock,
   onReorderBlocks,
+  canEditLessons,
+  insufficientPermissionsTitle,
 }: ContentSectionProps) {
   const t = useTranslations('teach-products.editor');
   const tLoad = useTranslations('teach-products.editor.load');
@@ -1348,6 +1113,8 @@ function ContentSection({
         onAddBlock={onAddBlock}
         onRemoveBlock={onRemoveBlock}
         onReorder={onReorderBlocks}
+        canEditLessons={canEditLessons}
+        insufficientPermissionsTitle={insufficientPermissionsTitle}
       />
     </motion.div>
   );
@@ -1423,46 +1190,3 @@ function ContentNavItem({
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Inline title editor                                                        */
-/* -------------------------------------------------------------------------- */
-
-function TitleEditor({
-  initial,
-  onCommit,
-  onCancel,
-}: {
-  initial: string;
-  onCommit: (value: string) => void;
-  onCancel: () => void;
-}) {
-  const [value, setValue] = useState(initial);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-    inputRef.current?.select();
-  }, []);
-
-  const onKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      onCommit(value);
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      onCancel();
-    }
-  };
-
-  return (
-    <Input
-      ref={inputRef}
-      value={value}
-      onChange={(event) => setValue(event.target.value)}
-      onBlur={() => onCommit(value)}
-      onKeyDown={onKeyDown}
-      className="h-10 w-full max-w-xl text-2xl font-semibold tracking-tight md:text-3xl lg:text-[28px]"
-      aria-label={initial}
-    />
-  );
-}

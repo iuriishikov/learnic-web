@@ -50,6 +50,8 @@ import {
   useProductQA,
   useReorderQAMutation,
 } from '../api/use-product-qa';
+import { useProductPermissions } from '../api/use-product-permissions';
+import { EditorSection } from './editor-row';
 
 const QUESTION_DEBOUNCE_MS = 500;
 const ANSWER_DEBOUNCE_MS = 600;
@@ -62,6 +64,7 @@ type ProductQASectionProps = {
 
 export function ProductQASection({ productId }: ProductQASectionProps) {
   const t = useTranslations('teach-products.editor.qa');
+  const tEditor = useTranslations('teach-products.editor');
   const reduceMotion = useReducedMotion();
 
   const query = useProductQA(productId);
@@ -70,9 +73,16 @@ export function ProductQASection({ productId }: ProductQASectionProps) {
   const changeAnswer = useChangeQAAnswerMutation(productId);
   const deleteQA = useDeleteQAMutation(productId);
   const reorderQA = useReorderQAMutation(productId);
+  const perms = useProductPermissions(productId);
+  const canEditQA = perms.canEditQA;
+  const insufficientTitle = tEditor('insufficientPermissions');
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(PointerSensor, {
+      activationConstraint: canEditQA
+        ? { distance: 6 }
+        : { distance: 999_999 },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
@@ -101,66 +111,20 @@ export function ProductQASection({ productId }: ProductQASectionProps) {
     });
   }, [addQA, t]);
 
-  if (query.isPending) {
-    return (
-      <motion.div
-        key="qa-loading"
-        initial={reduceMotion ? false : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="flex flex-col gap-4"
-        aria-label={t('loading')}
+  const sectionActions =
+    !query.isPending && !query.isError && query.data.length > 0 ? (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleAdd}
+        disabled={addQA.isPending || !canEditQA}
+        title={!canEditQA ? insufficientTitle : undefined}
+        className="gap-1.5"
       >
-        <SectionHeader title={t('title')} description={t('description')} />
-        <div className="flex flex-col gap-3">
-          <Skeleton className="h-24 w-full rounded-xl" />
-          <Skeleton className="h-24 w-full rounded-xl" />
-        </div>
-      </motion.div>
-    );
-  }
-
-  if (query.isError) {
-    return (
-      <motion.div
-        key="qa-error"
-        initial={reduceMotion ? false : { opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
-        transition={{ duration: 0.2 }}
-        className="flex flex-col gap-4"
-      >
-        <SectionHeader title={t('title')} description={t('description')} />
-        <div
-          role="alert"
-          className="rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center"
-        >
-          <h3 className="font-heading text-base font-semibold tracking-tight text-foreground">
-            {t('error.title')}
-          </h3>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            {t('error.description')}
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => query.refetch()}
-            disabled={query.isFetching}
-            className="mt-4 gap-1.5"
-          >
-            <RotateCwIcon
-              className={cn('size-3', query.isFetching && 'animate-spin')}
-            />
-            {t('error.retry')}
-          </Button>
-        </div>
-      </motion.div>
-    );
-  }
-
-  const entries = query.data;
+        <PlusIcon className="size-4" /> {t('add')}
+      </Button>
+    ) : null;
 
   return (
     <motion.div
@@ -169,95 +133,101 @@ export function ProductQASection({ productId }: ProductQASectionProps) {
       animate={{ opacity: 1, y: 0 }}
       exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
       transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
-      className="flex flex-col gap-4"
     >
-      <SectionHeader title={t('title')} description={t('description')} />
-
-      {entries.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center">
-          <div className="flex size-10 items-center justify-center rounded-full bg-background text-muted-foreground ring-1 ring-foreground/10">
-            <HelpCircleIcon className="size-4" />
-          </div>
-          <div>
-            <h3 className="font-heading text-base font-semibold tracking-tight text-foreground">
-              {t('empty.title')}
-            </h3>
-            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-              {t('empty.description')}
-            </p>
-          </div>
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleAdd}
-            disabled={addQA.isPending}
-            className="gap-1.5 bg-brand text-brand-foreground hover:bg-brand/90"
-          >
-            <PlusIcon className="size-4" /> {t('add')}
-          </Button>
-        </div>
-      ) : (
-        <DndContext
-          id="qa-dnd"
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={onDragEnd}
-        >
-          <SortableContext
-            items={entries.map((e) => e.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            <ul className="flex flex-col gap-3">
-              {entries.map((entry) => (
-                <SortableQARow
-                  key={entry.id}
-                  entry={entry}
-                  onChangeQuestion={(value) =>
-                    changeQuestion.mutate({ qaId: entry.id, value })
-                  }
-                  onChangeAnswer={(value) =>
-                    changeAnswer.mutate({ qaId: entry.id, value })
-                  }
-                  onDelete={() => deleteQA.mutate({ qaId: entry.id })}
+      <EditorSection
+        title={t('title')}
+        description={t('description')}
+        actions={sectionActions}
+      >
+        <div className="py-6" aria-label={query.isPending ? t('loading') : undefined}>
+          {query.isPending ? (
+            <div className="flex flex-col gap-3">
+              <Skeleton className="h-24 w-full rounded-xl" />
+              <Skeleton className="h-24 w-full rounded-xl" />
+            </div>
+          ) : query.isError ? (
+            <div
+              role="alert"
+              className="flex flex-col items-start gap-2 rounded-xl bg-muted/40 px-4 py-4"
+            >
+              <p className="text-sm font-medium text-foreground">
+                {t('error.title')}
+              </p>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {t('error.description')}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => query.refetch()}
+                disabled={query.isFetching}
+                className="mt-1 gap-1.5"
+              >
+                <RotateCwIcon
+                  className={cn('size-3', query.isFetching && 'animate-spin')}
                 />
-              ))}
-            </ul>
-          </SortableContext>
-        </DndContext>
-      )}
-
-      {entries.length > 0 ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleAdd}
-          disabled={addQA.isPending}
-          className="self-start gap-1.5"
-        >
-          <PlusIcon className="size-4" /> {t('add')}
-        </Button>
-      ) : null}
+                {t('error.retry')}
+              </Button>
+            </div>
+          ) : query.data.length === 0 ? (
+            <div className="flex flex-col items-start gap-3 rounded-xl bg-muted/40 px-5 py-6">
+              <div className="flex size-9 items-center justify-center rounded-full bg-background text-muted-foreground ring-1 ring-foreground/10">
+                <HelpCircleIcon className="size-4" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  {t('empty.title')}
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  {t('empty.description')}
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleAdd}
+                disabled={addQA.isPending || !canEditQA}
+                title={!canEditQA ? insufficientTitle : undefined}
+                className="gap-1.5 bg-brand text-brand-foreground hover:bg-brand/90"
+              >
+                <PlusIcon className="size-4" /> {t('add')}
+              </Button>
+            </div>
+          ) : (
+            <DndContext
+              id="qa-dnd"
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={onDragEnd}
+            >
+              <SortableContext
+                items={query.data.map((e) => e.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <ul className="flex flex-col gap-3">
+                  {query.data.map((entry) => (
+                    <SortableQARow
+                      key={entry.id}
+                      entry={entry}
+                      onChangeQuestion={(value) =>
+                        changeQuestion.mutate({ qaId: entry.id, value })
+                      }
+                      onChangeAnswer={(value) =>
+                        changeAnswer.mutate({ qaId: entry.id, value })
+                      }
+                      onDelete={() => deleteQA.mutate({ qaId: entry.id })}
+                      canEditQA={canEditQA}
+                      insufficientPermissionsTitle={insufficientTitle}
+                    />
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
+          )}
+        </div>
+      </EditorSection>
     </motion.div>
-  );
-}
-
-function SectionHeader({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <header className="flex flex-col gap-1 px-1">
-      <h2 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-        {title}
-      </h2>
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        {description}
-      </p>
-    </header>
   );
 }
 
@@ -270,6 +240,8 @@ type SortableQARowProps = {
   onChangeQuestion: (value: string) => void;
   onChangeAnswer: (value: string) => void;
   onDelete: () => void;
+  canEditQA: boolean;
+  insufficientPermissionsTitle?: string;
 };
 
 function SortableQARow({
@@ -277,6 +249,8 @@ function SortableQARow({
   onChangeQuestion,
   onChangeAnswer,
   onDelete,
+  canEditQA,
+  insufficientPermissionsTitle,
 }: SortableQARowProps) {
   const t = useTranslations('teach-products.editor.qa');
   const {
@@ -286,7 +260,7 @@ function SortableQARow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: entry.id });
+  } = useSortable({ id: entry.id, disabled: !canEditQA });
 
   // Use only dnd-kit's transform/transition for positioning. Wrapping the row
   // in `motion.li` with `layout` causes Framer Motion to animate the same
@@ -323,10 +297,15 @@ function SortableQARow({
       <button
         type="button"
         {...attributes}
-        {...listeners}
+        {...(canEditQA ? listeners : {})}
+        disabled={!canEditQA}
+        title={!canEditQA ? insufficientPermissionsTitle : undefined}
         aria-label={t('drag')}
         className={cn(
-          'mt-1 flex size-7 shrink-0 cursor-grab touch-none items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          'mt-1 flex size-7 shrink-0 touch-none items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          canEditQA
+            ? 'cursor-grab active:cursor-grabbing'
+            : 'cursor-not-allowed opacity-40',
           isDragging && 'cursor-grabbing',
         )}
       >
@@ -340,6 +319,9 @@ function SortableQARow({
           onCommit={flushQuestion}
           placeholder={t('placeholders.question')}
           ariaLabel={t('aria.question')}
+          requiredMessage={t('validation.questionRequired')}
+          readOnly={!canEditQA}
+          disabledTitle={insufficientPermissionsTitle}
         />
         <AnswerField
           rowId={entry.id}
@@ -347,14 +329,19 @@ function SortableQARow({
           onCommit={flushAnswer}
           placeholder={t('placeholders.answer')}
           ariaLabel={t('aria.answer')}
+          requiredMessage={t('validation.answerRequired')}
+          readOnly={!canEditQA}
+          disabledTitle={insufficientPermissionsTitle}
         />
       </div>
 
       <button
         type="button"
         onClick={onDelete}
+        disabled={!canEditQA}
+        title={!canEditQA ? insufficientPermissionsTitle : undefined}
         aria-label={t('delete')}
-        className="mt-1 flex size-7 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover/qa:opacity-100"
+        className="mt-1 flex size-7 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover/qa:opacity-100 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
       >
         <Trash2Icon className="size-3.5" />
       </button>
@@ -374,33 +361,55 @@ function QuestionField({
   onCommit,
   placeholder,
   ariaLabel,
+  requiredMessage,
+  readOnly,
+  disabledTitle,
 }: {
   rowId: string;
   initialValue: string;
   onCommit: (value: string) => void;
   placeholder: string;
   ariaLabel: string;
+  requiredMessage: string;
+  readOnly?: boolean;
+  disabledTitle?: string;
 }) {
   const [draft, setDraft] = useState(initialValue);
+  const isEmpty = draft.trim().length === 0;
   return (
-    <Input
-      key={rowId}
-      value={draft}
-      maxLength={QUESTION_MAX}
-      placeholder={placeholder}
-      aria-label={ariaLabel}
-      onChange={(e: ReactChangeEvent<HTMLInputElement>) => {
-        setDraft(e.target.value);
-        onCommit(e.target.value);
-      }}
-      onKeyDown={(e: ReactKeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          (e.target as HTMLInputElement).blur();
-        }
-      }}
-      className="h-9 border-transparent bg-transparent px-2 text-base font-medium shadow-none focus-visible:bg-background focus-visible:border-ring md:text-base"
-    />
+    <div className="flex flex-col gap-1">
+      <Input
+        key={rowId}
+        value={draft}
+        maxLength={QUESTION_MAX}
+        placeholder={placeholder}
+        aria-label={ariaLabel}
+        aria-required="true"
+        aria-invalid={isEmpty || undefined}
+        disabled={readOnly}
+        title={readOnly ? disabledTitle : undefined}
+        onChange={(e: ReactChangeEvent<HTMLInputElement>) => {
+          const next = e.target.value;
+          setDraft(next);
+          // The backend rejects empty question/answer with 422 — skip commit
+          // entirely. The previous valid value stays on the server, the UI
+          // shows the empty draft, and the inline error explains why.
+          if (next.trim().length > 0) onCommit(next);
+        }}
+        onKeyDown={(e: ReactKeyboardEvent<HTMLInputElement>) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+        className="h-9 border-transparent bg-transparent px-2 text-base font-medium shadow-none focus-visible:bg-background focus-visible:border-ring md:text-base"
+      />
+      {isEmpty ? (
+        <p role="alert" className="px-2 text-xs text-destructive">
+          {requiredMessage}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -410,27 +419,46 @@ function AnswerField({
   onCommit,
   placeholder,
   ariaLabel,
+  requiredMessage,
+  readOnly,
+  disabledTitle,
 }: {
   rowId: string;
   initialValue: string;
   onCommit: (value: string) => void;
   placeholder: string;
   ariaLabel: string;
+  requiredMessage: string;
+  readOnly?: boolean;
+  disabledTitle?: string;
 }) {
   const [draft, setDraft] = useState(initialValue);
+  const isEmpty = draft.trim().length === 0;
   return (
-    <TextareaAutosize
-      key={rowId}
-      value={draft}
-      maxLength={ANSWER_MAX}
-      placeholder={placeholder}
-      aria-label={ariaLabel}
-      onChange={(e: ReactChangeEvent<HTMLTextAreaElement>) => {
-        setDraft(e.target.value);
-        onCommit(e.target.value);
-      }}
-      className="min-h-[60px] border-transparent bg-transparent px-2 py-1.5 text-sm leading-relaxed shadow-none focus-visible:bg-background focus-visible:border-ring"
-    />
+    <div className="flex flex-col gap-1">
+      <TextareaAutosize
+        key={rowId}
+        value={draft}
+        maxLength={ANSWER_MAX}
+        placeholder={placeholder}
+        aria-label={ariaLabel}
+        aria-required="true"
+        aria-invalid={isEmpty || undefined}
+        disabled={readOnly}
+        title={readOnly ? disabledTitle : undefined}
+        onChange={(e: ReactChangeEvent<HTMLTextAreaElement>) => {
+          const next = e.target.value;
+          setDraft(next);
+          if (next.trim().length > 0) onCommit(next);
+        }}
+        className="min-h-[60px] border-transparent bg-transparent px-2 py-1.5 text-sm leading-relaxed shadow-none focus-visible:bg-background focus-visible:border-ring"
+      />
+      {isEmpty ? (
+        <p role="alert" className="px-2 text-xs text-destructive">
+          {requiredMessage}
+        </p>
+      ) : null}
+    </div>
   );
 }
 

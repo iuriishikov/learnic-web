@@ -1,11 +1,21 @@
 {
   "title": "Уведомления (toast)",
-  "description": "Единый API useNotify() для всех типов уведомлений — от ambient-ошибок API до сообщений из мессенджера. Каждая кнопка показывает реальный вызов хелпера.",
+  "description": "Единый API useNotify() для всех типов уведомлений — от продуктовых релизов и упоминаний до ambient-ошибок API. Каждая кнопка показывает реальный вызов хелпера.",
   "back": "На главную",
+  "themeToggle": {
+    "light": "Светлая",
+    "dark": "Тёмная",
+    "system": "Системная",
+    "label": "Тема"
+  },
   "sections": {
+    "showcase": {
+      "title": "Витрина из референса",
+      "subtitle": "Все варианты тостов из дизайн-референса — релизы, упоминания, прогресс, успех, предупреждения, plain. Один клик — один тост."
+    },
     "basic": {
       "title": "Базовые типы",
-      "subtitle": "Цветовая дифференциация по семантике: error — красный, success — зелёный, info — brand, warning — жёлтый."
+      "subtitle": "Цветовая дифференциация по семантике: error — красный, success — зелёный, info — brand, warning — жёлтый, neutral — без иконки."
     },
     "rich": {
       "title": "Богатые уведомления",
@@ -17,7 +27,7 @@
     },
     "advanced": {
       "title": "Продвинутое",
-      "subtitle": "Override-сообщение, имитация асинхронного вызова, ручной dismiss."
+      "subtitle": "Override-сообщение, имитация прогресс-бара, ручной dismiss."
     }
   },
   "buttons": {
@@ -25,19 +35,29 @@
     "success": "Success (зелёный)",
     "info": "Info (brand)",
     "warning": "Warning (жёлтый)",
+    "neutral": "Neutral (без иконки)",
     "errorWithAction": "Error + кнопка «Повторить»",
     "successWithDescription": "Success с описанием",
     "messengerMessage": "Сообщение из мессенджера",
-    "incomingCall": "Входящий звонок (с действием)",
+    "incomingCall": "Входящий звонок",
     "network": "Сеть недоступна",
     "unauthorized": "Сессия истекла",
     "notFound": "Не найдено",
     "validation": "Ошибка валидации",
     "unknown": "Неизвестная ошибка",
     "override": "Кастомное сообщение",
-    "async": "Асинхронный вызов (1.5с → ошибка)",
-    "asyncRunning": "Запрашиваем…",
-    "dismissAll": "Скрыть все"
+    "progressDemo": "Загрузка файла (3с)",
+    "dismissAll": "Скрыть все",
+    "showcase": {
+      "releaseAvatar": "Релиз с аватаром",
+      "releaseImage": "Релиз с обложкой",
+      "mention": "Упоминание (Katherine)",
+      "warningUndo": "Проект снят с публикации",
+      "successUpdate": "Профиль обновлён",
+      "plainUpdate": "Plain — без иконки",
+      "version": "Доступна версия 1.4.1",
+      "upload": "Загрузка website-FINAL06.fig"
+    }
   },
   "samples": {
     "errorTitle": "Не удалось сохранить",
@@ -47,13 +67,44 @@
     "infoTitle": "Доступна новая версия",
     "warningTitle": "Закончится через 7 дней",
     "warningDesc": "Подписка истекает 8 мая — продлите, чтобы не потерять данные.",
+    "neutralTitle": "Черновик сохранён локально",
     "messageSenderName": "Анна Петрова",
     "messageBody": "Привет! Можем созвониться сегодня в 15:00? Хочу показать новый макет.",
     "messageAction": "Открыть",
     "callTitle": "Входящий звонок",
     "callDesc": "Иван Соколов хочет начать видеозвонок.",
     "callAccept": "Ответить",
-    "overrideMessage": "Не удалось опубликовать «Дизайн-система с нуля» — это override-сообщение."
+    "overrideMessage": "Не удалось опубликовать «Дизайн-система с нуля» — это override-сообщение.",
+    "showcase": {
+      "releaseTitle": "Мы выпустили новый апдейт!",
+      "releaseDesc": "Загляните в новый дашборд — страницы и экспорт грузятся быстрее.",
+      "releaseAuthor": "Команда Learnic",
+      "releaseChangelog": "Что нового",
+      "mentionUser": "Катерина Мосс",
+      "mentionMeta": "2 мин назад",
+      "mentionBody": "Я добавила свои комментарии. Готова к ревью когда удобно!",
+      "mentionReply": "Ответить",
+      "warningTitle": "Проект снят с публикации",
+      "warningDesc": "Удаление всех пользователей сняло проект с публикации. Добавьте участников, чтобы вернуть его.",
+      "warningUndo": "Отменить",
+      "successProfileTitle": "Профиль успешно обновлён",
+      "successProfileDesc": "Изменения сохранены, ваша команда уже может вносить правки.",
+      "successProfileAction": "Посмотреть",
+      "plainTitle": "Профиль вашей команды обновлён",
+      "plainDesc": "С момента вашего последнего входа были внесены изменения.",
+      "plainAction": "Посмотреть",
+      "versionTitle": "Доступна версия 1.4.1",
+      "versionDesc": "Включает новый дашборд — страницы и экспорт грузятся быстрее.",
+      "versionLater": "Позже",
+      "versionInstall": "Установить",
+      "uploadTitle": "Загружаем «website-FINAL06.fig»",
+      "uploadDesc": "Подождите, пока мы загрузим файл.",
+      "uploadProgress": "{value}% загружено…",
+      "uploadCancel": "Отмена",
+      "uploadAnother": "Загрузить ещё",
+      "uploadDone": "Файл загружен",
+      "uploadDoneDesc": "«website-FINAL06.fig» доступен в библиотеке."
+    }
   },
   "code": {
     "title": "Как использовать"

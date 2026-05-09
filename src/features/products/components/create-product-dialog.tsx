@@ -42,6 +42,7 @@ import {
   NumberFieldInput,
 } from '@/shared/ui/number-field';
 import { Label } from '@/shared/ui/label';
+import { RequiredMark } from '@/shared/ui/required-mark';
 import { TextareaAutosize } from '@/shared/ui/textarea-autosize';
 
 import { createProductAction } from '../api/create-product';
@@ -319,6 +320,7 @@ function DetailsStep({ productType, onBack, onCreated }: DetailsStepProps) {
           <FormRow
             id="cp-title"
             label={t('fields.title.label')}
+            required
             error={titleError ? t(`errors.${titleError}`) : null}
           >
             <Input
@@ -425,12 +427,14 @@ function FormRow({
   label,
   hint,
   error,
+  required,
   children,
 }: {
   id: string;
   label: string;
   hint?: string;
   error: string | null;
+  required?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -441,6 +445,7 @@ function FormRow({
           className="text-[13px] font-medium text-foreground"
         >
           {label}
+          {required ? <RequiredMark /> : null}
         </Label>
         {hint ? (
           <span className="text-[11px] text-muted-foreground">{hint}</span>

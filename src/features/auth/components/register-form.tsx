@@ -125,44 +125,46 @@ export function RegisterForm() {
       noValidate
       className="flex flex-col gap-5"
     >
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="register-first-name">
-          {t('fields.firstName.label')}
-        </Label>
-        <Input
-          id="register-first-name"
-          type="text"
-          autoComplete="given-name"
-          className="h-11 rounded-lg px-3.5 text-[15px]"
-          placeholder={t('fields.firstName.placeholder')}
-          aria-invalid={Boolean(errors.firstName)}
-          {...form.register('firstName')}
-        />
-        {errors.firstName?.message ? (
-          <p className="text-sm text-destructive">
-            {t(`errors.${errors.firstName.message}`)}
-          </p>
-        ) : null}
-      </div>
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-4">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="register-first-name">
+            {t('fields.firstName.label')}
+          </Label>
+          <Input
+            id="register-first-name"
+            type="text"
+            autoComplete="given-name"
+            className="h-11 rounded-lg px-3.5 text-[15px]"
+            placeholder={t('fields.firstName.placeholder')}
+            aria-invalid={Boolean(errors.firstName)}
+            {...form.register('firstName')}
+          />
+          {errors.firstName?.message ? (
+            <p className="text-sm text-destructive">
+              {t(`errors.${errors.firstName.message}`)}
+            </p>
+          ) : null}
+        </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="register-last-name">
-          {t('fields.lastName.label')}
-        </Label>
-        <Input
-          id="register-last-name"
-          type="text"
-          autoComplete="family-name"
-          className="h-11 rounded-lg px-3.5 text-[15px]"
-          placeholder={t('fields.lastName.placeholder')}
-          aria-invalid={Boolean(errors.lastName)}
-          {...form.register('lastName')}
-        />
-        {errors.lastName?.message ? (
-          <p className="text-sm text-destructive">
-            {t(`errors.${errors.lastName.message}`)}
-          </p>
-        ) : null}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="register-last-name">
+            {t('fields.lastName.label')}
+          </Label>
+          <Input
+            id="register-last-name"
+            type="text"
+            autoComplete="family-name"
+            className="h-11 rounded-lg px-3.5 text-[15px]"
+            placeholder={t('fields.lastName.placeholder')}
+            aria-invalid={Boolean(errors.lastName)}
+            {...form.register('lastName')}
+          />
+          {errors.lastName?.message ? (
+            <p className="text-sm text-destructive">
+              {t(`errors.${errors.lastName.message}`)}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -180,6 +182,24 @@ export function RegisterForm() {
           placeholder={t('fields.patronymic.placeholder')}
           {...form.register('patronymic')}
         />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="register-email">{t('fields.email.label')}</Label>
+        <Input
+          id="register-email"
+          type="email"
+          autoComplete="email"
+          className="h-11 rounded-lg px-3.5 text-[15px]"
+          placeholder={t('fields.email.placeholder')}
+          aria-invalid={Boolean(errors.email)}
+          {...form.register('email')}
+        />
+        {errors.email?.message ? (
+          <p className="text-sm text-destructive">
+            {t(`errors.${errors.email.message}`)}
+          </p>
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -219,24 +239,6 @@ export function RegisterForm() {
               : t('fields.password.hint', { min: PASSWORD_MIN })}
           </span>
         </p>
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="register-email">{t('fields.email.label')}</Label>
-        <Input
-          id="register-email"
-          type="email"
-          autoComplete="email"
-          className="h-11 rounded-lg px-3.5 text-[15px]"
-          placeholder={t('fields.email.placeholder')}
-          aria-invalid={Boolean(errors.email)}
-          {...form.register('email')}
-        />
-        {errors.email?.message ? (
-          <p className="text-sm text-destructive">
-            {t(`errors.${errors.email.message}`)}
-          </p>
-        ) : null}
       </div>
 
       {formError && formError.kind !== 'validation' ? (

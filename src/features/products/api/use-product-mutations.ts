@@ -2,7 +2,8 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
+
+import { useNotify } from '@/shared/lib/notify';
 
 import type { Product } from '../model/types';
 
@@ -22,7 +23,8 @@ import { productKey } from './use-product';
 
 function useFailureToast() {
   const t = useTranslations('teach-products.editor.toast');
-  return (key: string) => toast.error(t(key));
+  const notify = useNotify();
+  return (key: string) => notify.error(t(key));
 }
 
 export function useChangeProductNameMutation(productId: string) {

@@ -60,7 +60,9 @@ import {
   usePublishProductMutation,
   useUnarchiveProductMutation,
 } from '../api/use-product-mutations';
+import { useProductPermissions } from '../api/use-product-permissions';
 import type { Product, ProductStatus } from '../model/types';
+import { EditorRow, EditorSection } from './editor-row';
 
 const NOTES_MAX = 5000;
 
@@ -82,36 +84,31 @@ export function ProductSettingsSection({
       animate={{ opacity: 1, y: 0 }}
       exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
       transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
-      className="flex flex-col gap-8"
     >
-      <header className="flex flex-col gap-1 px-1">
-        <h2 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-          {t('title')}
-        </h2>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {t('description')}
-        </p>
-      </header>
-
-      <StatusBlock product={product} />
-      {isCourse ? <ReleasesBlock product={product} /> : null}
-      <DangerZone product={product} />
+      <EditorSection title={t('title')} description={t('description')}>
+        <StatusRow product={product} />
+        {isCourse ? <ReleasesRow product={product} /> : null}
+        <DangerRow product={product} />
+      </EditorSection>
     </motion.div>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* Status block                                                               */
+/* Status row                                                                 */
 /* -------------------------------------------------------------------------- */
 
-function StatusBlock({ product }: { product: Product }) {
+function StatusRow({ product }: { product: Product }) {
   const t = useTranslations('teach-products.editor.settings.status');
+  const tEditor = useTranslations('teach-products.editor');
   const tStatus = useTranslations('teach-products.status');
   const formatter = useFormatter();
   const isCourse = product.type === 'course';
   const archive = useArchiveProductMutation(product.id);
   const unarchive = useUnarchiveProductMutation(product.id);
   const publish = usePublishProductMutation(product.id);
+  const perms = useProductPermissions(product.id);
+  const insufficientTitle = tEditor('insufficientPermissions');
   const [confirmArchive, setConfirmArchive] = useState(false);
   const router = useRouter();
 
@@ -129,77 +126,83 @@ function StatusBlock({ product }: { product: Product }) {
   };
 
   return (
-    <Block title={t('title')} description={t('description')}>
-      <div className="flex flex-wrap items-center gap-3">
-        <span
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-foreground/10',
-            statusToneClass(product.status),
-          )}
-        >
-          <span className="size-1.5 rounded-full bg-current opacity-70" />
-          {tStatus(product.status)}
-        </span>
-        {product.publishedAt ? (
-          <span className="text-xs text-muted-foreground">
-            {t('publishedAt', {
-              date: formatter.dateTime(new Date(product.publishedAt), {
-                dateStyle: 'medium',
-                timeStyle: 'short',
-              }),
-            })}
+    <EditorRow label={t('title')} description={t('description')}>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <span
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-foreground/10',
+              statusToneClass(product.status),
+            )}
+          >
+            <span className="size-1.5 rounded-full bg-current opacity-70" />
+            {tStatus(product.status)}
           </span>
-        ) : null}
-      </div>
+          {product.publishedAt ? (
+            <span className="text-xs text-muted-foreground">
+              {t('publishedAt', {
+                date: formatter.dateTime(new Date(product.publishedAt), {
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
+                }),
+              })}
+            </span>
+          ) : null}
+        </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {!isCourse && product.status === 'draft' ? (
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => publish.mutate()}
-            disabled={publish.isPending}
-            className="gap-1.5 bg-brand text-brand-foreground hover:bg-brand/90"
-          >
-            {publish.isPending ? (
-              <LoaderCircleIcon className="size-4 animate-spin" />
-            ) : (
-              <RocketIcon className="size-4" />
-            )}
-            {t('publish')}
-          </Button>
-        ) : null}
-        {product.status === 'archived' ? (
-          <Button
-            type="button"
-            size="sm"
-            onClick={onUnarchive}
-            disabled={unarchive.isPending}
-            className="gap-1.5 bg-brand text-brand-foreground hover:bg-brand/90"
-          >
-            {unarchive.isPending ? (
-              <LoaderCircleIcon className="size-4 animate-spin" />
-            ) : (
-              <ArchiveRestoreIcon className="size-4" />
-            )}
-            {unarchive.isPending ? t('unarchiving') : t('unarchive')}
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setConfirmArchive(true)}
-            disabled={
-              archive.isPending ||
-              (isCourse && product.status === 'draft')
-            }
-            className="gap-1.5"
-          >
-            <ArchiveIcon className="size-4" />
-            {t('archive')}
-          </Button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {!isCourse && product.status === 'draft' ? (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => publish.mutate()}
+              disabled={publish.isPending || !perms.canPublish}
+              title={!perms.canPublish ? insufficientTitle : undefined}
+              className="gap-1.5 bg-brand text-brand-foreground hover:bg-brand/90"
+            >
+              {publish.isPending ? (
+                <LoaderCircleIcon className="size-4 animate-spin" />
+              ) : (
+                <RocketIcon className="size-4" />
+              )}
+              {t('publish')}
+            </Button>
+          ) : null}
+          {product.status === 'archived' ? (
+            <Button
+              type="button"
+              size="sm"
+              onClick={onUnarchive}
+              disabled={unarchive.isPending || !perms.canArchive}
+              title={!perms.canArchive ? insufficientTitle : undefined}
+              className="gap-1.5 bg-brand text-brand-foreground hover:bg-brand/90"
+            >
+              {unarchive.isPending ? (
+                <LoaderCircleIcon className="size-4 animate-spin" />
+              ) : (
+                <ArchiveRestoreIcon className="size-4" />
+              )}
+              {unarchive.isPending ? t('unarchiving') : t('unarchive')}
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setConfirmArchive(true)}
+              disabled={
+                archive.isPending ||
+                (isCourse && product.status === 'draft') ||
+                !perms.canArchive
+              }
+              title={!perms.canArchive ? insufficientTitle : undefined}
+              className="gap-1.5"
+            >
+              <ArchiveIcon className="size-4" />
+              {t('archive')}
+            </Button>
+          )}
+        </div>
       </div>
 
       <AlertDialog open={confirmArchive} onOpenChange={setConfirmArchive}>
@@ -226,20 +229,23 @@ function StatusBlock({ product }: { product: Product }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Block>
+    </EditorRow>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* Releases block (course only)                                               */
+/* Releases row (course only)                                                 */
 /* -------------------------------------------------------------------------- */
 
-function ReleasesBlock({ product }: { product: Product }) {
+function ReleasesRow({ product }: { product: Product }) {
   const t = useTranslations('teach-products.editor.settings.releases');
+  const tEditor = useTranslations('teach-products.editor');
   const isCourse = product.type === 'course';
   const query = useCourseReleases(product.id, isCourse);
   const create = useCreateCourseReleaseMutation(product.id);
   const reset = useResetCourseDraftMutation(product.id);
+  const perms = useProductPermissions(product.id);
+  const insufficientTitle = tEditor('insufficientPermissions');
 
   const [createOpen, setCreateOpen] = useState(false);
   const [resetTarget, setResetTarget] = useState<CourseReleaseSummary | null>(
@@ -266,58 +272,63 @@ function ReleasesBlock({ product }: { product: Product }) {
   };
 
   return (
-    <Block title={t('title')} description={t('description')}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-muted-foreground">
-          {t('countLabel', { count: query.data?.length ?? 0 })}
-        </p>
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => setCreateOpen(true)}
-          disabled={create.isPending}
-          className="gap-1.5 bg-brand text-brand-foreground hover:bg-brand/90"
-        >
-          <PackagePlusIcon className="size-4" />
-          {t('createCta')}
-        </Button>
-      </div>
+    <EditorRow label={t('title')} description={t('description')}>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground">
+            {t('countLabel', { count: query.data?.length ?? 0 })}
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setCreateOpen(true)}
+            disabled={create.isPending || !perms.canManageReleases}
+            title={!perms.canManageReleases ? insufficientTitle : undefined}
+            className="gap-1.5 bg-brand text-brand-foreground hover:bg-brand/90"
+          >
+            <PackagePlusIcon className="size-4" />
+            {t('createCta')}
+          </Button>
+        </div>
 
-      <div className="mt-4 flex flex-col gap-2">
-        {query.isPending ? (
-          <>
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-16 w-full rounded-xl" />
-          </>
-        ) : query.isError ? (
-          <ReleasesLoadError
-            reason={
-              query.error instanceof CourseReleasesError
-                ? query.error.reason
-                : 'unknown'
-            }
-            onRetry={() => query.refetch()}
-            isRetrying={query.isFetching}
-          />
-        ) : query.data.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border bg-muted/20 px-4 py-8 text-center">
-            <p className="text-sm font-medium text-foreground">
-              {t('empty.title')}
-            </p>
-            <p className="mt-1 text-xs leading-snug text-muted-foreground">
-              {t('empty.description')}
-            </p>
-          </div>
-        ) : (
-          query.data.map((release) => (
-            <ReleaseRow
-              key={release.id}
-              release={release}
-              onResetRequest={() => setResetTarget(release)}
-              isResetPending={reset.isPending}
+        <div className="flex flex-col gap-2">
+          {query.isPending ? (
+            <>
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+            </>
+          ) : query.isError ? (
+            <ReleasesLoadError
+              reason={
+                query.error instanceof CourseReleasesError
+                  ? query.error.reason
+                  : 'unknown'
+              }
+              onRetry={() => query.refetch()}
+              isRetrying={query.isFetching}
             />
-          ))
-        )}
+          ) : query.data.length === 0 ? (
+            <div className="rounded-xl bg-muted/40 px-4 py-6">
+              <p className="text-sm font-medium text-foreground">
+                {t('empty.title')}
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                {t('empty.description')}
+              </p>
+            </div>
+          ) : (
+            query.data.map((release) => (
+              <ReleaseRow
+                key={release.id}
+                release={release}
+                onResetRequest={() => setResetTarget(release)}
+                isResetPending={reset.isPending}
+                canManageReleases={perms.canManageReleases}
+                insufficientPermissionsTitle={insufficientTitle}
+              />
+            ))
+          )}
+        </div>
       </div>
 
       <CreateReleaseDialog
@@ -362,7 +373,7 @@ function ReleasesBlock({ product }: { product: Product }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Block>
+    </EditorRow>
   );
 }
 
@@ -370,15 +381,19 @@ function ReleaseRow({
   release,
   onResetRequest,
   isResetPending,
+  canManageReleases,
+  insufficientPermissionsTitle,
 }: {
   release: CourseReleaseSummary;
   onResetRequest: () => void;
   isResetPending: boolean;
+  canManageReleases: boolean;
+  insufficientPermissionsTitle: string;
 }) {
   const t = useTranslations('teach-products.editor.settings.releases');
   const formatter = useFormatter();
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-border bg-background p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+    <div className="flex flex-col gap-2 rounded-xl border border-border bg-background p-4 shadow-xs transition-colors hover:border-foreground/15 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-sm font-semibold text-foreground">
@@ -410,7 +425,8 @@ function ReleaseRow({
         variant="outline"
         size="sm"
         onClick={onResetRequest}
-        disabled={isResetPending}
+        disabled={isResetPending || !canManageReleases}
+        title={!canManageReleases ? insufficientPermissionsTitle : undefined}
         className="shrink-0 gap-1.5"
       >
         <RotateCcwIcon className="size-4" />
@@ -430,16 +446,17 @@ function ReleasesLoadError({
   isRetrying: boolean;
 }) {
   const t = useTranslations('teach-products.editor.settings.releases.error');
+  const isForbidden = reason === 'forbidden';
+  const titleKey = isForbidden ? 'forbiddenTitle' : 'title';
+  const descriptionKey = isForbidden ? 'forbiddenDescription' : 'description';
+  const showRetry = !isForbidden && reason !== 'not-a-course';
   return (
-    <div
-      role="alert"
-      className="rounded-xl border border-dashed border-border bg-muted/20 px-4 py-6 text-center"
-    >
-      <p className="text-sm font-medium text-foreground">{t('title')}</p>
-      <p className="mt-1 text-xs leading-snug text-muted-foreground">
-        {t('description')}
+    <div role="alert" className="rounded-xl bg-muted/40 px-4 py-4">
+      <p className="text-sm font-medium text-foreground">{t(titleKey)}</p>
+      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+        {t(descriptionKey)}
       </p>
-      {reason !== 'forbidden' && reason !== 'not-a-course' ? (
+      {showRetry ? (
         <Button
           type="button"
           variant="outline"
@@ -602,10 +619,10 @@ function KindOption({
 }
 
 /* -------------------------------------------------------------------------- */
-/* Danger zone                                                                */
+/* Danger row                                                                 */
 /* -------------------------------------------------------------------------- */
 
-function DangerZone({ product }: { product: Product }) {
+function DangerRow({ product }: { product: Product }) {
   const t = useTranslations('teach-products.editor.settings.danger');
   const router = useRouter();
   const deleteMutation = useDeleteProductMutation(product.id);
@@ -623,13 +640,13 @@ function DangerZone({ product }: { product: Product }) {
   };
 
   return (
-    <Block
-      title={t('title')}
+    <EditorRow
+      label={t('title')}
       description={t('description')}
       tone="danger"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-md text-sm leading-snug text-muted-foreground">
+      <div className="flex flex-col items-start gap-3">
+        <p className="text-sm leading-relaxed text-muted-foreground">
           {canDelete ? t('deleteHint') : t('deleteUnavailable')}
         </p>
         <Button
@@ -669,49 +686,7 @@ function DangerZone({ product }: { product: Product }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Block>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Block primitive                                                            */
-/* -------------------------------------------------------------------------- */
-
-function Block({
-  title,
-  description,
-  tone = 'default',
-  children,
-}: {
-  title: string;
-  description: string;
-  tone?: 'default' | 'danger';
-  children: React.ReactNode;
-}) {
-  return (
-    <section
-      className={cn(
-        'rounded-2xl border bg-background p-5',
-        tone === 'danger'
-          ? 'border-destructive/40'
-          : 'border-border',
-      )}
-    >
-      <header className="mb-4 flex flex-col gap-1">
-        <h3
-          className={cn(
-            'font-heading text-base font-semibold tracking-tight',
-            tone === 'danger' ? 'text-destructive' : 'text-foreground',
-          )}
-        >
-          {title}
-        </h3>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {description}
-        </p>
-      </header>
-      {children}
-    </section>
+    </EditorRow>
   );
 }
 

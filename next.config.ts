@@ -5,7 +5,7 @@ const withNextIntl = createNextIntlPlugin(
   './src/shared/config/i18n/request.ts',
 );
 
-const API_URL = process.env.API_URL ?? 'http://0.0.0.0:8000';
+const API_URL = process.env.API_URL ?? 'http://127.0.0.1:8000';
 
 const nextConfig: NextConfig = {
   devIndicators: false,
@@ -24,6 +24,10 @@ const nextConfig: NextConfig = {
       {
         source: '/api/courses/:courseId/events',
         destination: `${API_URL}/courses/:courseId/events`,
+      },
+      {
+        source: '/api/users/me/confirm-events',
+        destination: `${API_URL}/users/me/confirm-events`,
       },
     ];
   },

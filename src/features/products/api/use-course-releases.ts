@@ -6,7 +6,8 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
+
+import { useNotify } from '@/shared/lib/notify';
 
 import {
   type CourseReleaseKind,
@@ -38,7 +39,8 @@ export class CourseReleasesError extends Error {
 
 function useFailureToast() {
   const t = useTranslations('teach-products.editor.toast');
-  return (key: string) => toast.error(t(key));
+  const notify = useNotify();
+  return (key: string) => notify.error(t(key));
 }
 
 export function useCourseReleases(courseId: string, enabled: boolean) {

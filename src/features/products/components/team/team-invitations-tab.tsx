@@ -1,48 +1,68 @@
 'use client';
 
 import {
-  CopyIcon,
-  ExternalLinkIcon,
   MailIcon,
-  MailPlusIcon,
   MoreHorizontalIcon,
+  RotateCwIcon,
   TimerIcon,
   Trash2Icon,
   UserPlusIcon,
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useFormatter, useTranslations } from 'next-intl';
+import { useMemo } from 'react';
 
 import { cn } from '@/shared/lib/utils';
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
+import { Skeleton } from '@/shared/ui/skeleton';
+
+import { useProductPermissions } from '../../api/use-product-permissions';
+import {
+  useProductCollaborations,
+  useProductRoles,
+  useRevokeCollaborationMutation,
+} from '../../api/use-team';
+import type { Collaboration } from '../../model/team';
 
 import {
-  BUILTIN_ROLES,
-  CUSTOM_ROLES,
-  MOCK_INVITATIONS,
-  type PendingInvitation,
-  getInitials,
+  colorForRole,
+  daysUntil,
+  primaryGrant,
   roleColorClasses,
-} from './team-mock';
+} from './team-shared';
 
-const ROLES = [...BUILTIN_ROLES, ...CUSTOM_ROLES];
-
-export function TeamInvitationsTab() {
+export function TeamInvitationsTab({
+  productId,
+  onAddInvite,
+}: {
+  productId: string;
+  onAddInvite: () => void;
+}) {
   const t = useTranslations('teach-products.editor.team.invitations');
+  const tLoad = useTranslations('teach-products.editor.team.load');
+  const tEditor = useTranslations('teach-products.editor');
   const reduceMotion = useReducedMotion();
-  const invitations = MOCK_INVITATIONS;
+
+  const collabsQuery = useProductCollaborations(productId);
+  const rolesQuery = useProductRoles(productId);
+  const revoke = useRevokeCollaborationMutation(productId);
+  const perms = useProductPermissions(productId);
+  const canManageCollaborators = perms.canManageCollaborators;
+  const insufficientTitle = tEditor('insufficientPermissions');
+
+  const invitations = useMemo<Collaboration[]>(() => {
+    if (!collabsQuery.data) return [];
+    return collabsQuery.data.filter((c) => c.status === 'pending_invite');
+  }, [collabsQuery.data]);
+
+  const isLoading = collabsQuery.isPending;
+  const hasError = collabsQuery.isError;
 
   return (
     <motion.div
@@ -65,6 +85,9 @@ export function TeamInvitationsTab() {
         <Button
           type="button"
           size="sm"
+          onClick={onAddInvite}
+          disabled={!canManageCollaborators}
+          title={!canManageCollaborators ? insufficientTitle : undefined}
           className="h-9 shrink-0 gap-1.5 bg-brand px-3 text-brand-foreground hover:bg-brand/90 sm:px-4"
         >
           <UserPlusIcon className="size-4" />
@@ -72,13 +95,55 @@ export function TeamInvitationsTab() {
         </Button>
       </div>
 
-      {invitations.length === 0 ? (
+      {hasError ? (
+        <div
+          role="alert"
+          className="flex flex-col gap-3 rounded-2xl border border-dashed border-border bg-muted/20 px-5 py-6"
+        >
+          <h4 className="font-heading text-base font-semibold tracking-tight text-foreground">
+            {tLoad('errorTitle')}
+          </h4>
+          <p className="text-sm leading-snug text-muted-foreground">
+            {tLoad('invitationsErrorDescription')}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => collabsQuery.refetch()}
+            disabled={collabsQuery.isFetching}
+            className="h-8 w-fit gap-1.5"
+          >
+            <RotateCwIcon
+              className={cn(
+                'size-3.5',
+                collabsQuery.isFetching && 'animate-spin',
+              )}
+            />
+            {tLoad('retry')}
+          </Button>
+        </div>
+      ) : isLoading ? (
+        <InvitationsSkeleton />
+      ) : invitations.length === 0 ? (
         <EmptyInvitations />
       ) : (
         <ul className="flex flex-col gap-2">
           {invitations.map((invitation) => (
             <li key={invitation.id}>
-              <InvitationCard invitation={invitation} />
+              <InvitationCard
+                invitation={invitation}
+                roles={rolesQuery.data ?? []}
+                canManageCollaborators={canManageCollaborators}
+                insufficientTitle={insufficientTitle}
+                onRevoke={() =>
+                  revoke.mutate({ collaborationId: invitation.id })
+                }
+                pendingRevoke={
+                  revoke.isPending &&
+                  revoke.variables?.collaborationId === invitation.id
+                }
+              />
             </li>
           ))}
         </ul>
@@ -87,22 +152,45 @@ export function TeamInvitationsTab() {
   );
 }
 
-function InvitationCard({ invitation }: { invitation: PendingInvitation }) {
+function InvitationCard({
+  invitation,
+  roles,
+  canManageCollaborators,
+  insufficientTitle,
+  onRevoke,
+  pendingRevoke,
+}: {
+  invitation: Collaboration;
+  roles: ReadonlyArray<{ id: string; name: string }>;
+  canManageCollaborators: boolean;
+  insufficientTitle: string;
+  onRevoke: () => void;
+  pendingRevoke: boolean;
+}) {
   const t = useTranslations('teach-products.editor.team.invitations');
   const tActions = useTranslations(
     'teach-products.editor.team.invitations.actions',
   );
-  const tRoles = useTranslations('teach-products.editor.team.roles');
   const formatter = useFormatter();
-  const role = ROLES.find((r) => r.id === invitation.roleId);
-  const roleName = role?.builtIn
-    ? tRoles(role.name)
-    : role?.name ?? invitation.roleId;
-  const tone = role ? roleColorClasses(role.color) : roleColorClasses('brand');
-  const expiringSoon = invitation.expiresInDays <= 1;
+
+  const grant = primaryGrant(invitation.grants);
+  const role = grant ? roles.find((r) => r.id === grant.roleId) : undefined;
+  const roleName = role?.name ?? grant?.roleName ?? '';
+  const tone = role
+    ? roleColorClasses(colorForRole(role))
+    : roleColorClasses('brand');
+
+  const expiresInDays = daysUntil(invitation.inviteExpiresAt);
+  const expiringSoon = expiresInDays !== null && expiresInDays <= 1;
+  const email = invitation.invitedEmail ?? invitation.collaborator?.email ?? '';
 
   return (
-    <article className="group/inv flex flex-col gap-3 rounded-2xl border border-border bg-background p-4 transition-colors hover:border-foreground/15 sm:flex-row sm:items-center sm:gap-5">
+    <article
+      className={cn(
+        'group/inv flex flex-col gap-3 rounded-2xl border border-border bg-background p-4 transition-colors hover:border-foreground/15 sm:flex-row sm:items-center sm:gap-5',
+        pendingRevoke && 'opacity-60',
+      )}
+    >
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <span
           className={cn(
@@ -114,7 +202,7 @@ function InvitationCard({ invitation }: { invitation: PendingInvitation }) {
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="truncate text-sm font-semibold text-foreground">
-            {invitation.email}
+            {email}
           </span>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span
@@ -127,37 +215,26 @@ function InvitationCard({ invitation }: { invitation: PendingInvitation }) {
               <span aria-hidden className={cn('size-1.5 rounded-full', tone.dot)} />
               {roleName}
             </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Avatar size="sm">
-                {invitation.invitedByAvatarUrl ? (
-                  <AvatarImage src={invitation.invitedByAvatarUrl} alt="" />
-                ) : null}
-                <AvatarFallback>
-                  {getInitials(invitation.invitedByName)}
-                </AvatarFallback>
-              </Avatar>
-              {t('inviteFrom', { name: invitation.invitedByName })}
-            </span>
             <span className="hidden sm:inline">
               {t('sentAt', {
-                date: formatter.dateTime(new Date(invitation.sentAt), {
+                date: formatter.dateTime(new Date(invitation.createdAt), {
                   dateStyle: 'medium',
                 }),
               })}
             </span>
-            <span
-              className={cn(
-                'inline-flex items-center gap-1',
-                expiringSoon
-                  ? 'font-medium text-amber-600 dark:text-amber-400'
-                  : '',
-              )}
-            >
-              <TimerIcon className="size-3" />
-              {expiringSoon
-                ? t('expiresSoon')
-                : t('expiresIn', { days: invitation.expiresInDays })}
-            </span>
+            {expiresInDays !== null ? (
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1',
+                  expiringSoon && 'font-medium text-amber-600 dark:text-amber-400',
+                )}
+              >
+                <TimerIcon className="size-3" />
+                {expiringSoon
+                  ? t('expiresSoon')
+                  : t('expiresIn', { days: expiresInDays })}
+              </span>
+            ) : null}
           </div>
         </div>
       </div>
@@ -166,19 +243,13 @@ function InvitationCard({ invitation }: { invitation: PendingInvitation }) {
           type="button"
           variant="outline"
           size="sm"
-          className="h-8 gap-1.5 bg-background px-2.5"
+          onClick={onRevoke}
+          disabled={pendingRevoke || !canManageCollaborators}
+          title={!canManageCollaborators ? insufficientTitle : undefined}
+          className="h-8 gap-1.5 bg-background px-2.5 text-destructive hover:bg-destructive/5 hover:text-destructive"
         >
-          <MailPlusIcon className="size-3.5" />
-          <span className="hidden lg:inline">{tActions('resend')}</span>
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 gap-1.5 bg-background px-2.5"
-        >
-          <CopyIcon className="size-3.5" />
-          <span className="hidden lg:inline">{tActions('copyLink')}</span>
+          <Trash2Icon className="size-3.5" />
+          <span className="hidden lg:inline">{tActions('revoke')}</span>
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger
@@ -187,7 +258,7 @@ function InvitationCard({ invitation }: { invitation: PendingInvitation }) {
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                aria-label="Действия"
+                aria-label={tActions('menu')}
                 className="text-muted-foreground hover:text-foreground"
               >
                 <MoreHorizontalIcon />
@@ -195,12 +266,12 @@ function InvitationCard({ invitation }: { invitation: PendingInvitation }) {
             }
           />
           <DropdownMenuContent align="end" sideOffset={4} className="w-48">
-            <DropdownMenuItem>
-              <ExternalLinkIcon />
-              {tActions('copyLink')}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive">
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={onRevoke}
+              disabled={!canManageCollaborators}
+              title={!canManageCollaborators ? insufficientTitle : undefined}
+            >
               <Trash2Icon />
               {tActions('revoke')}
             </DropdownMenuItem>
@@ -223,5 +294,24 @@ function EmptyInvitations() {
         {t('description')}
       </p>
     </div>
+  );
+}
+
+function InvitationsSkeleton() {
+  return (
+    <ul className="flex flex-col gap-2">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <li key={i}>
+          <div className="flex items-center gap-3 rounded-2xl border border-border bg-background p-4">
+            <Skeleton className="size-10 shrink-0 rounded-full" />
+            <div className="flex flex-1 flex-col gap-1.5">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+            <Skeleton className="h-8 w-20 rounded-md" />
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }

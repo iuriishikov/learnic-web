@@ -9,6 +9,7 @@ import {
   SITE_URL,
   TITLE_TEMPLATE,
 } from '@/shared/config/site';
+import { GlobalScrollbars } from '@/shared/ui/global-scrollbars';
 import { ThemeProvider } from '@/shared/ui/theme-provider';
 
 import './globals.css';
@@ -57,6 +58,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           enableSystem
           disableTransitionOnChange
         >
+          <GlobalScrollbars />
           {children}
         </ThemeProvider>
       </body>

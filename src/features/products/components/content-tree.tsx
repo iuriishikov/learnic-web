@@ -75,6 +75,12 @@ export type ContentTreeProps = {
   pendingRenameId?: string | null;
   /** Fired when an externally-requested rename has been resolved (commit / cancel). */
   onPendingRenameResolved?: () => void;
+  /** When false, all module-level mutations (add/rename/delete/reorder) are disabled. */
+  canEditModules?: boolean;
+  /** When false, all lesson-level mutations (add/rename/delete/reorder/move) are disabled. */
+  canEditLessons?: boolean;
+  /** Tooltip text shown on disabled controls when gated by permission. */
+  insufficientPermissionsTitle?: string;
   className?: string;
 };
 
@@ -101,6 +107,9 @@ export function ContentTree({
   onMoveLesson,
   pendingRenameId,
   onPendingRenameResolved,
+  canEditModules = true,
+  canEditLessons = true,
+  insufficientPermissionsTitle,
   className,
 }: ContentTreeProps) {
   const t = useTranslations('teach-products.editor.tree');
@@ -125,8 +134,13 @@ export function ContentTree({
     onPendingRenameResolved?.();
   }, [onPendingRenameResolved]);
 
+  const dndDisabled = !canEditModules && !canEditLessons;
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(PointerSensor, {
+      activationConstraint: dndDisabled
+        ? { distance: 999_999 }
+        : { distance: 4 },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
@@ -245,6 +259,9 @@ export function ContentTree({
                 }}
                 onLessonCancelRename={resolveRename}
                 onLessonDelete={(lessonId) => onDeleteLesson(lessonId)}
+                canEditModules={canEditModules}
+                canEditLessons={canEditLessons}
+                insufficientPermissionsTitle={insufficientPermissionsTitle}
               />
             ))}
           </ul>
@@ -256,6 +273,8 @@ export function ContentTree({
         variant="ghost"
         size="sm"
         onClick={handleAddModule}
+        disabled={!canEditModules}
+        title={!canEditModules ? insufficientPermissionsTitle : undefined}
         className="mt-1.5 h-8 w-full justify-start gap-1.5 px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
       >
         <PlusIcon className="size-3.5" /> {t('addModule')}
@@ -285,6 +304,9 @@ type SortableModuleProps = {
   onLessonCommitRename: (lessonId: string, title: string) => void;
   onLessonCancelRename: () => void;
   onLessonDelete: (lessonId: string) => void;
+  canEditModules: boolean;
+  canEditLessons: boolean;
+  insufficientPermissionsTitle?: string;
 };
 
 function SortableModule({
@@ -304,6 +326,9 @@ function SortableModule({
   onLessonCommitRename,
   onLessonCancelRename,
   onLessonDelete,
+  canEditModules,
+  canEditLessons,
+  insufficientPermissionsTitle,
 }: SortableModuleProps) {
   const t = useTranslations('teach-products.editor.tree');
   const reduceMotion = useReducedMotion();
@@ -314,7 +339,10 @@ function SortableModule({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: `${MODULE_PREFIX}${module.id}` });
+  } = useSortable({
+    id: `${MODULE_PREFIX}${module.id}`,
+    disabled: !canEditModules,
+  });
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -337,6 +365,8 @@ function SortableModule({
             attributes={attributes}
             listeners={listeners}
             ariaLabel={t('reorderModule')}
+            disabled={!canEditModules}
+            disabledTitle={insufficientPermissionsTitle}
           />
         }
         chevron={
@@ -357,6 +387,7 @@ function SortableModule({
         icon={<FolderIcon className="size-3.5 text-muted-foreground" />}
         title={module.title}
         editing={editing}
+        canStartRename={canEditModules}
         onStartRename={onStartRename}
         onCommitRename={onCommitRename}
         onCancelRename={onCancelRename}
@@ -367,8 +398,13 @@ function SortableModule({
             menuLabel={t('moduleActions')}
             onRename={onStartRename}
             onDelete={onDelete}
+            canRename={canEditModules}
+            canDelete={canEditModules}
             extraItems={
-              <DropdownMenuItem onClick={onAddLesson}>
+              <DropdownMenuItem
+                onClick={onAddLesson}
+                disabled={!canEditLessons}
+              >
                 <PlusIcon /> {t('addLesson')}
               </DropdownMenuItem>
             }
@@ -422,6 +458,8 @@ function SortableModule({
                     }
                     onCancelRename={onLessonCancelRename}
                     onDelete={() => onLessonDelete(lesson.id)}
+                    canEditLessons={canEditLessons}
+                    insufficientPermissionsTitle={insufficientPermissionsTitle}
                   />
                 ))}
                 <li>
@@ -430,6 +468,10 @@ function SortableModule({
                     variant="ghost"
                     size="sm"
                     onClick={onAddLesson}
+                    disabled={!canEditLessons}
+                    title={
+                      !canEditLessons ? insufficientPermissionsTitle : undefined
+                    }
                     className="h-7 w-full justify-start gap-1.5 px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
                   >
                     <PlusIcon className="size-3" /> {t('addLesson')}
@@ -457,6 +499,8 @@ type SortableLessonProps = {
   onCommitRename: (title: string) => void;
   onCancelRename: () => void;
   onDelete: () => void;
+  canEditLessons: boolean;
+  insufficientPermissionsTitle?: string;
 };
 
 function SortableLesson({
@@ -468,6 +512,8 @@ function SortableLesson({
   onCommitRename,
   onCancelRename,
   onDelete,
+  canEditLessons,
+  insufficientPermissionsTitle,
 }: SortableLessonProps) {
   const t = useTranslations('teach-products.editor.tree');
   const {
@@ -477,7 +523,10 @@ function SortableLesson({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: `${LESSON_PREFIX}${lesson.id}` });
+  } = useSortable({
+    id: `${LESSON_PREFIX}${lesson.id}`,
+    disabled: !canEditLessons,
+  });
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -499,12 +548,15 @@ function SortableLesson({
             attributes={attributes}
             listeners={listeners}
             ariaLabel={t('reorderLesson')}
+            disabled={!canEditLessons}
+            disabledTitle={insufficientPermissionsTitle}
           />
         }
         icon={<FileTextIcon className="size-3.5 text-muted-foreground" />}
         title={lesson.title}
         editing={editing}
         selected={selected}
+        canStartRename={canEditLessons}
         onActivate={onSelect}
         onStartRename={onStartRename}
         onCommitRename={onCommitRename}
@@ -516,6 +568,8 @@ function SortableLesson({
             menuLabel={t('lessonActions')}
             onRename={onStartRename}
             onDelete={onDelete}
+            canRename={canEditLessons}
+            canDelete={canEditLessons}
           />
         }
       />
@@ -535,6 +589,8 @@ type RowProps = {
   editing: boolean;
   selected?: boolean;
   emphasized?: boolean;
+  /** When false, double-click to inline-rename is disabled. */
+  canStartRename?: boolean;
   onActivate?: () => void;
   onStartRename: () => void;
   onCommitRename: (title: string) => void;
@@ -550,6 +606,7 @@ function Row({
   editing,
   selected,
   emphasized,
+  canStartRename = true,
   onActivate,
   onStartRename,
   onCommitRename,
@@ -581,7 +638,7 @@ function Row({
         <button
           type="button"
           onClick={onActivate}
-          onDoubleClick={onStartRename}
+          onDoubleClick={canStartRename ? onStartRename : undefined}
           className={cn(
             'flex-1 truncate px-1 py-1 text-left text-sm',
             !onActivate && 'cursor-default',
@@ -648,20 +705,28 @@ function DragHandle({
   attributes,
   listeners,
   ariaLabel,
+  disabled,
+  disabledTitle,
 }: {
   attributes: ReturnType<typeof useSortable>['attributes'];
   listeners: ReturnType<typeof useSortable>['listeners'];
   ariaLabel: string;
+  disabled?: boolean;
+  disabledTitle?: string;
 }) {
   return (
     <button
       type="button"
       aria-label={ariaLabel}
+      disabled={disabled}
+      title={disabled ? disabledTitle : undefined}
       {...attributes}
-      {...listeners}
+      {...(disabled ? {} : listeners)}
       className={cn(
-        'flex size-5 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground/50 transition-colors',
-        'hover:text-muted-foreground active:cursor-grabbing',
+        'flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground/50 transition-colors',
+        disabled
+          ? 'cursor-not-allowed opacity-40'
+          : 'cursor-grab hover:text-muted-foreground active:cursor-grabbing',
         'opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100',
       )}
     >
@@ -676,6 +741,8 @@ function RowMenu({
   menuLabel,
   onRename,
   onDelete,
+  canRename = true,
+  canDelete = true,
   extraItems,
 }: {
   renameLabel: string;
@@ -683,6 +750,8 @@ function RowMenu({
   menuLabel: string;
   onRename: () => void;
   onDelete: () => void;
+  canRename?: boolean;
+  canDelete?: boolean;
   extraItems?: React.ReactNode;
 }) {
   return (
@@ -700,11 +769,18 @@ function RowMenu({
         <MoreVerticalIcon className="size-3.5" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={onRename}>
+        <DropdownMenuItem
+          onClick={onRename}
+          disabled={!canRename}
+        >
           <PencilIcon /> {renameLabel}
         </DropdownMenuItem>
         {extraItems}
-        <DropdownMenuItem variant="destructive" onClick={onDelete}>
+        <DropdownMenuItem
+          variant="destructive"
+          onClick={onDelete}
+          disabled={!canDelete}
+        >
           <Trash2Icon /> {deleteLabel}
         </DropdownMenuItem>
       </DropdownMenuContent>

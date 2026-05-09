@@ -7,7 +7,8 @@ import {
   type QueryClient,
 } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
+
+import { useNotify } from '@/shared/lib/notify';
 
 import {
   addProductQAAction,
@@ -24,7 +25,8 @@ export const productQAKey = (productId: string) =>
 
 function useFailureToast() {
   const t = useTranslations('teach-products.editor.toast');
-  return (key: string) => toast.error(t(key));
+  const notify = useNotify();
+  return (key: string) => notify.error(t(key));
 }
 
 export function useProductQA(productId: string) {
@@ -136,7 +138,11 @@ export function useChangeQAQuestionMutation(productId: string) {
   const fail = useFailureToast();
   return useMutation<void, Error, { qaId: string; value: string }, Ctx>({
     mutationFn: async ({ qaId, value }) => {
-      const result = await changeProductQAQuestionAction({ qaId, value });
+      const result = await changeProductQAQuestionAction({
+        productId,
+        qaId,
+        value,
+      });
       if (!result.ok) throw new Error(result.reason);
     },
     onMutate: async ({ qaId, value }) => {
@@ -159,7 +165,11 @@ export function useChangeQAAnswerMutation(productId: string) {
   const fail = useFailureToast();
   return useMutation<void, Error, { qaId: string; value: string }, Ctx>({
     mutationFn: async ({ qaId, value }) => {
-      const result = await changeProductQAAnswerAction({ qaId, value });
+      const result = await changeProductQAAnswerAction({
+        productId,
+        qaId,
+        value,
+      });
       if (!result.ok) throw new Error(result.reason);
     },
     onMutate: async ({ qaId, value }) => {
@@ -182,7 +192,7 @@ export function useDeleteQAMutation(productId: string) {
   const fail = useFailureToast();
   return useMutation<void, Error, { qaId: string }, Ctx>({
     mutationFn: async ({ qaId }) => {
-      const result = await deleteProductQAAction({ qaId });
+      const result = await deleteProductQAAction({ productId, qaId });
       if (!result.ok) throw new Error(result.reason);
     },
     onMutate: async ({ qaId }) => {
@@ -211,7 +221,11 @@ export function useReorderQAMutation(productId: string) {
     Ctx
   >({
     mutationFn: async ({ qaId, position }) => {
-      const result = await reorderProductQAAction({ qaId, position });
+      const result = await reorderProductQAAction({
+        productId,
+        qaId,
+        position,
+      });
       if (!result.ok) throw new Error(result.reason);
     },
     onMutate: async ({ qaId, position }) => {

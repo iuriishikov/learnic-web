@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "katex/dist/katex.min.css";
+@import "overlayscrollbars/overlayscrollbars.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -68,10 +69,26 @@
   --online: oklch(0.66 0.18 145);
   --online-foreground: oklch(0.985 0 0);
 
+  --warning: oklch(0.74 0.16 70);
+  --warning-foreground: oklch(0.145 0 0);
+
   --surface-subtle: oklch(0.965 0.014 277);
 
   --selection: var(--brand-100);
   --selection-foreground: var(--foreground);
+
+  --editor-overlay: var(--foreground);
+  --editor-overlay-foreground: var(--background);
+
+  --code-bg: oklch(0.985 0.005 277);
+  --code-foreground: oklch(0.21 0.02 277);
+  --code-keyword: oklch(0.5 0.22 295);
+  --code-string: oklch(0.55 0.16 145);
+  --code-number: oklch(0.6 0.17 50);
+  --code-comment: oklch(0.62 0.012 277);
+  --code-property: oklch(0.55 0.18 240);
+  --code-type: oklch(0.62 0.17 75);
+  --code-line-number: oklch(0.7 0.012 277);
 }
 
 @theme inline {
@@ -107,7 +124,23 @@
   --color-online: var(--online);
   --color-online-foreground: var(--online-foreground);
 
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+
   --color-surface-subtle: var(--surface-subtle);
+
+  --color-editor-overlay: var(--editor-overlay);
+  --color-editor-overlay-foreground: var(--editor-overlay-foreground);
+
+  --color-code-bg: var(--code-bg);
+  --color-code-foreground: var(--code-foreground);
+  --color-code-keyword: var(--code-keyword);
+  --color-code-string: var(--code-string);
+  --color-code-number: var(--code-number);
+  --color-code-comment: var(--code-comment);
+  --color-code-property: var(--code-property);
+  --color-code-type: var(--code-type);
+  --color-code-line-number: var(--code-line-number);
 
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -237,10 +270,27 @@
 
   --online-foreground: oklch(0.145 0 0);
 
+  --warning: oklch(0.82 0.16 78);
+
+  --warning-foreground: oklch(0.18 0.04 70);
+
   --surface-subtle: oklch(0.13 0.022 277);
 
-  --selection: var(--brand-800);
+  --selection: color-mix(in oklch, var(--brand) 30%, var(--background));
   --selection-foreground: var(--foreground);
+
+  --editor-overlay: oklch(0.32 0 0);
+  --editor-overlay-foreground: oklch(0.985 0 0);
+
+  --code-bg: oklch(0.18 0.012 277);
+  --code-foreground: oklch(0.92 0.005 277);
+  --code-keyword: oklch(0.78 0.16 305);
+  --code-string: oklch(0.82 0.14 142);
+  --code-number: oklch(0.82 0.14 75);
+  --code-comment: oklch(0.55 0.012 277);
+  --code-property: oklch(0.78 0.13 235);
+  --code-type: oklch(0.86 0.13 95);
+  --code-line-number: oklch(0.45 0.012 277);
 }
 
 @layer base {
@@ -252,30 +302,18 @@
   }
   html {
     @apply font-sans;
-    scrollbar-gutter: stable;
   }
 
-  html.scrollbar-styled {
-    scrollbar-gutter: auto;
-    overflow-y: scroll;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-  }
-  html.scrollbar-styled::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
-  html.scrollbar-styled::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  html.scrollbar-styled::-webkit-scrollbar-thumb {
-    background-color: var(--border);
-    background-clip: content-box;
-    border: 2px solid transparent;
-    border-radius: 9999px;
-  }
-  html.scrollbar-styled::-webkit-scrollbar-thumb:hover {
-    background-color: var(--muted-foreground);
+  .os-theme-app {
+    --os-size: 10px;
+    --os-padding-perpendicular: 2px;
+    --os-padding-axis: 2px;
+    --os-track-border-radius: 9999px;
+    --os-handle-border-radius: 9999px;
+    --os-handle-bg: color-mix(in oklch, var(--muted-foreground) 35%, transparent);
+    --os-handle-bg-hover: color-mix(in oklch, var(--muted-foreground) 55%, transparent);
+    --os-handle-bg-active: color-mix(in oklch, var(--muted-foreground) 70%, transparent);
+    --os-handle-min-size: 33px;
   }
 
   button:not(:disabled),
@@ -286,6 +324,17 @@
   ::selection {
     background-color: var(--selection);
     color: var(--selection-foreground);
+  }
+
+  @keyframes toast-ping {
+    0% {
+      transform: scale(1);
+      opacity: 0.6;
+    }
+    80%, 100% {
+      transform: scale(2.2);
+      opacity: 0;
+    }
   }
 }
 

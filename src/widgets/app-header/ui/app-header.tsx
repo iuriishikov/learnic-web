@@ -1,17 +1,19 @@
 'use client';
 
-import { BellIcon, MenuIcon, SettingsIcon } from 'lucide-react';
+import { MenuIcon, SettingsIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 
-import { UserAvatar, useAuth } from '@/features/auth';
+import { useAuth } from '@/features/auth';
+import { NotificationsBell } from '@/features/notifications';
 import { Link, usePathname } from '@/shared/config/i18n/navigation';
 import { cn } from '@/shared/lib/utils';
 import { BrandMark } from '@/shared/ui/brand-mark';
 import { Button } from '@/shared/ui/button';
 import { NavTabsRouter, type NavTabRoute } from '@/shared/ui/nav-tabs-router';
 import { Sheet, SheetContent, SheetTrigger } from '@/shared/ui/sheet';
+import { UserAvatar } from '@/shared/ui/user-avatar';
 
 import { BrandSuffix } from './brand-suffix';
 import { UserMenu } from './user-menu';
@@ -57,6 +59,9 @@ export function AppHeader({
     return resolvedActiveKey === item.key;
   }
 
+  const isSettingsActive =
+    pathname === '/settings' || pathname.startsWith('/settings/');
+
   return (
     <header className="sticky top-0 z-40 bg-background">
       <div className="mx-auto flex h-[72px] w-full max-w-[1440px] items-center justify-between gap-3 border-b border-border px-4 md:gap-6 md:px-8">
@@ -88,25 +93,19 @@ export function AppHeader({
           <Button
             variant="outline"
             size="icon"
-            className="hidden size-10 rounded-lg shadow-xs md:inline-flex"
+            className={cn(
+              'hidden size-10 rounded-lg shadow-xs md:inline-flex',
+              isSettingsActive &&
+                'bg-muted text-foreground dark:bg-input/50',
+            )}
             aria-label={t('settings')}
+            aria-current={isSettingsActive ? 'page' : undefined}
+            render={<Link href="/settings" />}
+            nativeButton={false}
           >
             <SettingsIcon className="size-[18px]" />
           </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="relative size-10 rounded-lg shadow-xs"
-            aria-label={t('notifications')}
-          >
-            <BellIcon className="size-[18px]" />
-            <span
-              aria-hidden
-              className="pointer-events-none absolute -top-1.5 -right-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-background bg-destructive px-1 text-[10px] font-semibold leading-none text-white"
-            >
-              2
-            </span>
-          </Button>
+          <NotificationsBell />
 
           {user ? (
             <UserMenu user={user} />
@@ -165,7 +164,19 @@ export function AppHeader({
               <div className="mt-6 flex flex-col gap-2">
                 <Button
                   variant="outline"
-                  className="h-11 w-full justify-center gap-2 rounded-lg text-[15px] font-medium"
+                  className={cn(
+                    'h-11 w-full justify-center gap-2 rounded-lg text-[15px] font-medium',
+                    isSettingsActive &&
+                      'bg-muted text-foreground dark:bg-input/50',
+                  )}
+                  aria-current={isSettingsActive ? 'page' : undefined}
+                  render={
+                    <Link
+                      href="/settings"
+                      onClick={() => setMobileOpen(false)}
+                    />
+                  }
+                  nativeButton={false}
                 >
                   <SettingsIcon className="size-4" />
                   {t('settings')}

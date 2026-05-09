@@ -9,9 +9,8 @@ import type {
 
 type AuthorSchemaResponse = {
   oid: string;
-  first_name: string;
-  last_name: string;
-  patronymic: string | null;
+  full_name: string;
+  email: string;
 };
 
 type WebinarDetailsSchemaResponse = {
@@ -62,9 +61,8 @@ export function fromProductSchema(raw: ProductSchemaResponse): Product {
 function fromAuthorSchema(raw: AuthorSchemaResponse): ProductAuthor {
   return {
     id: raw.oid,
-    firstName: raw.first_name,
-    lastName: raw.last_name,
-    patronymic: raw.patronymic,
+    fullName: raw.full_name,
+    email: raw.email,
   };
 }
 

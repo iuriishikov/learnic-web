@@ -2,16 +2,18 @@
 
 import { CheckCircle2Icon, Loader2Icon, MailIcon, XCircleIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 
 import { useRouter } from '@/shared/config/i18n/navigation';
 import { Link } from '@/shared/config/i18n/navigation';
 import { Button } from '@/shared/ui/button';
 
 import {
+  resendVerificationAction,
   verifyEmailAction,
   waitForEmailVerificationAction,
 } from '../api/email-verification';
+import { useConfirmEvents } from '../hooks/use-confirm-events';
 import { appendFrom, sanitizeRedirectTarget } from '../lib/redirect';
 
 type Status =
@@ -39,7 +41,29 @@ export function VerifyEmailClient({
   const [status, setStatus] = useState<Status>(() =>
     token ? 'verifying-token' : 'waiting',
   );
-  const pollingRef = useRef(false);
+  const finalizingRef = useRef(false);
+  const [resendStatus, setResendStatus] = useState<
+    'idle' | 'sending' | 'sent' | 'expired' | 'error'
+  >('idle');
+  const [isResending, startResendTransition] = useTransition();
+
+  function handleResend() {
+    if (resendStatus === 'sending' || isResending) return;
+    setResendStatus('sending');
+    startResendTransition(async () => {
+      const result = await resendVerificationAction();
+      if (result.ok) {
+        setResendStatus('sent');
+        return;
+      }
+      if (result.error.kind === 'invalidToken') {
+        setResendStatus('expired');
+        setStatus('expired');
+        return;
+      }
+      setResendStatus('error');
+    });
+  }
 
   useEffect(() => {
     if (!token) return;
@@ -54,37 +78,41 @@ export function VerifyEmailClient({
     };
   }, [token]);
 
-  useEffect(() => {
-    if (token) return;
-    if (pollingRef.current) return;
-    pollingRef.current = true;
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-
-    async function poll() {
-      if (cancelled) return;
-      const result = await waitForEmailVerificationAction();
-      if (cancelled) return;
-      if (result === 'verified') {
-        router.push(safeFrom ?? '/marketplace');
-        router.refresh();
-        return;
-      }
-      if (result === 'expired') {
-        setStatus('expired');
-        return;
-      }
-      const delay = result === 'waiting' ? 1500 : 5000;
-      timer = setTimeout(poll, delay);
+  // Finalize the signup tab once the user clicks the verification
+  // link on another device/tab. WS push (`useConfirmEvents` below)
+  // tells us the consume happened on the backend; we still need ONE
+  // HTTP call to ``/auth/email-verification/wait`` to install the
+  // auth cookies on this tab — cookies cannot be set via a WS frame.
+  const finalize = useCallback(async () => {
+    if (finalizingRef.current) return;
+    finalizingRef.current = true;
+    const result = await waitForEmailVerificationAction();
+    if (result === 'verified') {
+      router.push(safeFrom ?? '/marketplace');
+      router.refresh();
+      return;
     }
+    if (result === 'expired') {
+      setStatus('expired');
+      finalizingRef.current = false;
+      return;
+    }
+    // ``waiting`` after a confirmed push means our subscription raced
+    // ahead of replication or the user is in fact not the same one;
+    // back off and let the WS deliver the next push.
+    finalizingRef.current = false;
+  }, [router, safeFrom]);
 
-    poll();
-    return () => {
-      cancelled = true;
-      if (timer) clearTimeout(timer);
-      pollingRef.current = false;
-    };
-  }, [token, router, safeFrom]);
+  useConfirmEvents({
+    purpose: 'verify',
+    enabled: !token,
+    onConfirmed: finalize,
+    // No replay on the server. A reconnect after a missed push could
+    // mean we already verified; ask the wait-endpoint once just in
+    // case so we don't sit on a stale ``waiting`` UI.
+    onReconnected: finalize,
+    onTerminalClose: () => setStatus('expired'),
+  });
 
   if (status === 'verifying-token') {
     return (
@@ -155,6 +183,15 @@ export function VerifyEmailClient({
   }
 
   // status === 'waiting'
+  const resendLabel =
+    resendStatus === 'sending' || isResending
+      ? t('verifyEmail.resend.sending')
+      : resendStatus === 'sent'
+        ? t('verifyEmail.resend.sent')
+        : resendStatus === 'error'
+          ? t('verifyEmail.resend.error')
+          : t('verifyEmail.resend.cta');
+
   return (
     <InfoBlock
       icon={<MailIcon className="size-8 text-brand" />}
@@ -165,9 +202,24 @@ export function VerifyEmailClient({
           : t('verifyEmail.waiting.description')
       }
       action={
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2Icon className="size-4 animate-spin" aria-hidden />
-          <span>{t('verifyEmail.waiting.polling')}</span>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2Icon className="size-4 animate-spin" aria-hidden />
+            <span>{t('verifyEmail.waiting.polling')}</span>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 rounded-lg text-[15px] font-semibold"
+            onClick={handleResend}
+            disabled={
+              resendStatus === 'sending' ||
+              resendStatus === 'sent' ||
+              isResending
+            }
+          >
+            {resendLabel}
+          </Button>
         </div>
       }
     />

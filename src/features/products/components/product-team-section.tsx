@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  DownloadIcon,
   UserPlusIcon,
   UsersIcon,
 } from 'lucide-react';
@@ -13,33 +12,56 @@ import { cn } from '@/shared/lib/utils';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 
+import {
+  useMyEffectivePermissions,
+  useProductCollaborations,
+  useProductRoles,
+} from '../api/use-team';
+import type { Product } from '../model/types';
+
 import { TeamInvitationsTab } from './team/team-invitations-tab';
+import { TeamInviteDialog } from './team/team-invite-dialog';
 import { TeamMembersTab } from './team/team-members-tab';
 import { TeamRolesTab } from './team/team-roles-tab';
-import {
-  BUILTIN_ROLES,
-  CUSTOM_ROLES,
-  MOCK_INVITATIONS,
-  MOCK_MEMBERS,
-} from './team/team-mock';
 
 const TAB_KEYS = ['members', 'roles', 'invitations'] as const;
 type TabKey = (typeof TAB_KEYS)[number];
 
-export function ProductTeamSection() {
+export function ProductTeamSection({ product }: { product: Product }) {
   const t = useTranslations('teach-products.editor.team');
   const reduceMotion = useReducedMotion();
 
   const [activeTab, setActiveTab] = useState<TabKey>('members');
+  const [inviteOpen, setInviteOpen] = useState(false);
 
-  const counts = useMemo(
-    () => ({
-      members: MOCK_MEMBERS.length,
-      roles: BUILTIN_ROLES.length + CUSTOM_ROLES.length,
-      invitations: MOCK_INVITATIONS.length,
-    }),
-    [],
-  );
+  const collabsQuery = useProductCollaborations(product.id);
+  const rolesQuery = useProductRoles(product.id);
+  const myPerms = useMyEffectivePermissions(product.id);
+  const canInvite =
+    myPerms.data?.permissions.includes('manage_collaborators') ?? false;
+
+  const counts = useMemo(() => {
+    const collabs = collabsQuery.data ?? [];
+    const activeCollabs = collabs.filter((c) => c.status === 'active');
+    const pending = collabs.filter((c) => c.status === 'pending_invite');
+    const roles = rolesQuery.data ?? [];
+    return {
+      // +1 for the product owner row in the members list.
+      members: activeCollabs.length + 1,
+      roles: roles.length,
+      invitations: pending.length,
+    };
+  }, [collabsQuery.data, rolesQuery.data]);
+
+  const memberRoleId = useMemo(() => {
+    const roles = rolesQuery.data ?? [];
+    if (roles.length === 0) return null;
+    // Default-pick the lowest-rank role available (largest position)
+    // so a fresh invite cannot accidentally outrank existing members.
+    // The user can still pick any role from the dialog.
+    const sorted = [...roles].sort((a, b) => b.position - a.position);
+    return sorted[0]?.id ?? null;
+  }, [rolesQuery.data]);
 
   return (
     <motion.section
@@ -70,30 +92,30 @@ export function ProductTeamSection() {
               {t('description')}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 px-3"
-            >
-              <DownloadIcon className="size-4" />
-              <span className="hidden sm:inline">{t('actions.downloadCsv')}</span>
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              className="h-9 gap-1.5 bg-brand px-3 text-brand-foreground hover:bg-brand/90 sm:px-4"
-            >
-              <UserPlusIcon className="size-4" />
-              <span className="sm:hidden">{t('actions.addUser')}</span>
-              <span className="hidden sm:inline">{t('actions.addUserFull')}</span>
-            </Button>
-          </div>
+          {canInvite ? (
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setInviteOpen(true)}
+                disabled={
+                  rolesQuery.isPending ||
+                  rolesQuery.isError ||
+                  (rolesQuery.data?.length ?? 0) === 0
+                }
+                className="h-9 gap-1.5 bg-brand px-3 text-brand-foreground hover:bg-brand/90 sm:px-4"
+              >
+                <UserPlusIcon className="size-4" />
+                <span className="sm:hidden">{t('actions.addUser')}</span>
+                <span className="hidden sm:inline">
+                  {t('actions.addUserFull')}
+                </span>
+              </Button>
+            </div>
+          ) : null}
         </div>
       </header>
 
-      {/* Tabs */}
       <TeamTabs
         activeTab={activeTab}
         onChange={setActiveTab}
@@ -101,18 +123,30 @@ export function ProductTeamSection() {
         reduceMotion={!!reduceMotion}
       />
 
-      {/* Tab content */}
       <div>
         <AnimatePresence mode="wait" initial={false}>
           {activeTab === 'members' ? (
-            <TeamMembersTab key="members" />
+            <TeamMembersTab key="members" productId={product.id} product={product} />
           ) : activeTab === 'roles' ? (
-            <TeamRolesTab key="roles" />
+            <TeamRolesTab key="roles" productId={product.id} />
           ) : (
-            <TeamInvitationsTab key="invitations" />
+            <TeamInvitationsTab
+              key="invitations"
+              productId={product.id}
+              onAddInvite={() => setInviteOpen(true)}
+            />
           )}
         </AnimatePresence>
       </div>
+
+      <TeamInviteDialog
+        open={inviteOpen}
+        onOpenChange={setInviteOpen}
+        productId={product.id}
+        ownerId={product.author.id}
+        roles={rolesQuery.data ?? []}
+        defaultRoleId={memberRoleId}
+      />
     </motion.section>
   );
 }

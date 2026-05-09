@@ -94,13 +94,14 @@ export async function addProductQAAction(args: {
 }
 
 export async function changeProductQAQuestionAction(args: {
+  productId: string;
   qaId: string;
   value: string;
 }): Promise<MutationResult> {
   let res: Response;
   try {
     res = await apiFetch(
-      `/product-qa/${encodeURIComponent(args.qaId)}/question`,
+      `/products/${encodeURIComponent(args.productId)}/qa/${encodeURIComponent(args.qaId)}/question`,
       { method: 'PATCH', body: { value: args.value } },
     );
   } catch {
@@ -110,13 +111,14 @@ export async function changeProductQAQuestionAction(args: {
 }
 
 export async function changeProductQAAnswerAction(args: {
+  productId: string;
   qaId: string;
   value: string;
 }): Promise<MutationResult> {
   let res: Response;
   try {
     res = await apiFetch(
-      `/product-qa/${encodeURIComponent(args.qaId)}/answer`,
+      `/products/${encodeURIComponent(args.productId)}/qa/${encodeURIComponent(args.qaId)}/answer`,
       { method: 'PATCH', body: { value: args.value } },
     );
   } catch {
@@ -126,13 +128,15 @@ export async function changeProductQAAnswerAction(args: {
 }
 
 export async function deleteProductQAAction(args: {
+  productId: string;
   qaId: string;
 }): Promise<MutationResult> {
   let res: Response;
   try {
-    res = await apiFetch(`/product-qa/${encodeURIComponent(args.qaId)}`, {
-      method: 'DELETE',
-    });
+    res = await apiFetch(
+      `/products/${encodeURIComponent(args.productId)}/qa/${encodeURIComponent(args.qaId)}`,
+      { method: 'DELETE' },
+    );
   } catch {
     return { ok: false, reason: 'network' };
   }
@@ -140,13 +144,14 @@ export async function deleteProductQAAction(args: {
 }
 
 export async function reorderProductQAAction(args: {
+  productId: string;
   qaId: string;
   position: number;
 }): Promise<MutationResult> {
   let res: Response;
   try {
     res = await apiFetch(
-      `/product-qa/${encodeURIComponent(args.qaId)}/position`,
+      `/products/${encodeURIComponent(args.productId)}/qa/${encodeURIComponent(args.qaId)}/position`,
       { method: 'PATCH', body: { position: args.position } },
     );
   } catch {

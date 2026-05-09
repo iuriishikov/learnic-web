@@ -6,9 +6,14 @@ export type Currency = 'USD' | 'EUR' | 'RUB' | 'KZT' | 'BYN';
 
 export type ProductAuthor = {
   id: string;
-  firstName: string;
-  lastName: string;
-  patronymic: string | null;
+  /** Display name in the canonical `Last First Patronymic` order. */
+  fullName: string;
+  /**
+   * Privacy-masked email in the form `f*****d@domain.com`. May be an
+   * empty string in the rare placeholder case where the backend could
+   * not hydrate the underlying user — fall back to `fullName`.
+   */
+  email: string;
 };
 
 export type WebinarDetails = {

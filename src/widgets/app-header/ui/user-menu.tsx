@@ -8,17 +8,18 @@ import {
   UserIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState, useTransition } from 'react';
+import { useState, useSyncExternalStore, useTransition } from 'react';
 
+import { logoutAction, type User } from '@/features/auth';
+import { Link, useRouter, usePathname } from '@/shared/config/i18n/navigation';
+import { cn } from '@/shared/lib/utils';
+
+import { APP_MODE_COOKIE, DEFAULT_APP_MODE, isAppMode } from './app-mode';
 import {
   UserAvatar,
   buildUserDisplayName,
-  logoutAction,
-  type User,
-} from '@/features/auth';
-import { usePresence } from '@/features/presence';
-import { Link, useRouter, usePathname } from '@/shared/config/i18n/navigation';
-import { cn } from '@/shared/lib/utils';
+  type AvatarUser,
+} from '@/shared/ui/user-avatar';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,7 +52,26 @@ const ICON_NEUTRAL =
 
 const ICON_DESTRUCTIVE = 'size-[18px] shrink-0 text-destructive';
 
-const TEACH_PATH_PREFIXES = ['/dashboard', '/products', '/settings'] as const;
+const TEACH_PATH_PREFIXES = ['/dashboard', '/products'] as const;
+const LEARN_PATH_PREFIXES = [
+  '/marketplace',
+  '/my-courses',
+  '/community',
+] as const;
+const MODE_NEUTRAL_PREFIXES = ['/settings'] as const;
+
+function readModeCookie(): 'teach' | 'learn' | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith(`${APP_MODE_COOKIE}=`));
+  if (!match) return null;
+  const value = decodeURIComponent(match.slice(APP_MODE_COOKIE.length + 1));
+  return isAppMode(value) ? value : null;
+}
+
+const subscribeNoop = () => () => {};
+const getServerSnapshot = (): 'teach' | 'learn' | null => null;
 
 export function UserMenu({ user }: UserMenuProps) {
   const t = useTranslations('app-header');
@@ -59,20 +79,40 @@ export function UserMenu({ user }: UserMenuProps) {
   const tConfirm = useTranslations('app-header.userMenu.confirmSignOut');
   const pathname = usePathname();
   const router = useRouter();
-  const presence = usePresence(user.oid);
-  const isOnline = presence === 'online';
   const [isSigningOut, startSignOut] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const isInTeach = TEACH_PATH_PREFIXES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  const matchesPrefix = (prefix: string) =>
+    pathname === prefix || pathname.startsWith(`${prefix}/`);
+  const isInTeachPath = TEACH_PATH_PREFIXES.some(matchesPrefix);
+  const isInLearnPath = LEARN_PATH_PREFIXES.some(matchesPrefix);
+  const isModeNeutral = MODE_NEUTRAL_PREFIXES.some(matchesPrefix);
+  // On mode-neutral routes (`/settings`) the cookie set by `ModeTracker`
+  // remembers which shell the user came from. Server snapshot is `null`
+  // so the first client render matches SSR; the post-mount client snapshot
+  // reads the cookie and re-renders with the correct mode.
+  const cookieMode = useSyncExternalStore(
+    subscribeNoop,
+    readModeCookie,
+    getServerSnapshot,
   );
+  const resolvedCookieMode = isModeNeutral ? cookieMode : null;
+  const isInTeach = isInTeachPath
+    ? true
+    : isInLearnPath
+      ? false
+      : (resolvedCookieMode ?? DEFAULT_APP_MODE) === 'teach';
   const modeTarget = isInTeach ? '/marketplace' : '/dashboard';
   const modeLabel = isInTeach ? tMenu('openLearn') : tMenu('openStudio');
   const ModeIcon = isInTeach ? BookOpenIcon : GraduationCapIcon;
 
-  const displayName = buildUserDisplayName(user) || user.firstName;
-  const handle = buildUserHandle(user);
+  const displayName = buildUserDisplayName(user) || user.email;
+  const handle = `@${user.email}`;
+  const avatarUser: AvatarUser = {
+    id: user.oid,
+    fullName: user.fullName,
+    avatarUrl: user.avatarUrl,
+  };
   const profileHref = `/users/${user.oid}`;
   const year = new Date().getFullYear();
 
@@ -97,7 +137,7 @@ export function UserMenu({ user }: UserMenuProps) {
             />
           }
         >
-          <UserAvatar user={user} size="lg" online={isOnline} />
+          <UserAvatar user={avatarUser} size="lg" />
         </DropdownMenuTrigger>
 
         <DropdownMenuContent
@@ -106,7 +146,7 @@ export function UserMenu({ user }: UserMenuProps) {
           className="w-[320px] rounded-2xl border border-border/70 bg-[oklch(0.985_0_0)] p-1.5 shadow-lg dark:bg-[oklch(0.18_0_0)]"
         >
           <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-background p-3 shadow-xs">
-            <UserAvatar user={user} size="lg" online={isOnline} />
+            <UserAvatar user={avatarUser} size="lg" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-foreground">
                 {displayName}
@@ -205,10 +245,3 @@ function MenuRow({
   );
 }
 
-function buildUserHandle(user: User): string {
-  const first = (user.firstName ?? '').toLowerCase().replace(/\s+/g, '');
-  const last = (user.lastName ?? '').toLowerCase().replace(/\s+/g, '');
-  if (!first && !last) return `@${user.oid.slice(0, 8)}`;
-  if (first && last) return `@${first}.${last}`;
-  return `@${first || last}`;
-}

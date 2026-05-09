@@ -7,6 +7,7 @@ import { getCurrentUser } from '@/features/auth/server';
 import { PresenceProvider } from '@/features/presence';
 import { routing } from '@/shared/config/i18n/routing';
 import { SITE_NAME, SITE_URL, TITLE_TEMPLATE } from '@/shared/config/site';
+import { BannerProvider } from '@/shared/ui/banner';
 
 const OG_LOCALES: Record<string, string> = {
   ru: 'ru_RU',
@@ -71,7 +72,9 @@ export default async function LocaleLayout({
   return (
     <NextIntlClientProvider>
       <AuthProvider initialUser={initialUser}>
-        <PresenceProvider>{children}</PresenceProvider>
+        <PresenceProvider>
+          <BannerProvider>{children}</BannerProvider>
+        </PresenceProvider>
       </AuthProvider>
     </NextIntlClientProvider>
   );

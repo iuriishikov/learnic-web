@@ -9,6 +9,10 @@ export { ProductEditorView } from './components/product-editor-view';
 export { ProductEditorSkeleton } from './components/product-editor-skeleton';
 export { getProductByIdAction } from './api/get-product-by-id-action';
 export {
+  useProductPermissions,
+  type ProductCapabilities,
+} from './api/use-product-permissions';
+export {
   createProductAction,
   type CreateProductResult,
 } from './api/create-product';

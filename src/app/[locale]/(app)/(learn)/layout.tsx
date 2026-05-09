@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import {
   BreadcrumbConfig,
   HeaderConfig,
+  ModeTracker,
   type AppHeaderNavItem,
 } from '@/widgets/app-header';
 
@@ -27,6 +28,7 @@ export default async function LearnLayout({
 
   return (
     <>
+      <ModeTracker mode="learn" />
       <HeaderConfig navItems={navItems} brandHref="/marketplace" />
       <BreadcrumbConfig
         slot="learn-root"

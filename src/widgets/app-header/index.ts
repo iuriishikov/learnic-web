@@ -43,3 +43,12 @@ export {
 export { TeachButton } from './ui/teach-button';
 
 export { UserMenu } from './ui/user-menu';
+
+export { ModeTracker } from './ui/mode-tracker';
+export { SettingsHeaderConfig } from './ui/settings-header-config';
+export {
+  APP_MODE_COOKIE,
+  DEFAULT_APP_MODE,
+  isAppMode,
+  type AppMode,
+} from './ui/app-mode';

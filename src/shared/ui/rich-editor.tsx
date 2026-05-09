@@ -277,7 +277,7 @@ function OrderedListToggle({ editor }: { editor: Editor }) {
 type Mark = 'bold' | 'italic' | 'underline';
 
 const INVERSE_TOGGLE_CLASS =
-  'text-background/85 hover:bg-background/15 hover:text-background data-[state=on]:bg-background/20 data-[state=on]:text-background aria-pressed:bg-background/20 aria-pressed:text-background';
+  'text-editor-overlay-foreground/85 hover:bg-editor-overlay-foreground/15 hover:text-editor-overlay-foreground data-[state=on]:bg-editor-overlay-foreground/20 data-[state=on]:text-editor-overlay-foreground aria-pressed:bg-editor-overlay-foreground/20 aria-pressed:text-editor-overlay-foreground';
 
 function FormatToggle({
   editor,
@@ -600,7 +600,7 @@ function FloatingBubbleMenu({ editor }: { editor: Editor }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.97 }}
             transition={{ duration: 0.12, ease: [0.32, 0.72, 0, 1] }}
-            className="flex items-center gap-1 rounded-lg bg-foreground p-1 text-background shadow-lg ring-1 ring-foreground/30"
+            className="flex items-center gap-1 rounded-lg bg-editor-overlay p-1 text-editor-overlay-foreground shadow-lg ring-1 ring-editor-overlay/30"
           >
             <Input
               type="url"
@@ -610,14 +610,14 @@ function FloatingBubbleMenu({ editor }: { editor: Editor }) {
               onKeyDown={onLinkKeyDown}
               placeholder={t('link.urlPlaceholder')}
               aria-label={t('link.urlLabel')}
-              className="h-7 w-56 border-transparent bg-background/10 text-xs text-background placeholder:text-background/50 focus-visible:border-background/30 focus-visible:ring-background/20"
+              className="h-7 w-56 border-transparent bg-editor-overlay-foreground/10 text-xs text-editor-overlay-foreground placeholder:text-editor-overlay-foreground/50 focus-visible:border-editor-overlay-foreground/30 focus-visible:ring-editor-overlay-foreground/20"
             />
             {isLinkActive ? (
               <button
                 type="button"
                 onClick={removeLink}
                 aria-label={t('link.remove')}
-                className="inline-flex size-7 items-center justify-center rounded-md text-background/85 hover:bg-background/15 hover:text-background"
+                className="inline-flex size-7 items-center justify-center rounded-md text-editor-overlay-foreground/85 hover:bg-editor-overlay-foreground/15 hover:text-editor-overlay-foreground"
               >
                 <UnlinkIcon className="size-3.5" />
               </button>
@@ -626,7 +626,7 @@ function FloatingBubbleMenu({ editor }: { editor: Editor }) {
               type="button"
               onClick={submitLink}
               aria-label={t('link.apply')}
-              className="inline-flex size-7 items-center justify-center rounded-md text-background/85 hover:bg-background/15 hover:text-background"
+              className="inline-flex size-7 items-center justify-center rounded-md text-editor-overlay-foreground/85 hover:bg-editor-overlay-foreground/15 hover:text-editor-overlay-foreground"
             >
               <CheckIcon className="size-3.5" />
             </button>
@@ -634,7 +634,7 @@ function FloatingBubbleMenu({ editor }: { editor: Editor }) {
               type="button"
               onClick={exitLinkMode}
               aria-label={t('link.cancel')}
-              className="inline-flex size-7 items-center justify-center rounded-md text-background/85 hover:bg-background/15 hover:text-background"
+              className="inline-flex size-7 items-center justify-center rounded-md text-editor-overlay-foreground/85 hover:bg-editor-overlay-foreground/15 hover:text-editor-overlay-foreground"
             >
               <XIcon className="size-3.5" />
             </button>
@@ -647,7 +647,7 @@ function FloatingBubbleMenu({ editor }: { editor: Editor }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.97 }}
             transition={{ duration: 0.12, ease: [0.32, 0.72, 0, 1] }}
-            className="flex items-center gap-0.5 rounded-lg bg-foreground p-1 text-background shadow-lg ring-1 ring-foreground/30"
+            className="flex items-center gap-0.5 rounded-lg bg-editor-overlay p-1 text-editor-overlay-foreground shadow-lg ring-1 ring-editor-overlay/30"
           >
             <FormatToggle
               editor={editor}
@@ -672,7 +672,7 @@ function FloatingBubbleMenu({ editor }: { editor: Editor }) {
             />
             <span
               aria-hidden
-              className="mx-0.5 h-4 w-px bg-background/20"
+              className="mx-0.5 h-4 w-px bg-editor-overlay-foreground/20"
             />
             <AlignToggle
               editor={editor}
@@ -690,14 +690,14 @@ function FloatingBubbleMenu({ editor }: { editor: Editor }) {
             />
             <span
               aria-hidden
-              className="mx-0.5 h-4 w-px bg-background/20"
+              className="mx-0.5 h-4 w-px bg-editor-overlay-foreground/20"
             />
             <Toggle
               size="sm"
               aria-label={t('actions.link')}
               pressed={isLinkActive}
               onPressedChange={enterLinkMode}
-              className="text-background/85 hover:bg-background/15 hover:text-background data-[state=on]:bg-background/20 data-[state=on]:text-background aria-pressed:bg-background/20 aria-pressed:text-background"
+              className={INVERSE_TOGGLE_CLASS}
             >
               <LinkIcon />
             </Toggle>

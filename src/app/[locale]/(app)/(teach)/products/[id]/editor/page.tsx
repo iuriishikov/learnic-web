@@ -4,12 +4,14 @@ import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { ProductEditorView } from '@/features/products';
-import { getProductById } from '@/features/products/server';
+import {
+  getMyEffectivePermissions,
+  getProductById,
+} from '@/features/products/server';
 import { httpStatusForReason } from '@/shared/lib/http-error';
 import { buildPageMetadata } from '@/shared/lib/page-metadata';
 import { BreadcrumbConfig } from '@/widgets/app-header';
 
-const RAIL_COOKIE = 'learnic.product-editor.rail-closed';
 const SIDEBAR_WIDTH_COOKIE = 'learnic.product-editor.sidebar-width';
 const SIDEBAR_MIN_WIDTH = 160;
 const SIDEBAR_MAX_WIDTH = 360;
@@ -41,12 +43,31 @@ export default async function ProductEditorPage({ params }: PageProps) {
   const { locale, id } = await params;
   setRequestLocale(locale);
 
-  const result = await getProductById(id);
-  if (!result.ok) {
-    if (result.reason === 'not-found') notFound();
-    throw httpStatusForReason(result.reason, `Failed to load product ${id}`);
+  const [productResult, permissionsResult] = await Promise.all([
+    getProductById(id),
+    getMyEffectivePermissions(id),
+  ]);
+  if (!productResult.ok) {
+    if (productResult.reason === 'not-found') notFound();
+    throw httpStatusForReason(
+      productResult.reason,
+      `Failed to load product ${id}`,
+    );
   }
-  const product = result.product;
+  if (!permissionsResult.ok) {
+    if (permissionsResult.reason === 'not-found') notFound();
+    throw httpStatusForReason(
+      permissionsResult.reason,
+      `Failed to load permissions for product ${id}`,
+    );
+  }
+  if (permissionsResult.data.hierarchyPosition === null) {
+    throw httpStatusForReason(
+      'forbidden',
+      `User has no access to product ${id}`,
+    );
+  }
+  const product = productResult.product;
 
   const t = await getTranslations({
     locale,
@@ -56,7 +77,6 @@ export default async function ProductEditorPage({ params }: PageProps) {
     product.title.trim().length > 0 ? product.title : t('untitled');
 
   const cookieStore = await cookies();
-  const initialRailOpen = cookieStore.get(RAIL_COOKIE)?.value !== '1';
   const initialSidebarWidth = parseSidebarWidth(
     cookieStore.get(SIDEBAR_WIDTH_COOKIE)?.value,
   );
@@ -70,7 +90,6 @@ export default async function ProductEditorPage({ params }: PageProps) {
       />
       <ProductEditorView
         product={product}
-        initialRailOpen={initialRailOpen}
         initialSidebarWidth={initialSidebarWidth}
       />
     </>

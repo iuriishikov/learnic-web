@@ -5,8 +5,7 @@
   },
   "nav": {
     "products": "Продукты",
-    "dashboard": "Дашборд",
-    "settings": "Настройки"
+    "dashboard": "Дашборд"
   },
   "products": {
     "ariaLabel": "Разделы продуктов",

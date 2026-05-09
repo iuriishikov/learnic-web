@@ -5,6 +5,12 @@ import { AlertCircleIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+// `UserAvatar` is the standard avatar across the app and must auto-display
+// presence everywhere it appears. That requires reading the presence context
+// from inside `shared/ui/` — a deliberate exception to the "shared doesn't
+// import from features" rule, justified by the contract that any caller can
+// drop in `<UserAvatar>` and get the live indicator without extra wiring.
+import { usePresence } from '@/features/presence';
 import { useObjectUrl } from '@/shared/hooks/use-object-url';
 import { cn } from '@/shared/lib/utils';
 import {
@@ -14,8 +20,6 @@ import {
   AvatarImage,
 } from '@/shared/ui/avatar';
 import { Skeleton } from '@/shared/ui/skeleton';
-
-import type { User } from '../model/user';
 
 type AvatarLoadStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
@@ -41,17 +45,41 @@ const userAvatarVariants = cva('shrink-0', {
   defaultVariants: { size: 'default' },
 });
 
-type AvatarShape = 'square' | 'circle';
+export type AvatarShape = 'square' | 'circle';
+
+/**
+ * Minimal projection of a user needed to render the project's standard avatar.
+ * Decoupled from any feature's `User` model so the component can be used
+ * across features without crossing boundaries.
+ *
+ * `fullName` follows the backend canonical order
+ * (`Last First Patronymic`); initials are derived by taking the first
+ * character of the first two whitespace-separated tokens.
+ */
+export type AvatarUser = {
+  id: string;
+  fullName: string;
+  avatarUrl: string | null;
+};
+
+type AvatarUserName = Pick<AvatarUser, 'fullName'>;
 
 type UserAvatarProps = VariantProps<typeof userAvatarVariants> & {
-  user: Pick<User, 'oid' | 'firstName' | 'lastName' | 'avatarUrl'> | null | undefined;
+  user: AvatarUser | null | undefined;
   className?: string;
   /**
    * When the avatar image fails to load, render a destructive corner badge so
    * the broken-load state is distinguishable from "user has no avatar yet".
    */
   showLoadErrorIndicator?: boolean;
-  online?: boolean;
+  /**
+   * Auto-subscribe to the user's live presence over WS and render the online
+   * indicator when they are online. Defaults to `true`. Pass `false` to opt
+   * out — e.g. for guest avatars or surfaces where presence is irrelevant.
+   * The avatar manages the subscription itself; callers should not pass an
+   * online flag manually.
+   */
+  showStatus?: boolean;
   /** Avatar silhouette. Defaults to `square` (rounded square) per design. */
   shape?: AvatarShape;
   /**
@@ -82,7 +110,7 @@ export function UserAvatar({
   size,
   className,
   showLoadErrorIndicator = true,
-  online = false,
+  showStatus = true,
   shape = 'square',
   previewFile,
 }: UserAvatarProps) {
@@ -97,19 +125,30 @@ export function UserAvatar({
   const isLoading = hasUrl && (status === 'idle' || status === 'loading');
   const isError = hasUrl && status === 'error';
 
+  // Always call the hook (rules-of-hooks). When `showStatus` is false or no
+  // user is provided, we pass `null` and the hook is a no-op (returns
+  // `'unknown'` and never subscribes).
+  const presence = usePresence(showStatus && user ? user.id : null);
+  const isOnline = presence === 'online';
+
   const initials = buildUserInitials(user);
   const displayName = buildUserDisplayName(user);
   const colorClass = user
-    ? AVATAR_COLOR_CLASSES[pickAvatarColorIndex(user.oid)]
+    ? AVATAR_COLOR_CLASSES[pickAvatarColorIndex(user.id)]
     : 'bg-muted';
   const showErrorBadge = showLoadErrorIndicator && isError;
-  const showOnlineBadge = online && !showErrorBadge;
+  const showOnlineBadge = isOnline && !showErrorBadge;
   const onlineLabel = t('presence.online');
 
   const radius = SHAPE_RADIUS[shape];
 
   return (
+    // base-ui's `Avatar.Root` keeps the loaded-status in context and never
+    // resets it when `Avatar.Image` unmounts — so removing the URL would
+    // leave the fallback hidden. Toggling the React key on the URL ↔ no-URL
+    // boundary forces a fresh mount and brings the fallback back.
     <Avatar
+      key={hasUrl ? 'with-image' : 'no-image'}
       size={size === 'sm' ? 'sm' : size === 'lg' ? 'lg' : 'default'}
       className={cn(
         userAvatarVariants({ size }),
@@ -164,21 +203,22 @@ export function UserAvatar({
 }
 
 export function buildUserInitials(
-  user: Pick<User, 'firstName' | 'lastName'> | null | undefined,
+  user: AvatarUserName | null | undefined,
 ): string {
   if (!user) return '?';
-  const a = user.firstName?.[0] ?? '';
-  const b = user.lastName?.[0] ?? '';
-  const initials = `${a}${b}`.trim();
+  const tokens = user.fullName
+    .split(/\s+/)
+    .filter((t) => t.length > 0)
+    .slice(0, 2);
+  const initials = tokens.map((t) => t[0] ?? '').join('');
   return initials.length > 0 ? initials.toUpperCase() : '?';
 }
 
 export function buildUserDisplayName(
-  user: Pick<User, 'firstName' | 'lastName'> | null | undefined,
+  user: AvatarUserName | null | undefined,
 ): string {
   if (!user) return '';
-  const parts = [user.firstName, user.lastName].filter(Boolean);
-  return parts.join(' ').trim();
+  return user.fullName.trim();
 }
 
 function pickAvatarColorIndex(seed: string): number {

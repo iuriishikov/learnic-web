@@ -60,9 +60,32 @@ export function parseSetCookie(raw: string): ParsedSetCookie | null {
   return { name, value, options };
 }
 
+const mutableCache = new WeakMap<CookieStore, boolean>();
+
+// cookies() is mutable only inside Server Actions and Route Handlers; in RSC
+// render it is read-only and any set/delete throws synchronously. We probe
+// once per store with a no-op delete and cache the answer so callers can gate
+// behavior that requires writing (e.g. forwarding rotated auth cookies).
+export function canMutateCookies(store: CookieStore): boolean {
+  const cached = mutableCache.get(store);
+  if (cached !== undefined) return cached;
+  let mutable: boolean;
+  try {
+    store.delete('__nx_capability_probe__');
+    mutable = true;
+  } catch {
+    mutable = false;
+  }
+  mutableCache.set(store, mutable);
+  return mutable;
+}
+
 export function forwardSetCookies(response: Response, store: CookieStore) {
   const raw = response.headers.getSetCookie?.() ?? [];
   if (raw.length === 0) return;
+  // RSC: cookies() is read-only — the proactive refresh in middleware owns
+  // this path. Skip silently to avoid noisy try/catch on every Set-Cookie.
+  if (!canMutateCookies(store)) return;
   const isDev = process.env.NODE_ENV !== 'production';
   for (const entry of raw) {
     const parsed = parseSetCookie(entry);
@@ -77,10 +100,8 @@ export function forwardSetCookies(response: Response, store: CookieStore) {
     if (isDev) options.secure = false;
     try {
       store.set(parsed.name, parsed.value, options);
-    } catch {
-      // cookies() is read-only outside Server Actions and Route Handlers
-      // (i.e. during RSC render). The proactive refresh in middleware
-      // handles the RSC path, so silently skip here.
+    } catch (err) {
+      console.warn('[apiFetch] forwardSetCookies set failed', err);
     }
   }
 }

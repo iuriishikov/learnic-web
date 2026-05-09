@@ -9,11 +9,24 @@ export { registerAction } from './api/registration';
 export { registerSchema, type RegisterInput } from './model/registration';
 
 export { VerifyEmailClient } from './components/verify-email-client';
+export { GenericConfirmClient } from './components/generic-confirm-client';
 export {
   verifyEmailAction,
   waitForEmailVerificationAction,
   hasSignupSessionAction,
+  resendVerificationAction,
+  type ResendVerificationResult,
 } from './api/email-verification';
+export {
+  verifyTokenAction,
+  getTokenStatusAction,
+} from './api/confirm';
+export {
+  verifyTokenSchema,
+  type VerifyTokenInput,
+  type VerifyTokenResult,
+  type TokenStatusResult,
+} from './model/confirm';
 export {
   verifyEmailSchema,
   type VerifyEmailInput,
@@ -40,12 +53,28 @@ export {
 
 export { getMeAction, type GetMeResult } from './api/me';
 export { AuthProvider, useAuth } from './components/auth-provider';
-export {
-  UserAvatar,
-  buildUserInitials,
-  buildUserDisplayName,
-} from './components/user-avatar';
 export type { User } from './model/user';
+
+export { ProfileForm } from './components/profile-form';
+export { AvatarUploader } from './components/avatar-uploader';
+export { CoverUploader } from './components/cover-uploader';
+export { updateProfileAction } from './api/profile-update';
+export { uploadAvatarAction, deleteAvatarAction } from './api/avatar';
+export { uploadCoverAction, deleteCoverAction } from './api/cover';
+export {
+  profileUpdateSchema,
+  type ProfileUpdateInput,
+} from './model/profile-update';
+
+export { ActiveSessionsList } from './components/active-sessions-list';
+export {
+  listActiveSessionsAction,
+  revokeActiveSessionAction,
+  type ListActiveSessionsResult,
+} from './api/active-sessions';
+export type { ActiveSession } from './model/sessions';
+
+export { PasswordResetButton } from './components/password-reset-button';
 
 export type {
   AuthError,

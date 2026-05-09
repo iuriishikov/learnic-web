@@ -1,21 +1,15 @@
 'use client';
 
-import { ClockIcon } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import {
+  type Ref,
   useCallback,
   useEffect,
   useRef,
 } from 'react';
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/shared/ui/card';
+import { Input } from '@/shared/ui/input';
 import {
   NumberField,
   NumberFieldAddon,
@@ -29,7 +23,10 @@ import { RichEditor } from '@/shared/ui/rich-editor';
 import {
   useChangeProductDescriptionMutation,
   useChangeProductDurationMutation,
+  useChangeProductNameMutation,
 } from '../api/use-product-mutations';
+import { useProductPermissions } from '../api/use-product-permissions';
+import { EditorRow, EditorSection } from './editor-row';
 
 const SAVE_DEBOUNCE_MS = 600;
 const DURATION_MIN = 1;
@@ -38,17 +35,39 @@ const DURATION_STEP = 1;
 
 type ProductDescriptionSectionProps = {
   productId: string;
+  title: string;
   description: string;
   durationHours: number;
+  /**
+   * Increment from a parent surface (e.g. an "Edit" CTA elsewhere in the page)
+   * to focus and select the name input. Each new value re-runs the focus
+   * effect, so the same parent action can trigger focus repeatedly.
+   */
+  focusNameToken?: number;
 };
 
 export function ProductDescriptionSection({
   productId,
+  title,
   description,
   durationHours,
+  focusNameToken,
 }: ProductDescriptionSectionProps) {
   const t = useTranslations('teach-products.editor.description');
+  const tEditor = useTranslations('teach-products.editor');
   const reduceMotion = useReducedMotion();
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const perms = useProductPermissions(productId);
+  const readOnly = !perms.canEditDescription;
+  const insufficientTitle = tEditor('insufficientPermissions');
+
+  useEffect(() => {
+    if (focusNameToken === undefined || focusNameToken === 0) return;
+    const input = nameInputRef.current;
+    if (!input) return;
+    input.focus();
+    input.select();
+  }, [focusNameToken]);
 
   return (
     <motion.div
@@ -57,48 +76,86 @@ export function ProductDescriptionSection({
       animate={{ opacity: 1, y: 0 }}
       exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
       transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
-      className="flex flex-col gap-6"
     >
-      <header className="flex flex-col gap-1.5 px-1">
-        <h2 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-          {t('title')}
-        </h2>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {t('description')}
-        </p>
-      </header>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-md bg-brand/10 text-brand">
-              <ClockIcon className="size-4" />
-            </span>
-            {t('duration.title')}
-          </CardTitle>
-          <CardDescription>{t('duration.hint')}</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <EditorSection title={t('title')} description={t('description')}>
+        <EditorRow
+          label={t('nameTitle')}
+          description={t('nameHint')}
+          required
+        >
+          <NameField
+            productId={productId}
+            title={title}
+            inputRef={nameInputRef}
+            readOnly={readOnly}
+            disabledTitle={insufficientTitle}
+          />
+        </EditorRow>
+        <EditorRow
+          label={t('duration.title')}
+          description={t('duration.hint')}
+        >
           <HoursStepper
             productId={productId}
             durationHours={durationHours}
+            readOnly={readOnly}
+            disabledTitle={insufficientTitle}
           />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('bodyTitle')}</CardTitle>
-          <CardDescription>{t('bodyHint')}</CardDescription>
-        </CardHeader>
-        <CardContent>
+        </EditorRow>
+        <EditorRow label={t('bodyTitle')} description={t('bodyHint')}>
           <DescriptionEditor
             productId={productId}
             description={description}
+            readOnly={readOnly}
           />
-        </CardContent>
-      </Card>
+        </EditorRow>
+      </EditorSection>
     </motion.div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Name field                                                                 */
+/* -------------------------------------------------------------------------- */
+
+function NameField({
+  productId,
+  title,
+  inputRef,
+  readOnly,
+  disabledTitle,
+}: {
+  productId: string;
+  title: string;
+  inputRef?: Ref<HTMLInputElement>;
+  readOnly?: boolean;
+  disabledTitle?: string;
+}) {
+  const t = useTranslations('teach-products.editor.description');
+  const update = useChangeProductNameMutation(productId);
+
+  // Save on every keystroke, debounced. Empty / whitespace-only values are
+  // skipped — the title is required.
+  const flush = useDebouncedCommit(title, (value) => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    update.mutate({ value: trimmed });
+  });
+
+  return (
+    <Input
+      // Re-seed only when navigating to a different product, not on every
+      // optimistic title update — the user is the source of truth while typing.
+      key={productId}
+      ref={inputRef}
+      defaultValue={title}
+      onChange={(event) => flush(event.target.value)}
+      placeholder={t('namePlaceholder')}
+      maxLength={200}
+      disabled={readOnly}
+      title={readOnly ? disabledTitle : undefined}
+      className="h-10 text-base"
+    />
   );
 }
 
@@ -109,9 +166,11 @@ export function ProductDescriptionSection({
 function DescriptionEditor({
   productId,
   description,
+  readOnly,
 }: {
   productId: string;
   description: string;
+  readOnly?: boolean;
 }) {
   const t = useTranslations('teach-products.editor.description');
   const update = useChangeProductDescriptionMutation(productId);
@@ -128,7 +187,8 @@ function DescriptionEditor({
       // navigates between products without unmounting the section.
       key={productId}
       defaultValue={description}
-      onChange={flush}
+      onChange={readOnly ? undefined : flush}
+      editable={!readOnly}
       placeholder={t('placeholder')}
       editorClassName="min-h-[260px]"
     />
@@ -142,9 +202,13 @@ function DescriptionEditor({
 function HoursStepper({
   productId,
   durationHours,
+  readOnly,
+  disabledTitle,
 }: {
   productId: string;
   durationHours: number;
+  readOnly?: boolean;
+  disabledTitle?: string;
 }) {
   const t = useTranslations('teach-products.editor.description.duration');
   const update = useChangeProductDurationMutation(productId);
@@ -175,8 +239,12 @@ function HoursStepper({
         largeStep={10}
         smallStep={1}
         onValueCommitted={handleCommit}
+        disabled={readOnly}
       >
-        <NumberFieldGroup className="w-full max-w-[280px]">
+        <NumberFieldGroup
+          className="w-full max-w-[280px]"
+          title={readOnly ? disabledTitle : undefined}
+        >
           <NumberFieldDecrement aria-label={t('decrement')} />
           <NumberFieldInput
             aria-label={t('label')}

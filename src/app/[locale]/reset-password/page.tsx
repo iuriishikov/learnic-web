@@ -1,7 +1,11 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { AuthLayout, ResetPasswordForm } from '@/features/auth';
+import {
+  AuthLayout,
+  getTokenStatusAction,
+  ResetPasswordForm,
+} from '@/features/auth';
 import { Link } from '@/shared/config/i18n/navigation';
 import { buildPageMetadata } from '@/shared/lib/page-metadata';
 
@@ -43,6 +47,37 @@ export default async function ResetPasswordPage({
       >
         <div className="text-[15px] text-muted-foreground">
           {t('resetPassword.missingToken.placeholder')}
+        </div>
+      </AuthLayout>
+    );
+  }
+
+  // Pre-check the token via the unified ``/auth/token-status`` peek
+  // endpoint so a dead link shows "ссылка недействительна" before the
+  // user fills out a new password instead of after submission. We
+  // also defend against pasting a non-RESET token (e.g. a verify
+  // token) into this URL — the form would not have rejected it
+  // client-side but the consume call would; surface that here too.
+  const status = await getTokenStatusAction({ token });
+  const tokenLive = status.ok && status.purpose === 'reset';
+
+  if (!tokenLive) {
+    return (
+      <AuthLayout
+        brandLabel={t('brand')}
+        title={t('resetPassword.linkInvalid.title')}
+        description={t('resetPassword.linkInvalid.description')}
+        footer={
+          <Link
+            href="/forgot-password"
+            className="font-semibold text-brand transition-colors hover:text-brand/80"
+          >
+            {t('resetPassword.linkInvalid.requestAgain')}
+          </Link>
+        }
+      >
+        <div className="text-[15px] text-muted-foreground">
+          {t('resetPassword.linkInvalid.placeholder')}
         </div>
       </AuthLayout>
     );
