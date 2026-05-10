@@ -1,15 +1,23 @@
 /**
- * Frontend types mirroring the backend `NotificationView`.
+ * Notification primitives + envelope.
  *
- * The backend serializes camelCase fields with `snake_case` only on
- * a handful of legacy keys (none for notifications). The mapping
- * happens at the apiFetch boundary in this feature's `api/` layer —
- * never let `snake_case` leak past it.
+ * Per-kind shapes (`*Raw`, `*Details`, descriptors) live in
+ * `kinds/<kind>.tsx` and are aggregated by `kinds/registry.ts`.
+ * The kind-specific unions ({@link NotificationKind},
+ * {@link NotificationDetails}) are derived from the registry and
+ * re-exported here so external code keeps importing from one
+ * stable place.
  */
 
-export type NotificationCategory = 'invites' | 'files' | 'jobs' | 'other';
+import type {
+  NotificationDetails,
+  NotificationDetailsRaw,
+  NotificationKind,
+} from '../kinds/registry';
 
-export type NotificationKind = 'invite_sent' | 'invite_accepted';
+export type { NotificationDetails, NotificationDetailsRaw, NotificationKind };
+
+export type NotificationCategory = 'invites' | 'files' | 'jobs' | 'other';
 
 export type ActorRef = {
   oid: string;
@@ -30,13 +38,14 @@ export type CollaborationStatus =
 
 /**
  * Live snapshot of the `product_collaboration` row referenced by an
- * invite notification. Hydrated server-side via a JOIN at read time
- * — the SPA uses this as the single source of truth for the
- * Accept / Decline UI state, so a reload picks up the latest values
- * without local React state having to remember outcomes.
+ * invite-shaped notification. Hydrated server-side via a JOIN at
+ * read time — used as the single source of truth for the
+ * Accept / Decline / Revoke UI state, so a reload picks up the
+ * latest values without local React state having to remember
+ * outcomes.
  *
  * `null` only when the collaboration row could not be hydrated; in
- * that case treat the invite as `unavailable`.
+ * that case treat it as `unavailable` on the client.
  */
 export type CollaborationSnapshot = {
   status: CollaborationStatus;
@@ -45,23 +54,6 @@ export type CollaborationSnapshot = {
   revokedAt: string | null;
   inviteExpiresAt: string | null;
 };
-
-export type InviteSentDetails = {
-  type: 'invite_sent';
-  collaborationId: string;
-  product: ProductRef;
-  collaboration: CollaborationSnapshot | null;
-};
-
-export type InviteAcceptedDetails = {
-  type: 'invite_accepted';
-  collaborationId: string;
-  product: ProductRef;
-  collaborator: ActorRef;
-  collaboration: CollaborationSnapshot | null;
-};
-
-export type NotificationDetails = InviteSentDetails | InviteAcceptedDetails;
 
 export type Notification = {
   oid: string;

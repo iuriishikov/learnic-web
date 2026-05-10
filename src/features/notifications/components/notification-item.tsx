@@ -6,9 +6,8 @@ import { useFormatter, useNow, useTranslations } from 'next-intl';
 import { cn } from '@/shared/lib/utils';
 import { buildUserDisplayName, UserAvatar } from '@/shared/ui/user-avatar';
 
+import { lookupKind } from '../kinds/registry';
 import type { Notification } from '../model/types';
-
-import { NotificationInviteActions } from './notification-invite-actions';
 
 type NotificationItemProps = {
   notification: Notification;
@@ -30,10 +29,16 @@ export function NotificationItem({
   const format = useFormatter();
   const now = useNow({ updateInterval: 60_000 });
   const isUnread = notification.readAt === null;
-  const actorName = notification.actor
-    ? buildUserDisplayName({ fullName: notification.actor.fullName })
+  const { descriptor } = lookupKind(notification.details);
+  const fallbackActor = descriptor.getFallbackActor?.(notification.details);
+  const displayActor = notification.actor ?? fallbackActor ?? null;
+  const actorName = displayActor
+    ? buildUserDisplayName({ fullName: displayActor.fullName })
     : t('actorUnknown');
   const tag = t(`categoryTag.${CATEGORY_TAG[notification.category]}`);
+  const productName =
+    notification.details.product.name || t('productFallback');
+  const Action = descriptor.Action;
 
   function handlePointerEnter() {
     if (!isUnread) return;
@@ -49,15 +54,15 @@ export function NotificationItem({
       transition={{ type: 'spring', stiffness: 400, damping: 32 }}
       onMouseEnter={handlePointerEnter}
       onFocus={handlePointerEnter}
-      className={cn('group flex gap-3 px-4 py-3 transition-colors')}
+      className={cn('group flex gap-2.5 px-3 py-2.5 transition-colors')}
     >
       <div className="relative shrink-0">
         <UserAvatar
           user={
-            notification.actor
+            displayActor
               ? {
-                  id: notification.actor.oid,
-                  fullName: notification.actor.fullName,
+                  id: displayActor.oid,
+                  fullName: displayActor.fullName,
                   avatarUrl: null,
                 }
               : null
@@ -80,8 +85,9 @@ export function NotificationItem({
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <p className="text-sm leading-snug text-foreground">
           <NotificationLine
-            notification={notification}
             actorName={actorName}
+            productName={productName}
+            leadKey={descriptor.leadKey}
           />
         </p>
         <p className="text-xs text-muted-foreground">
@@ -90,12 +96,10 @@ export function NotificationItem({
           <span>{tag}</span>
         </p>
 
-        {notification.kind === 'invite_sent' ? (
+        {Action ? (
           <div className="mt-1.5">
-            <NotificationInviteActions
-              collaborationId={notification.details.collaborationId}
-              productId={notification.details.product.oid}
-              collaboration={notification.details.collaboration}
+            <Action
+              details={notification.details}
               onResolved={() => onMarkRead(notification.oid)}
             />
           </div>
@@ -106,32 +110,20 @@ export function NotificationItem({
 }
 
 function NotificationLine({
-  notification,
   actorName,
+  productName,
+  leadKey,
 }: {
-  notification: Notification;
   actorName: string;
+  productName: string;
+  leadKey: string;
 }) {
   const t = useTranslations('notifications');
-  const productName = notification.details.product.name || t('productFallback');
-
-  if (notification.kind === 'invite_sent') {
-    return (
-      <span>
-        <strong className="font-semibold">{actorName}</strong>{' '}
-        <span className="text-muted-foreground">
-          {t('lines.inviteSent.lead')}
-        </span>{' '}
-        <strong className="font-semibold">«{productName}»</strong>
-      </span>
-    );
-  }
-
   return (
     <span>
       <strong className="font-semibold">{actorName}</strong>{' '}
       <span className="text-muted-foreground">
-        {t('lines.inviteAccepted.lead')}
+        {t(`lines.${leadKey}.lead`)}
       </span>{' '}
       <strong className="font-semibold">«{productName}»</strong>
     </span>

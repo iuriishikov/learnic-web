@@ -32,10 +32,12 @@ const MAX_BADGE_COUNT = 99;
  * the right edge) on mobile per the responsive translation rule —
  * the desktop popover does not fit a 375px viewport.
  *
- * The WebSocket is opened only while the panel is mounted to keep
- * the per-tab connection count low; the unread badge stays current
- * via the polled counters query (TanStack Query staleTime + refetch
- * on focus) when the panel is closed.
+ * The WebSocket is held open for as long as the bell is mounted so
+ * the unread badge reacts to push deltas in real time even when the
+ * panel is closed; the alternative — opening on panel-mount — meant
+ * Redis pub/sub messages were dropped while the panel was closed
+ * (no subscriber, no replay), and the badge had to wait out the
+ * 30s counters staleTime before it could surface a new invite.
  */
 export function NotificationsBell() {
   const t = useTranslations('notifications');
@@ -45,10 +47,7 @@ export function NotificationsBell() {
   const countersQuery = useNotificationCountersQuery(true);
   const unread = countersQuery.data?.unread ?? 0;
 
-  // Open the WS only while the panel is mounted so we never hold an
-  // idle socket per signed-in tab. Counters refetch on open via the
-  // panel's own list/counters queries.
-  useNotificationsWebSocket(open);
+  useNotificationsWebSocket(true);
 
   const trigger = (
     <Button
@@ -84,7 +83,7 @@ export function NotificationsBell() {
         <SheetContent
           side="right"
           showCloseButton={false}
-          className="w-[90vw] max-w-[420px] gap-0 p-0"
+          className="w-[88vw] max-w-[360px] gap-0 p-0"
         >
           <NotificationsPanel open={open} onClose={handleClose} />
         </SheetContent>
@@ -98,7 +97,7 @@ export function NotificationsBell() {
       <PopoverContent
         align="end"
         sideOffset={10}
-        className="w-[420px] max-w-[calc(100vw-2rem)] gap-0 overflow-hidden p-0"
+        className="h-[min(520px,calc(100dvh-6rem))] w-[360px] max-w-[calc(100vw-2rem)] gap-0 overflow-hidden p-0"
       >
         <NotificationsPanel open={open} onClose={handleClose} />
       </PopoverContent>

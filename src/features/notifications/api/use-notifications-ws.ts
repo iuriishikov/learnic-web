@@ -3,61 +3,28 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
-import type {
-  CollaborationSnapshot,
-  CollaborationStatus,
-  Notification,
-  NotificationPage,
-} from '../model/types';
-
 import {
-  notificationsCountersKey,
-  notificationsListKey,
-} from './queries';
+  parseDetails,
+  type NotificationDetailsRaw,
+} from '../kinds/registry';
+import { toActor, type ActorRaw } from '../kinds/shared';
+import type { Notification, NotificationPage } from '../model/types';
+
+import { notificationsCountersKey, notificationsListKey } from './queries';
 
 type ListData = {
   pages: NotificationPage[];
   pageParams: (string | null)[];
 };
 
-type RawActor = {
-  oid: string;
-  full_name: string;
-};
-
-type RawProduct = { oid: string; name: string };
-
-type RawCollaboration = {
-  status: CollaborationStatus;
-  accepted_at: string | null;
-  declined_at: string | null;
-  revoked_at: string | null;
-  invite_expires_at: string | null;
-};
-
-type RawDetails =
-  | {
-      type: 'invite_sent';
-      collaboration_id: string;
-      product: RawProduct;
-      collaboration: RawCollaboration | null;
-    }
-  | {
-      type: 'invite_accepted';
-      collaboration_id: string;
-      product: RawProduct;
-      collaborator: RawActor;
-      collaboration: RawCollaboration | null;
-    };
-
 type RawNotification = {
   oid: string;
   kind: Notification['kind'];
   category: Notification['category'];
-  actor: RawActor | null;
+  actor: ActorRaw | null;
   created_at: string;
   read_at: string | null;
-  details: RawDetails;
+  details: NotificationDetailsRaw;
 };
 
 type RawEnvelope =
@@ -70,50 +37,15 @@ const RECONNECT_BASE_MS = 1_000;
 const RECONNECT_MAX_MS = 30_000;
 const TERMINAL_CLOSE_CODES = new Set([4401, 4403]);
 
-function toCollaboration(
-  raw: RawCollaboration | null | undefined,
-): CollaborationSnapshot | null {
-  if (raw == null) return null;
-  return {
-    status: raw.status,
-    acceptedAt: raw.accepted_at,
-    declinedAt: raw.declined_at,
-    revokedAt: raw.revoked_at,
-    inviteExpiresAt: raw.invite_expires_at,
-  };
-}
-
 function toNotification(raw: RawNotification): Notification {
   return {
     oid: raw.oid,
     kind: raw.kind,
     category: raw.category,
-    actor: raw.actor
-      ? {
-          oid: raw.actor.oid,
-          fullName: raw.actor.full_name,
-        }
-      : null,
+    actor: raw.actor ? toActor(raw.actor) : null,
     createdAt: raw.created_at,
     readAt: raw.read_at,
-    details:
-      raw.details.type === 'invite_sent'
-        ? {
-            type: 'invite_sent',
-            collaborationId: raw.details.collaboration_id,
-            product: { oid: raw.details.product.oid, name: raw.details.product.name },
-            collaboration: toCollaboration(raw.details.collaboration),
-          }
-        : {
-            type: 'invite_accepted',
-            collaborationId: raw.details.collaboration_id,
-            product: { oid: raw.details.product.oid, name: raw.details.product.name },
-            collaborator: {
-              oid: raw.details.collaborator.oid,
-              fullName: raw.details.collaborator.full_name,
-            },
-            collaboration: toCollaboration(raw.details.collaboration),
-          },
+    details: parseDetails(raw.details),
   };
 }
 
@@ -143,7 +75,11 @@ export function useNotificationsWebSocket(enabled: boolean): void {
       if (stopped) return;
       const { protocol, host } = window.location;
       const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:';
-      const url = `${wsProtocol}//${host}/users/me/notifications`;
+      // Routed through the Next.js `/api/...` rewrite so the
+      // httpOnly access cookie (scoped to the frontend host) reaches
+      // the backend on the WS handshake — the same pattern used by
+      // the presence and product-events sockets.
+      const url = `${wsProtocol}//${host}/api/users/me/notifications/ws`;
       try {
         ws = new WebSocket(url);
       } catch {

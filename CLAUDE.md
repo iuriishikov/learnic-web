@@ -251,6 +251,24 @@ Never guess endpoint paths, payload field names, or status codes from the codeba
 
 **Naming convention note:** the spec uses `snake_case` field names (`first_name`, `avatar_url`, `entity_id`, …). The frontend type system uses `camelCase` (e.g., `User.firstName`, `User.avatarUrl`). When wiring a new endpoint, map between the two at the `apiFetch` boundary inside the feature's `api/` layer — never let `snake_case` field names leak into components or zod schemas used by `react-hook-form`.
 
+### Enums and discriminated unions — mirror exhaustively, handle exhaustively, audit exhaustively
+
+Backend status fields, kind discriminators, and event-type enums (e.g. `CollaborationStatus`: `pending_invite | active | declined | revoked`, `ProductEventKind`: `name_changed | … | collaboration_*`) must be treated as **closed sets** end-to-end. Three rules apply, in order — skipping any one of them is how silent UI bugs ship.
+
+**1. Mirror every variant — wire type AND domain type.** When you add or update an enum field in `api/<feature>.ts`, the wire-level union (e.g. `CollaborationSchemaResponse.status`) lists **every** variant from `docs/api/openapi.json`, not the subset that current screens happen to render. The domain type in `model/<feature>.ts` mirrors the same set. Missing variants come back from the API as plain strings, slip past `tsc`, and crash through `default:` branches at runtime. When you change one side, change both in the same diff.
+
+**2. Handle every variant in every consumer — no fall-through ternaries.** Filters, switch-cases, badge maps, status colors, and view-mapping pipelines (anywhere code branches on the enum) must each explicitly cover every variant. Forbidden patterns:
+
+- `status === 'X' ? 'a' : 'b'` on an enum with three or more variants — collapses every non-`X` value into `b`, which is almost never what you want for a closed set.
+- `if (x.status === 'X') continue` as the **only** filter, when there are other terminal/edge statuses you also need to skip.
+- A `switch` without a `case` for every variant and without a `never`-typed default that fails the build when one is missed.
+
+Use `switch` with one explicit `case` per variant, or a `Record<EnumType, T>` lookup, so TypeScript catches missing variants for you. The `default:` branch is the place you forgot to think about, not a graceful fallback.
+
+**3. Audit every variant when fixing a bug reported against one.** When the user names a single variant in a bug report ("declined shows as Invited", "qa_deleted doesn't refetch"), the gap that produced it almost never affects that variant alone. The same root cause — missing wire variant, fall-through `else`, status collapse, missing `case` — usually breaks every other terminal/edge variant of the same enum the same way. Before declaring the fix done, line up the variants from `openapi.json` and confirm the pipeline does the right thing for **each one**. The user reported one because that's the one they tripped over; the others are latent reports that haven't fired yet.
+
+This applies to backend events received over WS the same way it applies to REST status fields — every `kind` in `ProductEventKind` / `CourseContentEventKind` / etc. must be explicitly handled (or explicitly invalidated in the forward-compat `default:`), and a fix for one `kind` requires verifying the others still route correctly.
+
 ### Forbidden
 
 - **Don't pile multiple sub-flows into one `actions.ts` / `schema.ts`** and "split later". Split when the second sub-flow appears.
@@ -324,11 +342,87 @@ This keeps generated files clean so future `shadcn@latest add` updates don't fig
 - Animated wrappers around shadcn primitives are encouraged — wrap, don't rewrite. Example: a `MotionCard` that wraps shadcn `Card` with `whileHover` and entry animation.
 - `'use client'` is required wherever Framer Motion is used. Push the client boundary down — keep the parent server-rendered and isolate the motion wrapper as a small client component.
 
+### Animations must not jitter the page during user interaction
+
+**Animations can be rich, but they must never shake the page out from under the user.** When the user starts a sustained gesture — drag-and-drop, resize, scroll-with-momentum, marquee select, hover-to-reveal nested controls — the surface they're acting on must stay rock-still. Cards may not wobble, neighbors may not slide, breadcrumbs may not pop into existence, lists may not reorder mid-grab. The animation system serves the gesture; it never competes with it.
+
+This is the difference between a tool that feels solid and a tool that feels twitchy. Even objectively beautiful animations become hostile if they fire while the user is mid-action. Pin them down.
+
+**The rules:**
+
+1. **No layout reflow during DnD.** While `dnd-kit` (or any drag interaction) is active, the surrounding grid/list must not animate item positions. Concretely: do **not** put Framer Motion `layout` / `layoutId` / `<AnimatePresence mode="popLayout">` on the items the user can drag, drop on, or pass over. Use plain DOM nodes or unanimated `motion.div`s for grid items. Reserve `layout` for genuinely beneficial cases (e.g. tab indicator under a tab strip) where a single element animates without affecting siblings.
+
+2. **Disable hover/tap micro-animations on every card while DnD is active.** When the cursor sweeps across other cards during a drag, their `whileHover` should not fire — otherwise each card lifts and drops as the cursor passes, producing a wave of motion across the grid. Pass an `isDraggingActive` (or equivalent) prop down from the `DndContext`-owning component and gate `whileHover` / `whileTap` / `whileFocus` on it: `whileHover={isDraggingActive ? undefined : { y: -3 }}`. The same applies to CSS `:hover` effects that translate or scale — gate them on a `data-dnd-active` attribute or pass the boolean through to the className.
+
+3. **Drop targets may pulse, not move.** A folder/section/zone that is currently `isOver` a drag may use `scale`, `ring-color`, `bg-*`, `box-shadow` — anything that does not change its layout box. It must **not** use `y`, `x`, `margin`, `padding`, `width`, `height`, `gap`, or any property that displaces siblings. The drop indicator says "yes, here" without rearranging the room.
+
+4. **Don't pop new chrome into existence on gesture start.** If a breadcrumb, toolbar, helper hint, or instructional banner is hidden in the resting state and visible during drag, the layout below it shifts the moment the gesture begins — the user's pointer aim is broken. Either render that chrome in both states (hide its content with `opacity` only) or use `position: absolute` so it doesn't push the layout. Same rule applies to "drag handle revealed on hover" patterns: reserve the space at rest.
+
+5. **Surfaces that are themselves the gesture target stay still until the gesture ends.** A panel being resized doesn't bounce-spring on every pointer move — it follows the cursor 1:1. A modal being dragged doesn't rotate on grip. Spring-based feedback (settle, bounce, snap) fires on `dragEnd` / `pointerUp`, not during.
+
+6. **Long lists scroll smoothly because items are stable.** Do not animate the entry of every product/post/row when the page mounts. Stagger animations are fine for short lists, but for a 50+ item grid that the user is about to scroll, mounting all 50 with delayed entry creates a sustained shimmer that fights the scroll. Animate only the first paint above the fold; let later items appear without entry animation.
+
+7. **Animate state changes, not gesture moves.** A successful drop produces a rich animation (the grid reorders, the dropped item snaps in, the source list closes its gap). That animation runs *after* `dragEnd`, when the user has committed. During the gesture itself, only the dragged ghost and the drop-target indicator move. Everything else holds.
+
+**Practical wiring (DnD example):**
+
+```tsx
+function Library() {
+  const [activeDrag, setActiveDrag] = useState<DragKind | null>(null);
+  return (
+    <DndContext
+      onDragStart={(e) => setActiveDrag(toKind(e))}
+      onDragEnd={() => setActiveDrag(null)}
+      onDragCancel={() => setActiveDrag(null)}
+    >
+      {/* No `layout`, no `popLayout`. Plain <li>. */}
+      <ul className="grid ...">
+        {items.map((item) => (
+          <li key={item.id}>
+            <Card item={item} isDraggingActive={activeDrag !== null} />
+          </li>
+        ))}
+      </ul>
+    </DndContext>
+  );
+}
+
+function Card({ item, isDraggingActive }) {
+  const reduceMotion = useReducedMotion();
+  const { isOver } = useDroppable({ id: item.id });
+  return (
+    <motion.div
+      // Hover lift OFF while dragging anything in the surface.
+      whileHover={
+        reduceMotion || isDraggingActive ? undefined : { y: -3 }
+      }
+      // Drop-target signal: scale + ring. Both are layout-neutral.
+      animate={isOver ? { scale: 1.02 } : { scale: 1 }}
+      className={cn('rounded-2xl ring-1', isOver && 'ring-2 ring-brand')}
+    >
+      {/* ... */}
+    </motion.div>
+  );
+}
+```
+
+**How to debug a "page is shaking" report:**
+
+1. Open the surface in DevTools and start a drag. With Paint Flashing on (Rendering tab), every animated element flashes — anything that's flashing AND not the dragged ghost is a candidate culprit.
+2. Search the affected component tree for `layout`, `layoutId`, `mode="popLayout"`, `whileHover`, `whileTap`, `animate-*` Tailwind utilities, and CSS `transition: all`. For each, ask: does it fire only on commit, or also during the gesture? If the latter, gate it.
+3. Check for chrome that conditionally renders on `isDragging` / `active` / `isHover` — replace with always-render + conditional opacity, or absolute positioning.
+4. Confirm the dragged ghost is rendered in `<DragOverlay>`, not from the source position with a transform. Source cards should remain in place (semi-transparent is fine).
+
 ### Forbidden
 
 - **No raw CSS keyframe animations** for behavior Framer Motion can express. (Tailwind's built-in `animate-*` utilities for trivial loaders/spinners are fine.)
 - **No competing animation libraries** (GSAP, react-spring, auto-animate, anime.js, etc.). Framer Motion is it.
 - **No `setTimeout`-based "animations"** — use Framer Motion or CSS transitions.
+- **No `layout` / `layoutId` / `mode="popLayout"` on items inside a DnD surface.** They animate sibling positions on every drag-related change and produce the "page is shaking" effect described in "Animations must not jitter the page during user interaction".
+- **No `whileHover` / `whileTap` / `whileFocus` that fires while DnD is active.** Gate every card-level micro-animation on `isDraggingActive` (or whatever the local equivalent is); a wave of lifts as the cursor sweeps the grid is a bug.
+- **No layout-displacing properties (`y`, `x`, `margin`, `padding`, `width`, `height`, `gap`) on a drop-target's `isOver` state.** Use `scale`, `ring-color`, `box-shadow`, `bg-*` — properties that don't move siblings.
+- **No chrome that pops in on gesture start** (breadcrumb, helper banner, hidden toolbar appearing on `isDragging`). Either render it in both states with `opacity` toggling, or position it absolutely so the layout below doesn't shift.
+- **No staggered entry animations on long lists the user will scroll.** Animate the first paint above the fold; let later items appear without entry animation.
 
 ---
 
@@ -1265,6 +1359,9 @@ If the Playwright MCP is genuinely unavailable (server not connected, `mcp__play
 - **Don't** create per-feature HTTP clients. `@/shared/api/client` is the only `apiFetch`. No `userApi.ts` / `productApi.ts` wrappers.
 - **Don't** create layer-level barrels (`features/<x>/api/index.ts`, `features/<x>/model/index.ts`). Only the feature root has `index.ts`.
 - **Don't** introduce per-service env vars when there's one backend. One backend → one `API_URL`.
+- **Don't** narrow a backend-mirrored enum to the variants you currently render. The wire schema and the domain type both list **every** variant from `openapi.json`. Missing variants come back as runtime strings that bypass `tsc` and break through `default:` branches. See "Enums and discriminated unions — mirror exhaustively".
+- **Don't** branch on a multi-variant enum with a ternary or single-case filter (`status === 'X' ? 'a' : 'b'`, `if (status === 'X') skip`). Every variant gets an explicit case — use `switch` with a `never`-typed default, or a `Record<EnumType, T>` map, so TypeScript fails the build when one is missed.
+- **Don't** declare a fix done for a bug reported on one enum variant without auditing the rest. The same gap (missing wire variant, fall-through `else`, lumped mapping) usually breaks every other variant the same way — line up the full variant list from `openapi.json` and walk the pipeline for each before handing back.
 - **Don't** edit generated shadcn/ui files in `shared/ui/` — wrap them instead.
 - **Don't** hand-roll primitives that exist in shadcn/ui (`Button`, `Input`, `Dialog`, `Select`, etc.). Install via `pnpm dlx shadcn@latest add <component>`.
 - **Don't** build feature components from raw HTML when shadcn primitives exist — wrap and compose shadcn instead, then style with the `brand` token.
@@ -1272,6 +1369,7 @@ If the Playwright MCP is genuinely unavailable (server not connected, `mcp__play
 - **Don't** install other UI libraries (MUI, Mantine, Chakra, Ant Design, HeadlessUI, Flowbite, DaisyUI, NextUI). shadcn/ui is it.
 - **Don't** ship static, motion-less interactive UI. Use Framer Motion (`motion/react`) for transitions, presence, hover/tap feedback, list staggers, and route changes.
 - **Don't** install competing animation libraries (GSAP, react-spring, auto-animate, anime.js). Framer Motion is the only animation library.
+- **Don't** ship animations that jitter the page during a sustained user gesture (drag-and-drop, resize, marquee select). Animations are rich on commit, **still during the gesture**. Concretely: no `layout` / `popLayout` on DnD-target items, no `whileHover` while DnD is active, drop-target `isOver` uses only layout-neutral properties (`scale`, `ring`, `bg`, `shadow`), no chrome that pops in on `isDragging`. See "Animations must not jitter the page during user interaction".
 - **Don't** hardcode user-facing strings. Every label/title/placeholder/alt/aria/toast/zod-message goes through `next-intl`, even when only `/ru` is shipped.
 - **Don't** use raw `next/link` or `next/navigation` redirects for in-app routes — use `next-intl`'s `Link` / `useRouter` / `redirect` so the locale prefix stays.
 - **Don't** install other i18n libraries (`react-i18next`, `next-i18next`, `lingui`, `paraglide`). `next-intl` is it.

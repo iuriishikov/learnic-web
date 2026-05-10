@@ -156,7 +156,8 @@ export function TeamMembersTab({
     if (!collabsQuery.data) return list;
 
     for (const c of collabsQuery.data) {
-      if (c.status === 'revoked') continue;
+      // Terminal statuses are audit-only — not part of the active team.
+      if (c.status === 'revoked' || c.status === 'declined') continue;
       const grant = primaryGrant(c.grants);
       const role = grant ? rolesById.get(grant.roleId) : undefined;
       const roleId = grant?.roleId ?? null;

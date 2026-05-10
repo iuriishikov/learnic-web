@@ -29,6 +29,10 @@ const nextConfig: NextConfig = {
         source: '/api/users/me/confirm-events',
         destination: `${API_URL}/users/me/confirm-events`,
       },
+      {
+        source: '/api/users/me/notifications/ws',
+        destination: `${API_URL}/users/me/notifications`,
+      },
     ];
   },
 };

@@ -214,22 +214,36 @@ export function renameFolder(
   };
 }
 
+export type CreateFolderInput = {
+  name: string;
+  description?: string;
+  emoji?: string;
+};
+
 export function createFolder(
   state: DemoState,
   parentId: string | null,
-  name: string,
+  input: CreateFolderInput,
 ): { state: DemoState; id: string } {
   if (parentId !== null) {
     const parentDepth = folderDepth(state, parentId);
     if (parentDepth >= MAX_DEPTH) return { state, id: '' };
   }
   const id = `f-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  const updatedAt = new Date().toISOString();
   return {
     state: {
       ...state,
       folders: [
         ...state.folders,
-        { id, name, parentId, emoji: '📁' },
+        {
+          id,
+          name: input.name,
+          description: input.description ?? '',
+          parentId,
+          emoji: input.emoji ?? '📁',
+          updatedAt,
+        },
       ],
     },
     id,

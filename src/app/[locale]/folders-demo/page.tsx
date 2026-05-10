@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 
-import { CodeBlockDemoClient } from './code-block-demo-client';
+import { LibraryView } from '@/features/folders-demo';
 
 export const metadata: Metadata = {
-  title: 'CodeBlock',
+  title: 'Folders demo',
   robots: { index: false, follow: false },
 };
 
@@ -12,9 +12,9 @@ type PageProps = {
   params: Promise<{ locale: string }>;
 };
 
-export default async function CodeBlockDemoPage({ params }: PageProps) {
+export default async function FoldersDemoPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  return <CodeBlockDemoClient />;
+  return <LibraryView />;
 }

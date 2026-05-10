@@ -1,0 +1,116 @@
+{
+  "title": "Каталог продуктов",
+  "description": "Демо: курсы и вебинары учителя сгруппированы по папкам с вложенностью до трёх уровней. Перетаскивайте карточки между папками или используйте «Переместить в…» в меню. Esc возвращает на уровень выше.",
+  "back": "Назад",
+  "searchPlaceholder": "Поиск продукта или папки",
+  "searchAriaLabel": "Поиск",
+  "updated": "Обновлено {time}",
+  "filter": {
+    "all": "Все",
+    "courses": "Курсы",
+    "webinars": "Вебинары"
+  },
+  "type": {
+    "course": "Курс",
+    "webinar": "Вебинар"
+  },
+  "status": {
+    "draft": "Черновик",
+    "published": "Опубликовано",
+    "archived": "В архиве"
+  },
+  "stats": {
+    "hours": "{count, plural, one {# ч} few {# ч} many {# ч} other {# ч}}",
+    "lessons": "{count, plural, one {# урок} few {# урока} many {# уроков} other {# уроков}}"
+  },
+  "breadcrumb": {
+    "label": "Путь по папкам",
+    "allProducts": "Все продукты"
+  },
+  "actions": {
+    "more": "Действия",
+    "edit": "Редактировать",
+    "open": "Открыть",
+    "rename": "Переименовать",
+    "renamePrompt": "Новое название папки",
+    "moveTo": "Переместить в…",
+    "archive": "В архив",
+    "delete": "Удалить",
+    "newFolder": "Папка",
+    "newProduct": "Продукт"
+  },
+  "folder": {
+    "openLabel": "Открыть папку «{name}»",
+    "productCount": "{count, plural, =0 {ни одного продукта} one {# продукт} few {# продукта} many {# продуктов} other {# продуктов}}",
+    "subfolderCount": "{count, plural, =0 {} one {# подпапка} few {# подпапки} many {# подпапок} other {# подпапок}}",
+    "empty": "Пока пусто",
+    "dropHint": "Перетащите сюда продукты",
+    "preview": "{count, plural, one {# элемент внутри} few {# элемента внутри} many {# элементов внутри} other {# элементов внутри}}",
+    "directInside": "{count, plural, =0 {ничего напрямую} one {# напрямую} few {# напрямую} many {# напрямую} other {# напрямую}}"
+  },
+  "empty": {
+    "title": "Здесь пока пусто",
+    "description": "Перетащите сюда карточки из другого раздела или создайте папку, чтобы сгруппировать содержимое.",
+    "noMatches": "По запросу ничего не нашли"
+  },
+  "palette": {
+    "title": "Командная палитра",
+    "description": "Поиск по продуктам, папкам и действиям",
+    "openLabel": "Открыть палитру",
+    "openAriaLabel": "Открыть командную палитру",
+    "placeholder": "Что найти или сделать?",
+    "empty": "Ничего не нашли",
+    "actions": "Действия",
+    "createFolder": "Создать папку",
+    "reset": "Сбросить демо",
+    "folders": "Папки",
+    "goRoot": "Все продукты",
+    "products": "Продукты",
+    "rootLabel": "Все продукты"
+  },
+  "moveToDialog": {
+    "title": "Переместить в…",
+    "description": "Выберите папку назначения. Подпапки выбранной папки скрыты.",
+    "placeholder": "Найти папку",
+    "empty": "Папок не найдено",
+    "suggested": "Быстрый выбор",
+    "folders": "Папки"
+  },
+  "emojiPicker": {
+    "searchPlaceholder": "Поиск эмодзи",
+    "clearSearch": "Очистить поиск",
+    "searchResultsTitle": "Результаты",
+    "noResults": "Ничего не нашли",
+    "categoryNav": "Категории эмодзи",
+    "categories": {
+      "smileys": "Смайлики и эмоции",
+      "people": "Люди и тело",
+      "animals": "Природа и животные",
+      "food": "Еда и напитки",
+      "travel": "Путешествия и места",
+      "activities": "Деятельность",
+      "objects": "Предметы",
+      "symbols": "Символы",
+      "flags": "Флаги"
+    }
+  },
+  "createDialog": {
+    "title": "Новая папка",
+    "descriptionRoot": "Создаст папку на верхнем уровне каталога.",
+    "descriptionInside": "Создаст подпапку внутри «{parent}».",
+    "nameLabel": "Название",
+    "namePlaceholder": "Например, «Олимпиадная математика»",
+    "descriptionLabel": "Описание",
+    "descriptionPlaceholder": "Коротко: о чём папка, для какого класса, какой формат",
+    "optional": "(необязательно)",
+    "emojiLabel": "Иконка",
+    "emojiAriaLabel": "Выбрать эмодзи папки",
+    "emojiPickerLabel": "Эмодзи",
+    "emojiInputLabel": "Введите или вставьте эмодзи",
+    "emojiInputPlaceholder": "🧪 → вставьте сюда",
+    "emojiSuggested": "Подобранные для папок",
+    "emojiReset": "Сбросить к 📁",
+    "cancel": "Отмена",
+    "create": "Создать"
+  }
+}

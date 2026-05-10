@@ -4,7 +4,6 @@ import { ChevronRightIcon, HouseIcon } from 'lucide-react';
 import {
   AnimatePresence,
   LazyMotion,
-  MotionConfig,
   domMax,
   m,
   useReducedMotion,
@@ -28,81 +27,66 @@ export function AppBreadcrumbs({ segments, className }: AppBreadcrumbsProps) {
   const swapDuration = prefersReducedMotion ? 0 : 0.22;
   const swapEase: [number, number, number, number] = [0.32, 0.72, 0, 1];
 
-  const visible = segments.length >= 2;
+  if (segments.length < 2) return null;
 
   return (
     <LazyMotion features={domMax} strict>
-      <MotionConfig
-        transition={{ type: 'spring', stiffness: 380, damping: 32, mass: 0.6 }}
-      >
-        <m.div
-          aria-hidden={!visible}
-          initial={false}
-          animate={{
-            height: visible ? 'auto' : 0,
-            opacity: visible ? 1 : 0,
-          }}
-          transition={{ duration: swapDuration, ease: swapEase }}
-          className={cn('overflow-hidden', className)}
-        >
-          <div className="mx-auto w-full max-w-[1440px] px-4 md:px-8">
-            <AnimatePresence mode="popLayout">
-              {visible ? (
-                <m.nav
-                  key={segments.map((s) => s.label).join('|')}
-                  aria-label={t('ariaLabel')}
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: swapDuration, ease: swapEase }}
-                  className="flex min-w-0 items-center gap-1.5 py-2.5 text-sm"
-                >
-                  <Link
-                    href="/"
-                    aria-label={t('home')}
-                    className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  >
-                    <HouseIcon className="size-4" />
-                  </Link>
-                  {segments.map((segment, index) => {
-                    const isLast = index === segments.length - 1;
-                    return (
-                      <Fragment key={`${segment.label}-${index}`}>
-                        <ChevronRightIcon
-                          aria-hidden
-                          className="size-4 shrink-0 text-muted-foreground/60"
-                        />
-                        {isLast || !segment.href ? (
-                          <span
-                            aria-current={isLast ? 'page' : undefined}
-                            title={segment.label}
-                            className={cn(
-                              'flex h-7 items-center rounded-md px-2 text-sm font-semibold',
-                              isLast
-                                ? 'min-w-0 bg-muted text-foreground'
-                                : 'shrink-0 text-muted-foreground',
-                            )}
-                          >
-                            <span className="truncate">{segment.label}</span>
-                          </span>
-                        ) : (
-                          <Link
-                            href={segment.href}
-                            title={segment.label}
-                            className="flex h-7 shrink-0 items-center rounded-md px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                          >
-                            <span className="truncate">{segment.label}</span>
-                          </Link>
+      <div className={className}>
+        <div className="mx-auto w-full max-w-[1440px] px-4 md:px-8">
+          <AnimatePresence mode="wait" initial={false}>
+            <m.nav
+              key={segments.map((s) => s.label).join('|')}
+              aria-label={t('ariaLabel')}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: swapDuration, ease: swapEase }}
+              className="flex min-w-0 items-center gap-1.5 py-2.5 text-sm"
+            >
+              <Link
+                href="/"
+                aria-label={t('home')}
+                className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                <HouseIcon className="size-4" />
+              </Link>
+              {segments.map((segment, index) => {
+                const isLast = index === segments.length - 1;
+                return (
+                  <Fragment key={`${segment.label}-${index}`}>
+                    <ChevronRightIcon
+                      aria-hidden
+                      className="size-4 shrink-0 text-muted-foreground/60"
+                    />
+                    {isLast || !segment.href ? (
+                      <span
+                        aria-current={isLast ? 'page' : undefined}
+                        title={segment.label}
+                        className={cn(
+                          'flex h-7 items-center rounded-md px-2 text-sm font-semibold',
+                          isLast
+                            ? 'min-w-0 bg-muted text-foreground'
+                            : 'shrink-0 text-muted-foreground',
                         )}
-                      </Fragment>
-                    );
-                  })}
-                </m.nav>
-              ) : null}
-            </AnimatePresence>
-          </div>
-        </m.div>
-      </MotionConfig>
+                      >
+                        <span className="truncate">{segment.label}</span>
+                      </span>
+                    ) : (
+                      <Link
+                        href={segment.href}
+                        title={segment.label}
+                        className="flex h-7 shrink-0 items-center rounded-md px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                      >
+                        <span className="truncate">{segment.label}</span>
+                      </Link>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </m.nav>
+          </AnimatePresence>
+        </div>
+      </div>
     </LazyMotion>
   );
 }

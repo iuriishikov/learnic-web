@@ -138,7 +138,11 @@ export type UserSearchResult = {
   avatarUrl: string | null;
 };
 
-export type CollaborationStatus = 'pending_invite' | 'active' | 'revoked';
+export type CollaborationStatus =
+  | 'pending_invite'
+  | 'active'
+  | 'declined'
+  | 'revoked';
 
 export type Collaboration = {
   id: string;
@@ -150,6 +154,7 @@ export type Collaboration = {
   inviteExpiresAt: string | null;
   createdAt: string;
   acceptedAt: string | null;
+  declinedAt: string | null;
   revokedAt: string | null;
   grants: ReadonlyArray<Grant>;
 };

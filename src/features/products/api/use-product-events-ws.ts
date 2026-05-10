@@ -12,6 +12,7 @@ import type { ProductQA } from './qa';
 
 import { productKey } from './use-product';
 import { productQAKey } from './use-product-qa';
+import { productCollaborationsKey } from './use-team';
 
 /**
  * Product-level delta channel — `WS /products/{product_id}/events`.
@@ -19,7 +20,10 @@ import { productQAKey } from './use-product-qa';
  * `kind` values come from the spec's `ProductEventKind` enum: metadata
  * (`name_changed`, `description_changed`, `duration_changed`), cover
  * (`cover_changed`, `cover_removed`), status (`published`, `archived`,
- * `unarchived`, `deleted`) and Q&A (`qa_*`).
+ * `unarchived`, `deleted`), Q&A (`qa_*`) and collaboration lifecycle
+ * (`collaboration_invited`, `collaboration_accepted`,
+ * `collaboration_declined`, `collaboration_revoked`,
+ * `collaboration_grants_updated`).
  */
 type ProductEventKind =
   | 'name_changed'
@@ -35,7 +39,12 @@ type ProductEventKind =
   | 'qa_question_changed'
   | 'qa_answer_changed'
   | 'qa_reordered'
-  | 'qa_deleted';
+  | 'qa_deleted'
+  | 'collaboration_invited'
+  | 'collaboration_accepted'
+  | 'collaboration_declined'
+  | 'collaboration_revoked'
+  | 'collaboration_grants_updated';
 
 export function useProductEventsWs(productId: string, enabled: boolean) {
   const qc = useQueryClient();
@@ -47,9 +56,12 @@ export function useProductEventsWs(productId: string, enabled: boolean) {
       url: `/api/products/${encodeURIComponent(productId)}/events`,
       onEvent: (event) => applyProductEvent(qc, productId, event),
       onReconnected: () => {
-        // No replay — refetch product + Q&A state from REST.
+        // No replay — refetch product + Q&A + collaborations state from REST.
         qc.invalidateQueries({ queryKey: productKey(productId) });
         qc.invalidateQueries({ queryKey: productQAKey(productId) });
+        qc.invalidateQueries({
+          queryKey: productCollaborationsKey(productId),
+        });
       },
       onTerminalClose: (code) => {
         console.warn(
@@ -150,10 +162,28 @@ function applyProductEvent(
       return;
     }
 
+    /* ---------- collaboration lifecycle ---------- */
+    // Status flips (pending → active/declined/revoked) and grant changes
+    // touch fields the SPA renders verbatim from the REST payload (status,
+    // accepted_at, declined_at, revoked_at, grants[]). Refetch instead of
+    // patching so the team tab stays in sync without re-deriving payloads.
+    case 'collaboration_invited':
+    case 'collaboration_accepted':
+    case 'collaboration_declined':
+    case 'collaboration_revoked':
+    case 'collaboration_grants_updated':
+      qc.invalidateQueries({
+        queryKey: productCollaborationsKey(productId),
+      });
+      return;
+
     default:
       // Forward-compat fallback.
       qc.invalidateQueries({ queryKey: productKey(productId) });
       qc.invalidateQueries({ queryKey: productQAKey(productId) });
+      qc.invalidateQueries({
+        queryKey: productCollaborationsKey(productId),
+      });
       return;
   }
 }

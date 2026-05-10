@@ -3,7 +3,6 @@
 import {
   AnimatePresence,
   LazyMotion,
-  MotionConfig,
   domMax,
   m,
   useReducedMotion,
@@ -36,57 +35,37 @@ export function AppSubHeader({
   const swapDuration = prefersReducedMotion ? 0 : 0.22;
   const swapEase: [number, number, number, number] = [0.32, 0.72, 0, 1];
 
-  const hasTabs = tabs.length > 0;
+  if (tabs.length === 0) return null;
 
   return (
     <LazyMotion features={domMax} strict>
-      <MotionConfig
-        transition={{ type: 'spring', stiffness: 380, damping: 32, mass: 0.6 }}
+      <div
+        className={cn(
+          'sticky top-[73px] z-30 border-b border-border bg-background',
+          className,
+        )}
       >
-        <m.div
-          aria-hidden={!hasTabs}
-          initial={false}
-          animate={{
-            height: hasTabs ? 'auto' : 0,
-            opacity: hasTabs ? 1 : 0,
-          }}
-          transition={{ duration: swapDuration, ease: swapEase }}
-          className={cn(
-            'sticky top-[72px] z-30 overflow-hidden bg-background',
-            className,
-          )}
-        >
-          <div
-            className={cn(
-              'transition-colors duration-200',
-              hasTabs ? 'border-b border-border' : 'border-b-0',
-            )}
-          >
-            <div className="mx-auto w-full max-w-[1440px] px-4 md:px-8">
-              <AnimatePresence mode="popLayout">
-                {hasTabs ? (
-                  <m.div
-                    key={sectionKey}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: swapDuration, ease: swapEase }}
-                    className="-mx-4 px-4 py-2 md:-mx-8 md:px-8"
-                  >
-                    <NavTabsRouter
-                      tabs={tabs}
-                      activeKey={activeKey}
-                      variant="pill"
-                      layoutId={`app-sub-header-${sectionKey}`}
-                      ariaLabel={ariaLabel}
-                    />
-                  </m.div>
-                ) : null}
-              </AnimatePresence>
-            </div>
-          </div>
-        </m.div>
-      </MotionConfig>
+        <div className="mx-auto w-full max-w-[1440px] px-4 md:px-8">
+          <AnimatePresence mode="wait" initial={false}>
+            <m.div
+              key={sectionKey}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: swapDuration, ease: swapEase }}
+              className="-mx-4 px-4 py-2 md:-mx-8 md:px-8"
+            >
+              <NavTabsRouter
+                tabs={tabs}
+                activeKey={activeKey}
+                variant="pill"
+                layoutId={`app-sub-header-${sectionKey}`}
+                ariaLabel={ariaLabel}
+              />
+            </m.div>
+          </AnimatePresence>
+        </div>
+      </div>
     </LazyMotion>
   );
 }

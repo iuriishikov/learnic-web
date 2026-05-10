@@ -18,6 +18,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
+  CodeIcon,
   GripVerticalIcon,
   PlayIcon,
   PlusIcon,
@@ -42,17 +43,26 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
+import {
+  InlineCodeEditor,
+  type InlineCodeTab,
+} from '@/shared/ui/inline-code-editor';
 import { InlineLatexEditor } from '@/shared/ui/inline-latex-editor';
 import { InlineRichEditor } from '@/shared/ui/inline-rich-editor';
 
-import type { LessonBlock } from '../model/draft';
+import {
+  CODE_BLOCK_MAX_TABS,
+  type CodeTab,
+  type LessonBlock,
+} from '../model/draft';
 
-export type CreatableBlockType = 'html' | 'katex';
+export type CreatableBlockType = 'html' | 'katex' | 'code';
 
 export type LessonBlocksProps = {
   blocks: LessonBlock[];
   onUpdateHtml: (blockId: string, html: string) => void;
   onUpdateKatex: (blockId: string, source: string) => void;
+  onUpdateCode: (blockId: string, tabs: CodeTab[]) => void;
   onAddBlock: (type: CreatableBlockType) => void;
   onRemoveBlock: (blockId: string) => void;
   onReorder: (orderedIds: string[]) => void;
@@ -69,6 +79,7 @@ export function LessonBlocks({
   blocks,
   onUpdateHtml,
   onUpdateKatex,
+  onUpdateCode,
   onAddBlock,
   onRemoveBlock,
   onReorder,
@@ -118,6 +129,7 @@ export function LessonBlocks({
                 isFirst={idx === 0}
                 onUpdateHtml={(html) => onUpdateHtml(block.id, html)}
                 onUpdateKatex={(source) => onUpdateKatex(block.id, source)}
+                onUpdateCode={(nextTabs) => onUpdateCode(block.id, nextTabs)}
                 onRemove={() => onRemoveBlock(block.id)}
                 canEditLessons={canEditLessons}
                 insufficientPermissionsTitle={insufficientPermissionsTitle}
@@ -142,6 +154,7 @@ type SortableBlockProps = {
   isFirst: boolean;
   onUpdateHtml: (html: string) => void;
   onUpdateKatex: (source: string) => void;
+  onUpdateCode: (tabs: CodeTab[]) => void;
   onRemove: () => void;
   canEditLessons: boolean;
   insufficientPermissionsTitle?: string;
@@ -152,6 +165,7 @@ function SortableBlock({
   isFirst,
   onUpdateHtml,
   onUpdateKatex,
+  onUpdateCode,
   onRemove,
   canEditLessons,
   insufficientPermissionsTitle,
@@ -234,6 +248,13 @@ function SortableBlock({
           onChange={onUpdateKatex}
           emptyText={t('formula.empty')}
         />
+      ) : block.type === 'code' ? (
+        <CodeBlockEditor
+          blockId={block.id}
+          tabs={block.tabs}
+          onChange={onUpdateCode}
+          emptyText={t('code.empty')}
+        />
       ) : (
         <RutubeBlockView
           embedUrl={block.embedUrl}
@@ -290,6 +311,40 @@ function DebouncedKatexEditor({
       key={blockId}
       value={value}
       onChange={flush}
+      emptyText={emptyText}
+    />
+  );
+}
+
+type CodeBlockEditorProps = {
+  blockId: string;
+  tabs: CodeTab[];
+  onChange: (tabs: CodeTab[]) => void;
+  emptyText: string;
+};
+
+/**
+ * Thin wrapper around `InlineCodeEditor`. The editor itself manages its
+ * own per-keystroke buffering (see ``CodeEditor.SOURCE_FLUSH_MS``), so
+ * here we just forward changes — no extra debounce layer is needed and
+ * stacking one would only delay structural commits like language picks.
+ */
+function CodeBlockEditor({
+  blockId,
+  tabs,
+  onChange,
+  emptyText,
+}: CodeBlockEditorProps) {
+  const handleTabsChange = useCallback(
+    (next: InlineCodeTab[]) => onChange(next as CodeTab[]),
+    [onChange],
+  );
+  return (
+    <InlineCodeEditor
+      key={blockId}
+      tabs={tabs as InlineCodeTab[]}
+      maxTabs={CODE_BLOCK_MAX_TABS}
+      onTabsChange={handleTabsChange}
       emptyText={emptyText}
     />
   );
@@ -440,6 +495,12 @@ function AddBlockMenu({
             label={t('block.types.katex')}
             description={t('block.types.katexDescription')}
             onSelect={() => onSelect('katex')}
+          />
+          <BlockTypeMenuItem
+            icon={<CodeIcon />}
+            label={t('block.types.code')}
+            description={t('block.types.codeDescription')}
+            onSelect={() => onSelect('code')}
           />
         </DropdownMenuContent>
       </DropdownMenu>

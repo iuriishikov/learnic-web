@@ -13,16 +13,21 @@ export type DemoProduct = {
   type: DemoProductType;
   status: DemoProductStatus;
   title: string;
+  description: string;
   durationHours: number;
+  lessons: number | null;
   cover: DemoCoverGradient;
   folderId: string | null;
+  updatedAt: string;
 };
 
 export type DemoFolder = {
   id: string;
   name: string;
+  description: string;
   parentId: string | null;
   emoji?: string;
+  updatedAt: string;
 };
 
 export type DemoState = {

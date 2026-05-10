@@ -2,6 +2,8 @@
 
 import { apiFetch } from '@/shared/api/client';
 
+import type { CodeTab } from '../model/draft';
+
 import {
   type CreatedResult,
   type MutationResult,
@@ -39,10 +41,20 @@ export async function addRutubeVideoBlockAction(args: {
   });
 }
 
+export async function addCodeBlockAction(args: {
+  courseId: string;
+  lessonId: string;
+  tabs: CodeTab[];
+}): Promise<CreatedResult> {
+  return addBlock(args.courseId, args.lessonId, 'code', {
+    tabs: args.tabs,
+  });
+}
+
 async function addBlock(
   courseId: string,
   lessonId: string,
-  type: 'html' | 'katex' | 'rutube-video',
+  type: 'html' | 'katex' | 'rutube-video' | 'code',
   body: Record<string, unknown>,
 ): Promise<CreatedResult> {
   let res: Response;
@@ -101,10 +113,20 @@ export async function updateRutubeVideoBlockAction(args: {
   });
 }
 
+export async function updateCodeBlockAction(args: {
+  courseId: string;
+  blockId: string;
+  tabs: CodeTab[];
+}): Promise<MutationResult> {
+  return patchBlock(args.courseId, args.blockId, 'code', {
+    tabs: args.tabs,
+  });
+}
+
 async function patchBlock(
   courseId: string,
   blockId: string,
-  type: 'html' | 'katex' | 'rutube-video',
+  type: 'html' | 'katex' | 'rutube-video' | 'code',
   body: Record<string, unknown>,
 ): Promise<MutationResult> {
   let res: Response;

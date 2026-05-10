@@ -29,6 +29,9 @@ export type {
   WebinarDetails,
 } from './model/types';
 export type {
+  CodeBlock,
+  CodeBlockLanguage,
+  CodeTab,
   CourseDraft,
   DraftLesson,
   DraftModule,

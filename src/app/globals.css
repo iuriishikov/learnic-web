@@ -413,11 +413,18 @@
   .rich-editor-content :where(li)::marker {
     color: var(--muted-foreground);
   }
-  .rich-editor-content :where(blockquote) {
-    border-inline-start: 3px solid var(--border);
-    padding-inline-start: 0.875em;
-    color: var(--muted-foreground);
+  /* Blockquote — brand-tinted, used by the rich-editor and any other surface
+     that drops a raw <blockquote> into the page. */
+  blockquote {
+    border-inline-start: 3px solid var(--brand);
+    background-color: color-mix(in oklch, var(--brand) 8%, transparent);
+    padding: 0.5em 0.875em;
+    color: var(--foreground);
     margin-block: 0.75em;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  }
+  blockquote :where(p) {
+    margin-block: 0.25em;
   }
   .rich-editor-content :where(code) {
     font-family: var(--font-mono);

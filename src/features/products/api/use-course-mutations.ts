@@ -10,6 +10,9 @@ import { useTranslations } from 'next-intl';
 import { useNotify } from '@/shared/lib/notify';
 
 import type {
+  CodeBlock,
+  CodeBlockLanguage,
+  CodeTab,
   CourseDraft,
   DraftLesson,
   DraftModule,
@@ -19,10 +22,12 @@ import type {
 } from '../model/draft';
 
 import {
+  addCodeBlockAction,
   addHtmlBlockAction,
   addKatexBlockAction,
   deleteLessonBlockAction,
   reorderLessonBlocksAction,
+  updateCodeBlockAction,
   updateHtmlBlockAction,
   updateKatexBlockAction,
 } from './blocks';
@@ -47,6 +52,16 @@ import { courseDraftKey } from './use-course-draft';
 // so the UI keeps showing the "click to add formula" empty state via
 // `InlineLatexEditor`'s blank check.
 const KATEX_BLANK_SOURCE = '\\,';
+
+// Default language for a freshly created code block. Plain stays neutral
+// — the author picks a real language from the editor's toolbar.
+const CODE_BLANK_LANGUAGE: CodeBlockLanguage = 'plain';
+
+// A fresh code block starts with a single tab (label hidden). Multi-tab
+// is opt-in via the editor's "Add tab" button.
+const CODE_BLANK_TABS: CodeTab[] = [
+  { label: '', source: '', language: CODE_BLANK_LANGUAGE },
+];
 
 type MutationContext = {
   previous?: CourseDraft;
@@ -500,7 +515,7 @@ export function useAddBlockMutation(courseId: string) {
   return useMutation<
     { id: string; tempId: string },
     Error,
-    { lessonId: string; type: 'html' | 'katex' },
+    { lessonId: string; type: 'html' | 'katex' | 'code' },
     MutationContext & { tempId: string }
   >({
     mutationFn: async ({ lessonId, type }) => {
@@ -509,6 +524,15 @@ export function useAddBlockMutation(courseId: string) {
           courseId,
           lessonId,
           html: '<p></p>',
+        });
+        if (!result.ok) throw new Error(result.reason);
+        return { id: result.id, tempId: '' };
+      }
+      if (type === 'code') {
+        const result = await addCodeBlockAction({
+          courseId,
+          lessonId,
+          tabs: CODE_BLANK_TABS,
         });
         if (!result.ok) throw new Error(result.reason);
         return { id: result.id, tempId: '' };
@@ -535,12 +559,19 @@ export function useAddBlockMutation(courseId: string) {
                   position: l.blocks.length,
                   html: '<p></p>',
                 }
-              : {
-                  type: 'katex',
-                  id: newId,
-                  position: l.blocks.length,
-                  source: KATEX_BLANK_SOURCE,
-                };
+              : type === 'code'
+                ? {
+                    type: 'code',
+                    id: newId,
+                    position: l.blocks.length,
+                    tabs: CODE_BLANK_TABS,
+                  }
+                : {
+                    type: 'katex',
+                    id: newId,
+                    position: l.blocks.length,
+                    source: KATEX_BLANK_SOURCE,
+                  };
           return { ...l, blocks: [...l.blocks, block] };
         }),
       );
@@ -636,6 +667,49 @@ export function useUpdateKatexBlockMutation(courseId: string) {
             blocks: l.blocks.map((b) =>
               b.id === blockId && b.type === 'katex'
                 ? ({ ...b, source } satisfies KatexBlock)
+                : b,
+            ),
+          })),
+        })),
+      }));
+      return ctx;
+    },
+    onError: (_err, _vars, ctx) => {
+      restore(qc, courseId, ctx);
+      fail('updateBlockFailed');
+    },
+  });
+}
+
+export function useUpdateCodeBlockMutation(courseId: string) {
+  const qc = useQueryClient();
+  const fail = useFailureToast();
+  return useMutation<
+    void,
+    Error,
+    { blockId: string; tabs: CodeTab[] },
+    MutationContext
+  >({
+    mutationFn: async ({ blockId, tabs }) => {
+      const result = await updateCodeBlockAction({
+        courseId,
+        blockId,
+        tabs,
+      });
+      if (!result.ok) throw new Error(result.reason);
+    },
+    onMutate: async ({ blockId, tabs }) => {
+      await qc.cancelQueries({ queryKey: courseDraftKey(courseId) });
+      const ctx = snapshot(qc, courseId);
+      setDraft(qc, courseId, (draft) => ({
+        ...draft,
+        modules: draft.modules.map((m) => ({
+          ...m,
+          lessons: m.lessons.map((l) => ({
+            ...l,
+            blocks: l.blocks.map((b) =>
+              b.id === blockId && b.type === 'code'
+                ? ({ ...b, tabs } satisfies CodeBlock)
                 : b,
             ),
           })),

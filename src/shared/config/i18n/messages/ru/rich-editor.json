@@ -4,15 +4,30 @@
     "bold": "Жирный",
     "italic": "Курсив",
     "underline": "Подчёркнутый",
+    "strike": "Зачёркнутый",
+    "code": "Моноширинный",
     "color": "Цвет текста",
+    "highlight": "Выделение",
     "alignLeft": "По левому краю",
     "alignCenter": "По центру",
+    "alignRight": "По правому краю",
+    "alignJustify": "По ширине",
     "bulletList": "Маркированный список",
     "orderedList": "Нумерованный список",
-    "link": "Ссылка"
+    "blockquote": "Цитата",
+    "link": "Ссылка",
+    "image": "Изображение",
+    "ai": "Помощь ИИ",
+    "fontFamily": "Шрифт",
+    "fontSize": "Размер шрифта",
+    "undo": "Отменить",
+    "redo": "Повторить"
   },
   "color": {
     "label": "Цвет текста",
+    "custom": "Свой",
+    "customLabel": "Пользовательский цвет",
+    "customPlaceholder": "FFFFFF",
     "options": {
       "default": "По умолчанию",
       "muted": "Серый",
@@ -21,8 +36,44 @@
       "orange": "Оранжевый",
       "green": "Зелёный",
       "blue": "Синий",
-      "purple": "Фиолетовый"
+      "purple": "Фиолетовый",
+      "black": "Чёрный",
+      "charcoal": "Угольный",
+      "darkGray": "Тёмно-серый",
+      "gray": "Серый",
+      "midGray": "Средне-серый",
+      "lightGray": "Светло-серый",
+      "paleGray": "Бледно-серый",
+      "white": "Белый",
+      "indigo": "Индиго",
+      "pink": "Розовый",
+      "magenta": "Маджента",
+      "highlightYellow": "Жёлтое выделение",
+      "highlightOrange": "Оранжевое выделение",
+      "highlightRed": "Красное выделение",
+      "highlightPink": "Розовое выделение",
+      "highlightPurple": "Фиолетовое выделение",
+      "highlightBlue": "Синее выделение",
+      "highlightGreen": "Зелёное выделение",
+      "highlightGray": "Серое выделение"
     }
+  },
+  "highlight": {
+    "clear": "Убрать выделение"
+  },
+  "font": {
+    "options": {
+      "inter": "Inter",
+      "system": "Системный",
+      "serif": "Serif",
+      "mono": "Mono"
+    }
+  },
+  "image": {
+    "urlLabel": "Адрес изображения",
+    "urlPlaceholder": "https://пример.ру/картинка.jpg",
+    "apply": "Вставить",
+    "altLabel": "Описание (alt)"
   },
   "link": {
     "urlLabel": "Адрес ссылки",
@@ -30,6 +81,9 @@
     "apply": "Применить",
     "remove": "Убрать ссылку",
     "cancel": "Отмена"
+  },
+  "characters": {
+    "left": "{count, plural, one {# символ остался} few {# символа осталось} many {# символов осталось} other {# символа осталось}}"
   },
   "inline": {
     "placeholder": "Начните печатать содержимое…",

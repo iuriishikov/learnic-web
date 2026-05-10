@@ -75,16 +75,22 @@ export function InlineEditorShell({
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Click outside closes the editor, while ignoring portal-rendered floating
-  // UI from the embedded editor (shadcn popovers — link, color picker — and
-  // the tiptap bubble menu, both of which render outside the container).
+  // UI from the embedded editor (shadcn popovers — link, color picker, image
+  // form — base-ui Select dropdowns — font, size — and the tiptap bubble
+  // menu, all of which render outside the container).
   useEffect(() => {
     if (!isEditing) return;
+    const isInsidePortal = (target: HTMLElement) =>
+      target.closest('[data-slot="popover-content"]') !== null ||
+      target.closest('[data-slot="select-content"]') !== null ||
+      target.closest('[data-slot="select-trigger"]') !== null ||
+      target.closest('[data-rich-editor-portal]') !== null;
+
     const onMouseDown = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
       if (!target) return;
       if (containerRef.current?.contains(target)) return;
-      if (target.closest('[data-slot="popover-content"]')) return;
-      if (target.closest('[data-rich-editor-portal]')) return;
+      if (isInsidePortal(target)) return;
       onExitEdit();
     };
     document.addEventListener('mousedown', onMouseDown);
@@ -99,6 +105,7 @@ export function InlineEditorShell({
       if (event.key !== 'Escape') return;
       const active = document.activeElement as HTMLElement | null;
       if (active?.closest('[data-slot="popover-content"]')) return;
+      if (active?.closest('[data-slot="select-content"]')) return;
       if (active?.closest('[data-rich-editor-portal]')) return;
       event.preventDefault();
       onExitEdit();

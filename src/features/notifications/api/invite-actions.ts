@@ -56,6 +56,47 @@ async function performInviteResolution(
   return { ok: false, reason: 'unknown' };
 }
 
+export async function revokeCollaborationFromNotificationAction(args: {
+  collaborationId: string;
+}): Promise<InviteOutcome> {
+  let res: Response;
+  try {
+    res = await apiFetch(
+      `/collaborations/${encodeURIComponent(args.collaborationId)}`,
+      { method: 'DELETE' },
+    );
+  } catch {
+    return { ok: false, reason: 'network' };
+  }
+  if (res.status === 204) return { ok: true };
+  if (res.status === 401) return { ok: false, reason: 'unauthorized' };
+  if (res.status === 403) return { ok: false, reason: 'forbidden' };
+  if (res.status === 404) return { ok: false, reason: 'not-found' };
+  if (res.status === 409) return { ok: false, reason: 'unavailable' };
+  return { ok: false, reason: 'unknown' };
+}
+
+export async function reinviteCollaborationFromNotificationAction(args: {
+  collaborationId: string;
+}): Promise<InviteOutcome> {
+  let res: Response;
+  try {
+    res = await apiFetch(
+      `/collaborations/${encodeURIComponent(args.collaborationId)}/reinvite`,
+      { method: 'POST' },
+    );
+  } catch {
+    return { ok: false, reason: 'network' };
+  }
+  if (res.status === 201) return { ok: true };
+  if (res.status === 401) return { ok: false, reason: 'unauthorized' };
+  if (res.status === 403) return { ok: false, reason: 'forbidden' };
+  if (res.status === 404) return { ok: false, reason: 'not-found' };
+  if (res.status === 409) return { ok: false, reason: 'unavailable' };
+  if (res.status === 429) return { ok: false, reason: 'unavailable' };
+  return { ok: false, reason: 'unknown' };
+}
+
 async function safeReadError(res: Response): Promise<string | null> {
   try {
     const data = (await res.json()) as { error?: unknown };

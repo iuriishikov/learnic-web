@@ -3,6 +3,7 @@ import 'server-only';
 import { apiFetch } from '@/shared/api/client';
 
 import type {
+  CodeBlockLanguage,
   CourseDraft,
   DraftLesson,
   DraftModule,
@@ -32,10 +33,24 @@ type RutubeVideoBlockResponse = {
   title: string | null;
 };
 
+type CodeTabResponse = {
+  label: string;
+  source: string;
+  language: CodeBlockLanguage;
+};
+
+type CodeBlockResponse = {
+  type: 'code';
+  oid: string;
+  position: number;
+  tabs: CodeTabResponse[];
+};
+
 type LessonBlockResponse =
   | HtmlBlockResponse
   | KatexBlockResponse
-  | RutubeVideoBlockResponse;
+  | RutubeVideoBlockResponse
+  | CodeBlockResponse;
 
 type DraftLessonResponse = {
   oid: string;
@@ -137,6 +152,18 @@ function fromBlockResponse(raw: LessonBlockResponse): LessonBlock {
       id: raw.oid,
       position: raw.position,
       source: raw.source,
+    };
+  }
+  if (raw.type === 'code') {
+    return {
+      type: 'code',
+      id: raw.oid,
+      position: raw.position,
+      tabs: raw.tabs.map((t) => ({
+        label: t.label,
+        source: t.source,
+        language: t.language,
+      })),
     };
   }
   return {

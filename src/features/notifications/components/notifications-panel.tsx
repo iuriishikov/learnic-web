@@ -1,6 +1,6 @@
 'use client';
 
-import { XIcon } from 'lucide-react';
+import { AlertTriangleIcon, Loader2Icon, RefreshCwIcon, XIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
@@ -62,18 +62,28 @@ export function NotificationsPanel({
 
   const overallUnread = countersQuery.data?.unread ?? 0;
   const isLoading = listQuery.isPending || countersQuery.isPending;
+  const hasError =
+    (listQuery.isError && allItems.length === 0) || countersQuery.isError;
+  const isRetrying =
+    (listQuery.isFetching && !listQuery.isFetchingNextPage) ||
+    countersQuery.isFetching;
+
+  const handleRetry = useCallback(() => {
+    if (listQuery.isError) listQuery.refetch();
+    if (countersQuery.isError) countersQuery.refetch();
+  }, [listQuery, countersQuery]);
 
   return (
-    <div className="flex h-full max-h-[640px] flex-col">
-      <header className="flex items-center justify-between gap-3 px-5 py-4">
-        <h2 className="text-base font-semibold text-foreground">
+    <div className="flex h-full flex-col">
+      <header className="flex items-center justify-between gap-2 px-4 py-3">
+        <h2 className="text-sm font-semibold text-foreground">
           {t('title')}
         </h2>
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          className="size-8"
+          className="size-7"
           onClick={onClose}
           aria-label={t('close')}
         >
@@ -83,7 +93,7 @@ export function NotificationsPanel({
 
       <nav
         aria-label={t('tabsAriaLabel')}
-        className="flex flex-wrap items-center gap-1 px-5 pb-3"
+        className="flex flex-wrap items-center gap-1 px-4 pb-2"
       >
         {TAB_ORDER.map((key) => {
           const active = tab === key;
@@ -95,7 +105,7 @@ export function NotificationsPanel({
               onClick={() => setTab(key)}
               aria-pressed={active}
               className={cn(
-                'inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors',
+                'inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors',
                 active
                   ? 'border border-border bg-background text-foreground shadow-xs'
                   : 'text-muted-foreground hover:text-foreground',
@@ -105,8 +115,8 @@ export function NotificationsPanel({
               {active && count > 0 ? (
                 <span
                   className={cn(
-                    'inline-flex h-5 min-w-5 items-center justify-center',
-                    'rounded-md bg-muted px-1.5 text-xs font-medium text-foreground',
+                    'inline-flex h-4 min-w-4 items-center justify-center',
+                    'rounded bg-muted px-1 text-[10px] font-medium text-foreground',
                   )}
                 >
                   {count}
@@ -121,7 +131,17 @@ export function NotificationsPanel({
 
       <ScrollArea className="min-h-0 flex-1">
         <div className="py-1">
-          {isLoading && allItems.length === 0 ? (
+          {hasError ? (
+            <ErrorState
+              title={t('error.title')}
+              description={t('error.description')}
+              retryLabel={
+                isRetrying ? t('error.retrying') : t('error.retry')
+              }
+              isRetrying={isRetrying}
+              onRetry={handleRetry}
+            />
+          ) : isLoading && allItems.length === 0 ? (
             <NotificationsSkeleton />
           ) : allItems.length === 0 ? (
             <EmptyState message={t('emptyState')} />
@@ -139,14 +159,15 @@ export function NotificationsPanel({
             </motion.ul>
           )}
 
-          {listQuery.hasNextPage ? (
-            <div className="flex justify-center px-4 py-3">
+          {!hasError && listQuery.hasNextPage ? (
+            <div className="flex justify-center px-4 py-2">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => listQuery.fetchNextPage()}
                 disabled={listQuery.isFetchingNextPage}
+                className="h-8 text-xs"
               >
                 {listQuery.isFetchingNextPage
                   ? t('loadingMore')
@@ -157,13 +178,13 @@ export function NotificationsPanel({
         </div>
       </ScrollArea>
 
-      <footer className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
+      <footer className="flex items-center justify-between gap-2 border-t border-border bg-popover px-3 py-2">
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={onClose}
-          className="h-9 px-4"
+          className="h-8 px-3 text-xs"
         >
           {t('close')}
         </Button>
@@ -172,7 +193,7 @@ export function NotificationsPanel({
           size="sm"
           onClick={() => markAllRead.mutate()}
           disabled={overallUnread === 0 || markAllRead.isPending}
-          className="h-9 gap-2 px-4"
+          className="h-8 gap-1.5 px-3 text-xs"
         >
           <CheckCheckIconInline />
           {t('markAllRead')}
@@ -204,10 +225,10 @@ function NotificationsSkeleton() {
   return (
     <ul className="flex flex-col divide-y divide-border">
       {Array.from({ length: 4 }).map((_, idx) => (
-        <li key={idx} className="flex gap-3 px-4 py-3">
-          <Skeleton className="size-10 shrink-0 rounded-full" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-4 w-3/4" />
+        <li key={idx} className="flex gap-2.5 px-3 py-2.5">
+          <Skeleton className="size-9 shrink-0 rounded-full" />
+          <div className="flex-1 space-y-1.5">
+            <Skeleton className="h-3.5 w-3/4" />
             <Skeleton className="h-3 w-1/3" />
           </div>
         </li>
@@ -220,6 +241,55 @@ function EmptyState({ message }: { message: string }) {
   return (
     <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
       <p className="text-sm text-muted-foreground">{message}</p>
+    </div>
+  );
+}
+
+function ErrorState({
+  title,
+  description,
+  retryLabel,
+  isRetrying,
+  onRetry,
+}: {
+  title: string;
+  description: string;
+  retryLabel: string;
+  isRetrying: boolean;
+  onRetry: () => void;
+}) {
+  return (
+    <div
+      role="alert"
+      className="flex flex-col items-center gap-3 px-6 py-10 text-center"
+    >
+      <span
+        className={cn(
+          'inline-flex size-9 items-center justify-center rounded-full',
+          'bg-destructive/10 text-destructive ring-1 ring-destructive/20',
+        )}
+      >
+        <AlertTriangleIcon className="size-4" aria-hidden />
+      </span>
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={onRetry}
+        disabled={isRetrying}
+        className="h-8 gap-1.5 px-3 text-xs"
+      >
+        {isRetrying ? (
+          <Loader2Icon className="size-3.5 animate-spin" aria-hidden />
+        ) : (
+          <RefreshCwIcon className="size-3.5" aria-hidden />
+        )}
+        {retryLabel}
+      </Button>
     </div>
   );
 }

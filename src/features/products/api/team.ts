@@ -55,11 +55,12 @@ type CollaborationSchemaResponse = {
   product_id: string;
   collaborator: CollaboratorRefSchemaResponse | null;
   invited_email: string | null;
-  status: 'pending_invite' | 'active' | 'revoked';
+  status: 'pending_invite' | 'active' | 'declined' | 'revoked';
   invited_by: string;
   invite_expires_at: string | null;
   created_at: string;
   accepted_at: string | null;
+  declined_at: string | null;
   revoked_at: string | null;
   grants: GrantSchemaResponse[];
 };
@@ -107,6 +108,7 @@ function fromCollaboration(raw: CollaborationSchemaResponse): Collaboration {
     inviteExpiresAt: raw.invite_expires_at,
     createdAt: raw.created_at,
     acceptedAt: raw.accepted_at,
+    declinedAt: raw.declined_at,
     revokedAt: raw.revoked_at,
     grants: raw.grants.map(fromGrant),
   };

@@ -10,6 +10,7 @@ import {
   moveFolder,
   moveProduct,
   renameFolder,
+  type CreateFolderInput,
 } from '../lib/folder-tree';
 
 export function useDemoState() {
@@ -38,10 +39,10 @@ export function useDemoState() {
   }, []);
 
   const create = useCallback(
-    (parentId: string | null, name: string) => {
+    (parentId: string | null, input: CreateFolderInput) => {
       let createdId = '';
       setState((prev) => {
-        const result = createFolder(prev, parentId, name);
+        const result = createFolder(prev, parentId, input);
         createdId = result.id;
         return result.state;
       });

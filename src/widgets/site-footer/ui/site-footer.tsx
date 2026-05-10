@@ -23,7 +23,7 @@ type SiteFooterProps = {
   variant?: SiteFooterVariant;
 };
 
-export async function SiteFooter({ variant = 'purple' }: SiteFooterProps = {}) {
+export async function SiteFooter({ variant = 'white' }: SiteFooterProps = {}) {
   const t = await getTranslations('home.footer');
   const currentYear = new Date().getFullYear();
   const columns = t.raw('columns') as FooterColumn[];

@@ -132,10 +132,31 @@ export function InlineRichEditor({
 }: InlineRichEditorProps) {
   const t = useTranslations('rich-editor.inline');
   const [isEditing, setIsEditing] = useState(false);
+  // Mirror of the editor's HTML so read-mode shows the latest content the
+  // moment the user exits — without waiting for the parent's debounced commit
+  // (e.g. `useDebouncedFlush`) to round-trip back through the `value` prop.
+  // Adopt the prop only when it changes AND we're not editing; during an edit
+  // session, the editor owns the HTML and the parent's stale prop must not
+  // clobber it. This is React's recommended "derived state from props"
+  // pattern — set during render, guarded by an inequality check.
+  const [readValue, setReadValue] = useState(value);
+  const [lastSyncedValue, setLastSyncedValue] = useState(value);
+  if (value !== lastSyncedValue) {
+    setLastSyncedValue(value);
+    if (!isEditing) setReadValue(value);
+  }
   // Plain-text character offset (within the rendered content) where the user
   // clicked. Layout-independent, so it survives the read→edit DOM swap and
   // any padding / margin / toolbar shifts between the two modes.
   const pendingCharOffsetRef = useRef<number | null>(null);
+
+  const handleChange = useCallback(
+    (html: string) => {
+      setReadValue(html);
+      onChange(html);
+    },
+    [onChange],
+  );
 
   const exitEdit = useCallback(() => setIsEditing(false), []);
 
@@ -206,7 +227,7 @@ export function InlineRichEditor({
     });
   }, []);
 
-  const empty = isEmptyHtml(value);
+  const empty = isEmptyHtml(readValue);
 
   return (
     <InlineEditorShell
@@ -220,13 +241,13 @@ export function InlineRichEditor({
       readContent={
         <div
           className="rich-editor-content text-sm leading-relaxed text-foreground"
-          dangerouslySetInnerHTML={{ __html: value }}
+          dangerouslySetInnerHTML={{ __html: readValue }}
         />
       }
       editContent={
         <RichEditor
-          defaultValue={value}
-          onChange={onChange}
+          defaultValue={readValue}
+          onChange={handleChange}
           placeholder={placeholder ?? t('placeholder')}
           onReady={onEditorReady}
           immediatelyRender

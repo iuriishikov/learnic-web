@@ -41,6 +41,7 @@ import {
 import { Skeleton } from '@/shared/ui/skeleton';
 
 import type {
+  CodeTab,
   CourseDraft,
   DraftLesson,
   DraftModule,
@@ -67,6 +68,7 @@ import {
   useReorderBlocksMutation,
   useReorderLessonsMutation,
   useReorderModulesMutation,
+  useUpdateCodeBlockMutation,
   useUpdateHtmlBlockMutation,
   useUpdateKatexBlockMutation,
 } from '../api/use-course-mutations';
@@ -164,6 +166,7 @@ export function ProductEditorView({
   const addBlock = useAddBlockMutation(product.id);
   const updateHtmlBlock = useUpdateHtmlBlockMutation(product.id);
   const updateKatexBlock = useUpdateKatexBlockMutation(product.id);
+  const updateCodeBlock = useUpdateCodeBlockMutation(product.id);
   const deleteBlock = useDeleteBlockMutation(product.id);
   const reorderBlocks = useReorderBlocksMutation(product.id);
   const setCover = useSetProductCoverMutation(product.id);
@@ -334,6 +337,13 @@ export function ProductEditorView({
       updateKatexBlock.mutate({ blockId, source });
     },
     [updateKatexBlock],
+  );
+
+  const handleUpdateCodeBlock = useCallback(
+    (blockId: string, tabs: CodeTab[]) => {
+      updateCodeBlock.mutate({ blockId, tabs });
+    },
+    [updateCodeBlock],
   );
 
   const handleDeleteBlock = useCallback(
@@ -698,6 +708,7 @@ export function ProductEditorView({
                   selectedLesson={selectedLesson}
                   onUpdateHtml={handleUpdateHtmlBlock}
                   onUpdateKatex={handleUpdateKatexBlock}
+                  onUpdateCode={handleUpdateCodeBlock}
                   onAddBlock={handleAddBlock}
                   onRemoveBlock={handleDeleteBlock}
                   onReorderBlocks={handleReorderBlocks}
@@ -959,6 +970,7 @@ type ContentSectionProps = {
   selectedLesson: { module: DraftModule; lesson: DraftLesson } | null;
   onUpdateHtml: (blockId: string, html: string) => void;
   onUpdateKatex: (blockId: string, source: string) => void;
+  onUpdateCode: (blockId: string, tabs: CodeTab[]) => void;
   onAddBlock: (type: CreatableBlockType) => void;
   onRemoveBlock: (blockId: string) => void;
   onReorderBlocks: (orderedIds: string[]) => void;
@@ -973,6 +985,7 @@ function ContentSection({
   selectedLesson,
   onUpdateHtml,
   onUpdateKatex,
+  onUpdateCode,
   onAddBlock,
   onRemoveBlock,
   onReorderBlocks,
@@ -1110,6 +1123,7 @@ function ContentSection({
         blocks={selectedLesson.lesson.blocks satisfies LessonBlock[]}
         onUpdateHtml={onUpdateHtml}
         onUpdateKatex={onUpdateKatex}
+        onUpdateCode={onUpdateCode}
         onAddBlock={onAddBlock}
         onRemoveBlock={onRemoveBlock}
         onReorder={onReorderBlocks}

@@ -149,10 +149,12 @@ function InviteSearchPanel({
 
   // Existing-member lookups: skip the search hit if the person is
   // already an active member or has a pending invite, plus the owner.
+  // Terminal statuses (revoked, declined) must be excluded so a user
+  // who declined an invite can be re-invited.
   const existingUserIds = useMemo(() => {
     const set = new Set<string>([ownerId]);
     for (const c of collabsQuery.data ?? []) {
-      if (c.status === 'revoked') continue;
+      if (c.status === 'revoked' || c.status === 'declined') continue;
       if (c.collaborator?.id) set.add(c.collaborator.id);
     }
     return set;
@@ -161,7 +163,7 @@ function InviteSearchPanel({
   const existingEmails = useMemo(() => {
     const set = new Set<string>();
     for (const c of collabsQuery.data ?? []) {
-      if (c.status === 'revoked') continue;
+      if (c.status === 'revoked' || c.status === 'declined') continue;
       const email = (c.collaborator?.email ?? c.invitedEmail ?? '')
         .trim()
         .toLowerCase();
