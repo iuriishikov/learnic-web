@@ -4,6 +4,7 @@ import { Loader2Icon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { useProductPermissions } from '@/features/products';
 import { useNotify } from '@/shared/lib/notify';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
@@ -14,8 +15,7 @@ type Status = 'idle' | 'pending' | 'sent' | 'unavailable';
 
 type NotificationReinviteActionProps = {
   collaborationId: string;
-  /** True when the recipient currently holds `MANAGE_COLLABORATORS`. */
-  canManage: boolean;
+  productId: string;
   onResolved?: () => void;
 };
 
@@ -23,18 +23,22 @@ type NotificationReinviteActionProps = {
  * Re-invite action rendered inside an `invite_declined` card. Hits
  * `POST /collaborations/{id}/reinvite` which copies the original
  * target and grants into a fresh `PENDING_INVITE` collaboration.
- * Hidden when the recipient has lost `MANAGE_COLLABORATORS`.
+ * Hidden when the recipient has lost `MANAGE_COLLABORATORS` —
+ * checked live against `GET /products/{id}/collaborations/me/permissions`
+ * each time the card mounts so the CTA reflects current rights.
  */
 export function NotificationReinviteAction({
   collaborationId,
-  canManage,
+  productId,
   onResolved,
 }: NotificationReinviteActionProps) {
   const t = useTranslations('notifications');
   const notify = useNotify();
   const [status, setStatus] = useState<Status>('idle');
+  const { canManageCollaborators, isLoading } =
+    useProductPermissions(productId);
 
-  if (!canManage && status === 'idle') {
+  if (status === 'idle' && (isLoading || !canManageCollaborators)) {
     return null;
   }
 

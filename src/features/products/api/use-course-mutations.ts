@@ -197,12 +197,20 @@ export function useAddModuleMutation(courseId: string) {
     },
     onSuccess: ({ id }, _vars, ctx) => {
       if (!ctx) return;
-      setDraft(qc, courseId, (draft) => ({
-        ...draft,
-        modules: draft.modules.map((m) =>
-          m.id === ctx.tempId ? { ...m, id } : m,
-        ),
-      }));
+      setDraft(qc, courseId, (draft) => {
+        if (draft.modules.some((m) => m.id === id)) {
+          return {
+            ...draft,
+            modules: draft.modules.filter((m) => m.id !== ctx.tempId),
+          };
+        }
+        return {
+          ...draft,
+          modules: draft.modules.map((m) =>
+            m.id === ctx.tempId ? { ...m, id } : m,
+          ),
+        };
+      });
     },
     onError: (_err, _vars, ctx) => {
       restore(qc, courseId, ctx);
@@ -341,9 +349,18 @@ export function useAddLessonMutation(courseId: string) {
     },
     onSuccess: ({ id }, _vars, ctx) => {
       if (!ctx) return;
-      setDraft(qc, courseId, (draft) =>
-        mapLesson(draft, ctx.tempId, (l) => ({ ...l, id })),
-      );
+      setDraft(qc, courseId, (draft) => {
+        if (findLesson(draft, id)) {
+          return {
+            ...draft,
+            modules: draft.modules.map((m) => ({
+              ...m,
+              lessons: m.lessons.filter((l) => l.id !== ctx.tempId),
+            })),
+          };
+        }
+        return mapLesson(draft, ctx.tempId, (l) => ({ ...l, id }));
+      });
     },
     onError: (_err, _vars, ctx) => {
       restore(qc, courseId, ctx);
@@ -579,18 +596,32 @@ export function useAddBlockMutation(courseId: string) {
     },
     onSuccess: ({ id }, _vars, ctx) => {
       if (!ctx) return;
-      setDraft(qc, courseId, (draft) => ({
-        ...draft,
-        modules: draft.modules.map((m) => ({
-          ...m,
-          lessons: m.lessons.map((l) => ({
-            ...l,
-            blocks: l.blocks.map((b) =>
-              b.id === ctx.tempId ? ({ ...b, id } as LessonBlock) : b,
-            ),
+      setDraft(qc, courseId, (draft) => {
+        if (findBlock(draft, id)) {
+          return {
+            ...draft,
+            modules: draft.modules.map((m) => ({
+              ...m,
+              lessons: m.lessons.map((l) => ({
+                ...l,
+                blocks: l.blocks.filter((b) => b.id !== ctx.tempId),
+              })),
+            })),
+          };
+        }
+        return {
+          ...draft,
+          modules: draft.modules.map((m) => ({
+            ...m,
+            lessons: m.lessons.map((l) => ({
+              ...l,
+              blocks: l.blocks.map((b) =>
+                b.id === ctx.tempId ? ({ ...b, id } as LessonBlock) : b,
+              ),
+            })),
           })),
-        })),
-      }));
+        };
+      });
     },
     onError: (_err, _vars, ctx) => {
       restore(qc, courseId, ctx);

@@ -19,6 +19,7 @@ import {
   inviteDeclinedDescriptor,
 } from './invite-declined';
 import { inviteSentDescriptor } from './invite-sent';
+import { newLoginDescriptor } from './new-login';
 import type { KindDescriptor } from './types';
 
 export const KIND_REGISTRY = {
@@ -26,6 +27,7 @@ export const KIND_REGISTRY = {
   invite_accepted: inviteAcceptedDescriptor,
   invite_declined: inviteDeclinedDescriptor,
   access_revoked: accessRevokedDescriptor,
+  new_login: newLoginDescriptor,
 };
 
 type Registry = typeof KIND_REGISTRY;

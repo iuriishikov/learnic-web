@@ -47,4 +47,23 @@ export type KindDescriptor<
     details: D;
     onResolved: () => void;
   }>;
+
+  /**
+   * Custom message renderer that replaces the default "actor +
+   * lead + product" sentence. Use for kinds that don't fit that
+   * shape — e.g. security events that don't have a product or
+   * an actor (login from device X). When omitted the renderer
+   * falls back to the default sentence and `details.product` is
+   * required.
+   */
+  renderLine?: ComponentType<{ details: D }>;
+
+  /**
+   * Custom avatar slot renderer that replaces the actor avatar.
+   * Use for kinds that don't carry an actor — e.g. a security
+   * shield icon for a new-login event. The renderer receives
+   * the parsed details so it can pick an icon based on payload
+   * (different icons per device, severity, etc.).
+   */
+  renderAvatar?: ComponentType<{ details: D }>;
 };

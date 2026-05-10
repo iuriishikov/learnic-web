@@ -3,16 +3,24 @@
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
+import { useAuth } from '@/features/auth';
+
 import {
   EventsChannel,
   type EventEnvelope,
 } from '../lib/events-channel';
+import type { Collaboration, Permission, Role } from '../model/team';
+import { PERMISSIONS } from '../model/team';
 import type { Product } from '../model/types';
 import type { ProductQA } from './qa';
 
 import { productKey } from './use-product';
 import { productQAKey } from './use-product-qa';
-import { productCollaborationsKey } from './use-team';
+import {
+  productCollaborationsKey,
+  productMyPermissionsKey,
+  productRolesKey,
+} from './use-team';
 
 /**
  * Product-level delta channel — `WS /products/{product_id}/events`.
@@ -44,23 +52,38 @@ type ProductEventKind =
   | 'collaboration_accepted'
   | 'collaboration_declined'
   | 'collaboration_revoked'
-  | 'collaboration_grants_updated';
+  | 'collaboration_grants_updated'
+  | 'role_created'
+  | 'role_updated'
+  | 'role_deleted';
 
 export function useProductEventsWs(productId: string, enabled: boolean) {
   const qc = useQueryClient();
+  // Tracked here so collaboration events targeting the current user can
+  // also invalidate `productMyPermissionsKey` — the cache that gates
+  // every permission-aware UI control on the editor.
+  const currentUserId = useAuth().user?.oid ?? null;
 
   useEffect(() => {
     if (!enabled || typeof window === 'undefined') return;
 
     const channel = new EventsChannel<ProductEventKind>({
       url: `/api/products/${encodeURIComponent(productId)}/events`,
-      onEvent: (event) => applyProductEvent(qc, productId, event),
+      onEvent: (event) =>
+        applyProductEvent(qc, productId, currentUserId, event),
       onReconnected: () => {
-        // No replay — refetch product + Q&A + collaborations state from REST.
+        // No replay — refetch product + Q&A + collaborations + roles +
+        // my own effective permissions from REST. Permissions are
+        // included because a grant or role change we missed while
+        // disconnected would otherwise leave the UI gating stale.
         qc.invalidateQueries({ queryKey: productKey(productId) });
         qc.invalidateQueries({ queryKey: productQAKey(productId) });
         qc.invalidateQueries({
           queryKey: productCollaborationsKey(productId),
+        });
+        qc.invalidateQueries({ queryKey: productRolesKey(productId) });
+        qc.invalidateQueries({
+          queryKey: productMyPermissionsKey(productId),
         });
       },
       onTerminalClose: (code) => {
@@ -71,12 +94,13 @@ export function useProductEventsWs(productId: string, enabled: boolean) {
     });
     channel.start();
     return () => channel.stop();
-  }, [productId, enabled, qc]);
+  }, [productId, enabled, qc, currentUserId]);
 }
 
 function applyProductEvent(
   qc: QueryClient,
   productId: string,
+  currentUserId: string | null,
   event: EventEnvelope<ProductEventKind>,
 ): void {
   const { kind, payload } = event;
@@ -165,8 +189,8 @@ function applyProductEvent(
     /* ---------- collaboration lifecycle ---------- */
     // Status flips (pending → active/declined/revoked) and grant changes
     // touch fields the SPA renders verbatim from the REST payload (status,
-    // accepted_at, declined_at, revoked_at, grants[]). Refetch instead of
-    // patching so the team tab stays in sync without re-deriving payloads.
+    // accepted_at, declined_at, revoked_at, grants[]). Refetch the team
+    // tab so it stays in sync without re-deriving payloads.
     case 'collaboration_invited':
     case 'collaboration_accepted':
     case 'collaboration_declined':
@@ -175,7 +199,61 @@ function applyProductEvent(
       qc.invalidateQueries({
         queryKey: productCollaborationsKey(productId),
       });
+      // If the affected row is the *current user's* collaboration, the
+      // change is also a permission change for them — accept grants the
+      // baseline, revoke removes everything, grants_updated swaps the
+      // active set. Refetch `productMyPermissionsKey` so every
+      // permission-gated control on the editor reflects the new state
+      // immediately, not after the next stale-time tick.
+      if (
+        currentUserId !== null &&
+        affectsCurrentUser(payload, currentUserId) &&
+        kind !== 'collaboration_invited' &&
+        kind !== 'collaboration_declined'
+      ) {
+        qc.invalidateQueries({
+          queryKey: productMyPermissionsKey(productId),
+        });
+      }
       return;
+
+    /* ---------- role catalogue ---------- */
+    case 'role_created': {
+      const role = parseRolePayload(payload);
+      if (role) appendRole(qc, productId, role);
+      return;
+    }
+    case 'role_updated': {
+      const role = parseRolePayload(payload);
+      if (!role) return;
+      replaceRole(qc, productId, role);
+      // Denormalised `roleName` lives on every grant in the
+      // collaborations cache — keep it in sync so the team list
+      // doesn't show a stale role label.
+      patchCollaborationGrantsForRole(qc, productId, role);
+      // The role's permission set just changed. Every collaborator
+      // holding this role now has a different effective permission
+      // set — for the *current* user we own the cache, so refetch
+      // their permissions if they're affected. (Other users' UI
+      // gating recomputes on their own tab via this same event.)
+      if (
+        currentUserId !== null &&
+        currentUserHoldsRole(qc, productId, currentUserId, role.id)
+      ) {
+        qc.invalidateQueries({
+          queryKey: productMyPermissionsKey(productId),
+        });
+      }
+      return;
+    }
+    case 'role_deleted': {
+      const roleId = strField(payload, 'role_id');
+      if (roleId) dropRole(qc, productId, roleId);
+      // The DB enforces `ON DELETE RESTRICT` on every grant pointing
+      // at the role, so deletion only succeeds when no live grants
+      // reference it — no permission re-derivation needed.
+      return;
+    }
 
     default:
       // Forward-compat fallback.
@@ -199,6 +277,143 @@ function patchProduct(
   });
 }
 
+function appendRole(
+  qc: QueryClient,
+  productId: string,
+  role: Role,
+): void {
+  qc.setQueryData<Role[]>(productRolesKey(productId), (current) => {
+    if (!current) return current;
+    if (current.some((r) => r.id === role.id)) return current;
+    return [...current, role].sort(byPositionThenCreatedAt);
+  });
+}
+
+function replaceRole(
+  qc: QueryClient,
+  productId: string,
+  role: Role,
+): void {
+  qc.setQueryData<Role[]>(productRolesKey(productId), (current) => {
+    if (!current) return current;
+    let found = false;
+    const next = current.map((r) => {
+      if (r.id !== role.id) return r;
+      found = true;
+      return role;
+    });
+    if (!found) return current;
+    return next.sort(byPositionThenCreatedAt);
+  });
+}
+
+function dropRole(
+  qc: QueryClient,
+  productId: string,
+  roleId: string,
+): void {
+  qc.setQueryData<Role[]>(productRolesKey(productId), (current) => {
+    if (!current) return current;
+    return current.filter((r) => r.id !== roleId);
+  });
+}
+
+function patchCollaborationGrantsForRole(
+  qc: QueryClient,
+  productId: string,
+  role: Role,
+): void {
+  qc.setQueryData<Collaboration[]>(
+    productCollaborationsKey(productId),
+    (current) => {
+      if (!current) return current;
+      let touched = false;
+      const next = current.map((collab) => {
+        let grantsTouched = false;
+        const grants = collab.grants.map((g) => {
+          if (g.roleId !== role.id) return g;
+          if (g.roleName === role.name) return g;
+          grantsTouched = true;
+          return { ...g, roleName: role.name };
+        });
+        if (!grantsTouched) return collab;
+        touched = true;
+        return { ...collab, grants };
+      });
+      return touched ? next : current;
+    },
+  );
+}
+
+function currentUserHoldsRole(
+  qc: QueryClient,
+  productId: string,
+  currentUserId: string,
+  roleId: string,
+): boolean {
+  const collabs = qc.getQueryData<Collaboration[]>(
+    productCollaborationsKey(productId),
+  );
+  if (!collabs) return false;
+  for (const c of collabs) {
+    if (c.status !== 'active') continue;
+    if (c.collaborator?.id !== currentUserId) continue;
+    if (c.grants.some((g) => g.roleId === roleId)) return true;
+  }
+  return false;
+}
+
+function byPositionThenCreatedAt(a: Role, b: Role): number {
+  if (a.position !== b.position) return a.position - b.position;
+  return a.createdAt.localeCompare(b.createdAt);
+}
+
+function parseRolePayload(
+  payload: Record<string, unknown>,
+): Role | null {
+  const oid = strField(payload, 'oid');
+  const productId = strField(payload, 'product_id');
+  const name = strField(payload, 'name');
+  const position = numField(payload, 'position');
+  const createdAt = strField(payload, 'created_at');
+  const updatedAt = strField(payload, 'updated_at');
+  if (
+    !oid ||
+    !productId ||
+    !name ||
+    position === undefined ||
+    !createdAt ||
+    !updatedAt
+  ) {
+    return null;
+  }
+  const rawDescription = payload['description'];
+  const description =
+    typeof rawDescription === 'string' ? rawDescription : null;
+  const rawCreatedBy = payload['created_by'];
+  const createdBy = typeof rawCreatedBy === 'string' ? rawCreatedBy : null;
+  const rawPermissions = payload['permissions'];
+  const permissions = Array.isArray(rawPermissions)
+    ? (rawPermissions.filter(isPermission) as Permission[])
+    : [];
+  return {
+    id: oid,
+    productId,
+    name,
+    description,
+    position,
+    permissions,
+    createdBy,
+    createdAt,
+    updatedAt,
+  };
+}
+
+const PERMISSION_SET: ReadonlySet<string> = new Set(PERMISSIONS);
+function isPermission(value: unknown): value is Permission {
+  return typeof value === 'string' && PERMISSION_SET.has(value);
+}
+
 function patchQAList(
   qc: QueryClient,
   productId: string,
@@ -216,6 +431,19 @@ function strField(
 ): string | undefined {
   const v = payload[key];
   return typeof v === 'string' ? v : undefined;
+}
+
+function affectsCurrentUser(
+  payload: Record<string, unknown>,
+  currentUserId: string,
+): boolean {
+  // `collaborator_id` is present on every collaboration_* event whose
+  // affected row carries one (always for `*_accepted`, for `*_invited`
+  // by-user, and for `*_revoked`/`*_grants_updated` post-acceptance).
+  // by-email invites that haven't been accepted yet have no
+  // `collaborator_id`, so they cannot match the current user — those
+  // skip the permissions invalidation correctly via this guard.
+  return strField(payload, 'collaborator_id') === currentUserId;
 }
 
 function numField(

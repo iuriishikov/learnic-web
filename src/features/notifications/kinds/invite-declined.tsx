@@ -22,7 +22,6 @@ export type InviteDeclinedRaw = {
   product: ProductRaw;
   decliner: ActorRaw;
   collaboration: CollaborationRaw | null;
-  viewer_can_manage_collaborators?: boolean;
 };
 
 export type InviteDeclinedDetails = {
@@ -31,12 +30,6 @@ export type InviteDeclinedDetails = {
   product: ProductRef;
   decliner: ActorRef;
   collaboration: CollaborationSnapshot | null;
-  /**
-   * True when the recipient currently holds
-   * `MANAGE_COLLABORATORS` on the product. Drives the visibility
-   * of the Re-invite CTA.
-   */
-  viewerCanManageCollaborators: boolean;
 };
 
 export const inviteDeclinedDescriptor: KindDescriptor<
@@ -50,14 +43,12 @@ export const inviteDeclinedDescriptor: KindDescriptor<
     product: toProduct(raw.product),
     decliner: toActor(raw.decliner),
     collaboration: toCollaboration(raw.collaboration),
-    viewerCanManageCollaborators:
-      raw.viewer_can_manage_collaborators ?? false,
   }),
   getFallbackActor: (details) => details.decliner,
   Action: ({ details, onResolved }) => (
     <NotificationReinviteAction
       collaborationId={details.collaborationId}
-      canManage={details.viewerCanManageCollaborators}
+      productId={details.product.oid}
       onResolved={onResolved}
     />
   ),

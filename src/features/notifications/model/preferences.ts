@@ -20,7 +20,9 @@ export type NotificationPreferences = {
 };
 
 export const categoryTogglesSchema = z.object({
-  invites: z.boolean(),
+  teaching: z.boolean(),
+  learning: z.boolean(),
+  security: z.boolean(),
   files: z.boolean(),
   jobs: z.boolean(),
   other: z.boolean(),
@@ -36,7 +38,9 @@ export type NotificationPreferencesInput = z.infer<
 >;
 
 export const ALL_CATEGORIES: readonly NotificationCategory[] = [
-  'invites',
+  'teaching',
+  'learning',
+  'security',
   'files',
   'jobs',
   'other',
@@ -52,7 +56,9 @@ export const ALL_CATEGORIES: readonly NotificationCategory[] = [
  * ``NotificationKind`` is introduced that maps to it.
  */
 export const ACTIVE_CATEGORIES: readonly NotificationCategory[] = [
-  'invites',
+  'teaching',
+  'learning',
+  'security',
 ] as const;
 
 export const CHANNELS_WITH_TOGGLE: readonly NotificationChannel[] = [

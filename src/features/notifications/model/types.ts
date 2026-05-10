@@ -17,7 +17,13 @@ import type {
 
 export type { NotificationDetails, NotificationDetailsRaw, NotificationKind };
 
-export type NotificationCategory = 'invites' | 'files' | 'jobs' | 'other';
+export type NotificationCategory =
+  | 'teaching'
+  | 'learning'
+  | 'security'
+  | 'files'
+  | 'jobs'
+  | 'other';
 
 export type ActorRef = {
   oid: string;

@@ -2,76 +2,11 @@ import 'server-only';
 
 import { apiFetch } from '@/shared/api/client';
 
-import type {
-  CodeBlockLanguage,
-  CourseDraft,
-  DraftLesson,
-  DraftModule,
-  LessonBlock,
-} from '../model/draft';
-
-type HtmlBlockResponse = {
-  type: 'html';
-  oid: string;
-  position: number;
-  html: string;
-};
-
-type KatexBlockResponse = {
-  type: 'katex';
-  oid: string;
-  position: number;
-  source: string;
-};
-
-type RutubeVideoBlockResponse = {
-  type: 'rutube_video';
-  oid: string;
-  position: number;
-  external_id: string;
-  embed_url: string;
-  title: string | null;
-};
-
-type CodeTabResponse = {
-  label: string;
-  source: string;
-  language: CodeBlockLanguage;
-};
-
-type CodeBlockResponse = {
-  type: 'code';
-  oid: string;
-  position: number;
-  tabs: CodeTabResponse[];
-};
-
-type LessonBlockResponse =
-  | HtmlBlockResponse
-  | KatexBlockResponse
-  | RutubeVideoBlockResponse
-  | CodeBlockResponse;
-
-type DraftLessonResponse = {
-  oid: string;
-  title: string;
-  position: number;
-  blocks: LessonBlockResponse[];
-};
-
-type DraftModuleResponse = {
-  oid: string;
-  title: string;
-  description: string | null;
-  position: number;
-  lessons: DraftLessonResponse[];
-};
-
-type CourseDraftResponse = {
-  course_id: string;
-  modules: DraftModuleResponse[];
-  fetched_at: string;
-};
+import {
+  type CourseDraftResponse,
+  fromCourseDraftResponse,
+} from '../lib/draft-wire';
+import type { CourseDraft } from '../model/draft';
 
 export type GetCourseDraftResult =
   | { ok: true; draft: CourseDraft }
@@ -107,71 +42,4 @@ export async function getCourseDraft(
 
   const raw = (await res.json()) as CourseDraftResponse;
   return { ok: true, draft: fromCourseDraftResponse(raw) };
-}
-
-function fromCourseDraftResponse(raw: CourseDraftResponse): CourseDraft {
-  return {
-    courseId: raw.course_id,
-    fetchedAt: raw.fetched_at,
-    modules: [...raw.modules]
-      .sort((a, b) => a.position - b.position)
-      .map(fromModuleResponse),
-  };
-}
-
-function fromModuleResponse(raw: DraftModuleResponse): DraftModule {
-  return {
-    id: raw.oid,
-    title: raw.title,
-    description: raw.description,
-    position: raw.position,
-    lessons: [...raw.lessons]
-      .sort((a, b) => a.position - b.position)
-      .map(fromLessonResponse),
-  };
-}
-
-function fromLessonResponse(raw: DraftLessonResponse): DraftLesson {
-  return {
-    id: raw.oid,
-    title: raw.title,
-    position: raw.position,
-    blocks: [...raw.blocks]
-      .sort((a, b) => a.position - b.position)
-      .map(fromBlockResponse),
-  };
-}
-
-function fromBlockResponse(raw: LessonBlockResponse): LessonBlock {
-  if (raw.type === 'html') {
-    return { type: 'html', id: raw.oid, position: raw.position, html: raw.html };
-  }
-  if (raw.type === 'katex') {
-    return {
-      type: 'katex',
-      id: raw.oid,
-      position: raw.position,
-      source: raw.source,
-    };
-  }
-  if (raw.type === 'code') {
-    return {
-      type: 'code',
-      id: raw.oid,
-      position: raw.position,
-      tabs: raw.tabs.map((t) => ({
-        label: t.label,
-        source: t.source,
-        language: t.language,
-      })),
-    };
-  }
-  return {
-    type: 'rutube_video',
-    id: raw.oid,
-    position: raw.position,
-    externalId: raw.external_id,
-    embedUrl: raw.embed_url,
-    title: raw.title,
-  };
 }

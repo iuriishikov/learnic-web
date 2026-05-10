@@ -568,9 +568,6 @@ function MemberRow({
                     />
                   ) : null}
                 </span>
-                <span className="truncate text-xs text-muted-foreground">
-                  @{emailHandle(member.email || member.name)}
-                </span>
               </div>
             </div>
           </MemberHoverCard>

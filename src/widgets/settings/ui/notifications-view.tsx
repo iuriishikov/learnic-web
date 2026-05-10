@@ -49,8 +49,22 @@ const CHANNEL_ICONS: Record<NotificationChannel, typeof BellIcon> = {
 };
 
 const DEFAULT_PREFS: NotificationPreferences = {
-  push: { invites: true, files: true, jobs: true, other: true },
-  email: { invites: false, files: false, jobs: false, other: false },
+  push: {
+    teaching: true,
+    learning: true,
+    security: true,
+    files: true,
+    jobs: true,
+    other: true,
+  },
+  email: {
+    teaching: false,
+    learning: false,
+    security: false,
+    files: false,
+    jobs: false,
+    other: false,
+  },
 };
 
 const AUTOSAVE_DEBOUNCE_MS = 500;

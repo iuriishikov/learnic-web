@@ -7,7 +7,9 @@
     "unread": "Не прочитанные"
   },
   "categoryTag": {
-    "team": "Команда",
+    "teaching": "Преподавание",
+    "learning": "Обучение",
+    "security": "Безопасность",
     "files": "Файлы",
     "jobs": "Задачи",
     "general": "Общее"
@@ -39,6 +41,10 @@
     },
     "accessRevoked": {
       "lead": "удалил(а) Вас из коллабораторов продукта"
+    },
+    "newLogin": {
+      "lead": "Выполнен новый вход в аккаунт с устройства",
+      "unknownDevice": "неизвестное устройство"
     }
   },
   "actions": {
@@ -56,6 +62,11 @@
     "collaboratorLeft": "Пользователь покинул команду",
     "noManagePermission": "Нет прав на управление коллабораторами",
     "reinvite": "Пригласить повторно",
-    "reinviteSent": "Приглашение отправлено повторно"
+    "reinviteSent": "Приглашение отправлено повторно",
+    "newLoginRevoke": "Выйти на этом устройстве",
+    "newLoginRevoking": "Завершаем…",
+    "newLoginRevoked": "Сессия завершена",
+    "newLoginAlreadyRevoked": "Сессия уже была завершена",
+    "newLoginRevokeFailed": "Не удалось завершить сессию. Попробуйте ещё раз."
   }
 }

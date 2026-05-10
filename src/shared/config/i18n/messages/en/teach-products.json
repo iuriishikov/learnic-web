@@ -370,6 +370,7 @@
         "edit": "Редактировать",
         "delete": "Удалить роль",
         "fullAccess": "Полный доступ",
+        "permissionsListHeading": "Что входит в роль",
         "rowMenu": "Действия с ролью",
         "noRolesAvailable": "Нет доступных ролей",
         "empty": {

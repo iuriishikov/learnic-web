@@ -15,7 +15,9 @@ type NotificationItemProps = {
 };
 
 const CATEGORY_TAG: Record<Notification['category'], string> = {
-  invites: 'team',
+  teaching: 'teaching',
+  learning: 'learning',
+  security: 'security',
   files: 'files',
   jobs: 'jobs',
   other: 'general',
@@ -32,13 +34,10 @@ export function NotificationItem({
   const { descriptor } = lookupKind(notification.details);
   const fallbackActor = descriptor.getFallbackActor?.(notification.details);
   const displayActor = notification.actor ?? fallbackActor ?? null;
-  const actorName = displayActor
-    ? buildUserDisplayName({ fullName: displayActor.fullName })
-    : t('actorUnknown');
   const tag = t(`categoryTag.${CATEGORY_TAG[notification.category]}`);
-  const productName =
-    notification.details.product.name || t('productFallback');
   const Action = descriptor.Action;
+  const RenderLine = descriptor.renderLine;
+  const RenderAvatar = descriptor.renderAvatar;
 
   function handlePointerEnter() {
     if (!isUnread) return;
@@ -57,19 +56,23 @@ export function NotificationItem({
       className={cn('group flex gap-2.5 px-3 py-2.5 transition-colors')}
     >
       <div className="relative shrink-0">
-        <UserAvatar
-          user={
-            displayActor
-              ? {
-                  id: displayActor.oid,
-                  fullName: displayActor.fullName,
-                  avatarUrl: null,
-                }
-              : null
-          }
-          size="lg"
-          shape="circle"
-        />
+        {RenderAvatar ? (
+          <RenderAvatar details={notification.details} />
+        ) : (
+          <UserAvatar
+            user={
+              displayActor
+                ? {
+                    id: displayActor.oid,
+                    fullName: displayActor.fullName,
+                    avatarUrl: null,
+                  }
+                : null
+            }
+            size="lg"
+            shape="circle"
+          />
+        )}
         {isUnread ? (
           <span
             aria-label={t('unread')}
@@ -84,11 +87,15 @@ export function NotificationItem({
 
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <p className="text-sm leading-snug text-foreground">
-          <NotificationLine
-            actorName={actorName}
-            productName={productName}
-            leadKey={descriptor.leadKey}
-          />
+          {RenderLine ? (
+            <RenderLine details={notification.details} />
+          ) : (
+            <DefaultNotificationLine
+              notification={notification}
+              displayActor={displayActor}
+              leadKey={descriptor.leadKey}
+            />
+          )}
         </p>
         <p className="text-xs text-muted-foreground">
           <span>{format.relativeTime(new Date(notification.createdAt), now)}</span>
@@ -106,6 +113,30 @@ export function NotificationItem({
         ) : null}
       </div>
     </motion.li>
+  );
+}
+
+function DefaultNotificationLine({
+  notification,
+  displayActor,
+  leadKey,
+}: {
+  notification: Notification;
+  displayActor: Notification['actor'];
+  leadKey: string;
+}) {
+  const t = useTranslations('notifications');
+  const actorName = displayActor
+    ? buildUserDisplayName({ fullName: displayActor.fullName })
+    : t('actorUnknown');
+  const details = notification.details as { product?: { name?: string } };
+  const productName = details.product?.name || t('productFallback');
+  return (
+    <NotificationLine
+      actorName={actorName}
+      productName={productName}
+      leadKey={leadKey}
+    />
   );
 }
 

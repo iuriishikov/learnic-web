@@ -1,14 +1,13 @@
 'use client';
 
 import {
-  CheckCircle2Icon,
   PencilIcon,
   PlusIcon,
   RotateCwIcon,
   ShieldIcon,
   Sparkles,
   Trash2Icon,
-  XCircleIcon,
+  UsersIcon,
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -485,36 +484,44 @@ function RoleCard({
   const t = useTranslations('teach-products.editor.team.roles');
   const tPerm = useTranslations('teach-products.editor.team.permissions');
   const tone = roleColorClasses(colorForRole(role));
+  const reduceMotion = useReducedMotion();
 
   const totalPermissions = PERMISSIONS.length;
   const grantedCount = role.permissions.length;
   const granted = useMemo(() => new Set(role.permissions), [role.permissions]);
+  const isFull = grantedCount === totalPermissions;
 
   return (
-    <article
+    <motion.article
+      whileHover={reduceMotion ? undefined : { y: -2 }}
+      transition={{ type: 'spring', stiffness: 380, damping: 28 }}
       className={cn(
-        'group/role-card relative overflow-hidden rounded-2xl border border-border bg-background transition-all hover:border-foreground/15 hover:shadow-sm',
-        deleting && 'opacity-60',
+        'group/role-card relative flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-[box-shadow,border-color] duration-200 hover:border-foreground/10 hover:shadow-md',
+        deleting && 'pointer-events-none opacity-60',
       )}
     >
-      <div className={cn('h-1.5 w-full', tone.bg)} />
+      {/* Top accent stripe — role-tinted */}
+      <div className={cn('h-1 w-full shrink-0', tone.bg)} aria-hidden />
+
       <div className="flex flex-col gap-4 p-4">
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex min-w-0 items-center gap-3">
             <span
               className={cn(
-                'flex size-9 shrink-0 items-center justify-center rounded-lg ring-1 ring-foreground/10',
+                'flex size-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ring-foreground/5',
                 tone.bgSoft,
               )}
+              aria-hidden
             >
-              <ShieldIcon className={cn('size-4', tone.text)} />
+              <ShieldIcon className={cn('size-[18px]', tone.text)} />
             </span>
-            <div className="flex min-w-0 flex-col">
-              <h4 className="truncate text-sm font-semibold text-foreground">
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <h4 className="truncate text-[15px] font-semibold tracking-tight text-foreground">
                 {role.name}
               </h4>
-              <span className="text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <UsersIcon className="size-3" aria-hidden />
                 {t('membersCount', { count: memberCount })}
               </span>
             </div>
@@ -528,65 +535,100 @@ function RoleCard({
         </div>
 
         {/* Permissions progress */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-baseline justify-between text-xs">
-            <span className="font-medium text-foreground">
-              {grantedCount === totalPermissions
+        <div className="flex flex-col gap-2">
+          <div className="flex items-baseline justify-between gap-2">
+            <span
+              className={cn(
+                'text-xs font-medium',
+                isFull ? tone.text : 'text-foreground',
+              )}
+            >
+              {isFull
                 ? t('fullAccess')
                 : t('permissionsCount', { count: grantedCount })}
             </span>
-            <span className="font-mono tabular-nums text-muted-foreground">
+            <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
               {grantedCount}/{totalPermissions}
             </span>
           </div>
           <div
             aria-hidden
-            className="relative h-1.5 w-full overflow-hidden rounded-full bg-muted"
+            className="relative h-1.5 w-full overflow-hidden rounded-full bg-muted/70"
           >
-            <span
+            <motion.span
               className={cn('absolute inset-y-0 left-0 rounded-full', tone.bg)}
-              style={{
-                width: `${(grantedCount / totalPermissions) * 100}%`,
-              }}
+              initial={false}
+              animate={{ width: `${(grantedCount / totalPermissions) * 100}%` }}
+              transition={
+                reduceMotion
+                  ? { duration: 0 }
+                  : { type: 'spring', stiffness: 200, damping: 30 }
+              }
             />
           </div>
         </div>
 
-        {/* Group breakdown — compact icons row */}
-        <ul className="grid grid-cols-3 gap-1.5">
+        {/* Permissions breakdown — group sections inline */}
+        <ul className="flex flex-col gap-3 border-t border-border/60 pt-3">
           {PERMISSION_GROUPS.map((group) => {
             const inGroup = group.permissions.length;
             const have = group.permissions.filter((p) => granted.has(p)).length;
             const fully = have === inGroup;
             const partial = have > 0 && have < inGroup;
             return (
-              <li key={group.id}>
-                <div
-                  className={cn(
-                    'flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] leading-none',
-                    fully
-                      ? 'border-emerald-500/30 bg-emerald-500/[0.06] text-emerald-700 dark:text-emerald-400'
-                      : partial
-                        ? 'border-amber-500/30 bg-amber-500/[0.06] text-amber-700 dark:text-amber-400'
-                        : 'border-border bg-muted/30 text-muted-foreground',
-                  )}
-                  title={`${tPerm(`groups.${group.id}`)} • ${have}/${inGroup}`}
-                >
-                  {fully || partial ? (
-                    <CheckCircle2Icon className="size-3 shrink-0" />
-                  ) : (
-                    <XCircleIcon className="size-3 shrink-0" />
-                  )}
-                  <span className="truncate font-medium">
+              <li key={group.id} className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold tracking-tight text-foreground">
                     {tPerm(`groups.${group.id}`)}
                   </span>
+                  <span
+                    className={cn(
+                      'inline-flex items-center rounded-full px-1.5 py-0.5 font-mono text-[10px] tabular-nums',
+                      fully
+                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                        : partial
+                          ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
+                          : 'bg-muted/60 text-muted-foreground',
+                    )}
+                  >
+                    {have}/{inGroup}
+                  </span>
                 </div>
+                <ul className="flex flex-col gap-1">
+                  {group.permissions.map((permission) => {
+                    const has = granted.has(permission);
+                    return (
+                      <li
+                        key={permission}
+                        className="flex items-center gap-2 text-xs leading-snug"
+                      >
+                        <span
+                          aria-hidden
+                          className={cn(
+                            'size-1.5 shrink-0 rounded-full',
+                            has ? tone.dot : 'bg-muted-foreground/25',
+                          )}
+                        />
+                        <span
+                          className={cn(
+                            'truncate',
+                            has
+                              ? 'text-foreground'
+                              : 'text-muted-foreground/60',
+                          )}
+                        >
+                          {tPerm(`items.${permission}.label`)}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
               </li>
             );
           })}
         </ul>
       </div>
-    </article>
+    </motion.article>
   );
 }
 
@@ -647,23 +689,36 @@ function RolesSkeleton() {
       {Array.from({ length: 4 }).map((_, i) => (
         <article
           key={i}
-          className="overflow-hidden rounded-2xl border border-border bg-background"
+          className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm"
         >
-          <Skeleton className="h-1.5 w-full rounded-none" />
+          <Skeleton className="h-1 w-full rounded-none" />
           <div className="flex flex-col gap-4 p-4">
-            <div className="flex items-center gap-2.5">
-              <Skeleton className="size-9 rounded-lg" />
+            <div className="flex items-center gap-3">
+              <Skeleton className="size-10 rounded-xl" />
               <div className="flex flex-1 flex-col gap-1.5">
                 <Skeleton className="h-4 w-32" />
                 <Skeleton className="h-3 w-20" />
               </div>
-              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="size-7 rounded-md" />
             </div>
-            <Skeleton className="h-1.5 w-full rounded-full" />
-            <div className="grid grid-cols-3 gap-1.5">
-              <Skeleton className="h-7 rounded-lg" />
-              <Skeleton className="h-7 rounded-lg" />
-              <Skeleton className="h-7 rounded-lg" />
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-3 w-10" />
+              </div>
+              <Skeleton className="h-1.5 w-full rounded-full" />
+            </div>
+            <div className="flex flex-col gap-3 border-t border-border/60 pt-3">
+              {Array.from({ length: 3 }).map((__, j) => (
+                <div key={j} className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-3 w-8 rounded-full" />
+                  </div>
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-3/4" />
+                </div>
+              ))}
             </div>
           </div>
         </article>

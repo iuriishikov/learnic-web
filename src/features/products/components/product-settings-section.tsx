@@ -291,7 +291,7 @@ function ReleasesRow({ product }: { product: Product }) {
           </Button>
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="@container/release-list flex flex-col gap-2">
           {query.isPending ? (
             <>
               <Skeleton className="h-16 w-full rounded-xl" />
@@ -393,7 +393,7 @@ function ReleaseRow({
   const t = useTranslations('teach-products.editor.settings.releases');
   const formatter = useFormatter();
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-border bg-background p-4 shadow-xs transition-colors hover:border-foreground/15 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+    <div className="flex flex-col items-start gap-3 rounded-xl border border-border bg-background p-4 shadow-xs transition-colors hover:border-foreground/15 @lg/release-list:flex-row @lg/release-list:items-center @lg/release-list:justify-between @lg/release-list:gap-4">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-sm font-semibold text-foreground">
@@ -407,7 +407,7 @@ function ReleaseRow({
           >
             {t(`kind.${release.kind}`)}
           </span>
-          <span className="text-xs text-muted-foreground">
+          <span className="whitespace-nowrap text-xs text-muted-foreground">
             {formatter.dateTime(new Date(release.releasedAt), {
               dateStyle: 'medium',
               timeStyle: 'short',
