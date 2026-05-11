@@ -4,6 +4,7 @@ import * as React from 'react';
 import { format } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import { ru as ruLocale } from 'date-fns/locale/ru';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { DateRange } from 'react-day-picker';
 
@@ -39,16 +40,28 @@ type SectionKey =
 
 function DemoSection({
   id,
+  index,
   preview,
   result,
 }: {
   id: SectionKey;
+  index: number;
   preview: React.ReactNode;
   result: React.ReactNode;
 }) {
   const t = useTranslations('date-picker-demo.sections');
+  const reduceMotion = useReducedMotion();
   return (
-    <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+    <motion.section
+      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: 0.32,
+        delay: reduceMotion ? 0 : index * 0.05,
+        ease: [0.22, 1, 0.36, 1],
+      }}
+      className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
+    >
       <header className="mb-4 flex flex-col gap-1">
         <h2 className="text-base font-semibold text-foreground">
           {t(`${id}.title`)}
@@ -61,7 +74,32 @@ function DemoSection({
         <div>{preview}</div>
         <div className="text-xs text-muted-foreground">{result}</div>
       </div>
-    </section>
+    </motion.section>
+  );
+}
+
+function AnimatedValue({
+  text,
+  fallback,
+}: {
+  text: string | null;
+  fallback: string;
+}) {
+  const reduceMotion = useReducedMotion();
+  const display = text ?? fallback;
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.span
+        key={display}
+        initial={reduceMotion ? false : { opacity: 0, y: -2 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={reduceMotion ? undefined : { opacity: 0, y: 2 }}
+        transition={{ duration: 0.18 }}
+        className="inline-block font-medium text-foreground"
+      >
+        {display}
+      </motion.span>
+    </AnimatePresence>
   );
 }
 
@@ -113,21 +151,28 @@ export function DatePickerDemoView() {
   >();
 
   const none = t('none');
+  const selected = t('selected');
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 md:px-6 md:py-12 lg:px-8">
-      <header className="flex flex-col gap-2">
+      <motion.header
+        initial={{ opacity: 0, y: -4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+        className="flex flex-col gap-2"
+      >
         <h1 className="text-2xl font-semibold text-foreground md:text-3xl">
           {t('title')}
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground md:text-base">
           {t('description')}
         </p>
-      </header>
+      </motion.header>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <DemoSection
           id="rangeWithPresets"
+          index={0}
           preview={
             <DateRangePicker
               value={rangePresets}
@@ -139,16 +184,18 @@ export function DatePickerDemoView() {
           }
           result={
             <>
-              {t('selected')}{' '}
-              <span className="font-medium text-foreground">
-                {formatRangeWithTime(rangePresets, localeCode) ?? none}
-              </span>
+              {selected}{' '}
+              <AnimatedValue
+                text={formatRangeWithTime(rangePresets, localeCode)}
+                fallback={none}
+              />
             </>
           }
         />
 
         <DemoSection
           id="rangeCompact"
+          index={1}
           preview={
             <DateRangePicker
               value={rangeChips}
@@ -159,16 +206,18 @@ export function DatePickerDemoView() {
           }
           result={
             <>
-              {t('selected')}{' '}
-              <span className="font-medium text-foreground">
-                {formatRange(rangeChips, localeCode) ?? none}
-              </span>
+              {selected}{' '}
+              <AnimatedValue
+                text={formatRange(rangeChips, localeCode)}
+                fallback={none}
+              />
             </>
           }
         />
 
         <DemoSection
           id="singleDate"
+          index={2}
           preview={
             <DatePicker
               value={singleDate}
@@ -178,16 +227,18 @@ export function DatePickerDemoView() {
           }
           result={
             <>
-              {t('selected')}{' '}
-              <span className="font-medium text-foreground">
-                {formatDate(singleDate, localeCode) ?? none}
-              </span>
+              {selected}{' '}
+              <AnimatedValue
+                text={formatDate(singleDate, localeCode)}
+                fallback={none}
+              />
             </>
           }
         />
 
         <DemoSection
           id="singleDatePopover"
+          index={3}
           preview={
             <DatePicker
               value={singleDatePopover}
@@ -197,16 +248,18 @@ export function DatePickerDemoView() {
           }
           result={
             <>
-              {t('selected')}{' '}
-              <span className="font-medium text-foreground">
-                {formatDate(singleDatePopover, localeCode) ?? none}
-              </span>
+              {selected}{' '}
+              <AnimatedValue
+                text={formatDate(singleDatePopover, localeCode)}
+                fallback={none}
+              />
             </>
           }
         />
 
         <DemoSection
           id="dateWithSlots"
+          index={4}
           preview={
             <DateTimePicker
               value={dateWithSlots}
@@ -217,16 +270,18 @@ export function DatePickerDemoView() {
           }
           result={
             <>
-              {t('selected')}{' '}
-              <span className="font-medium text-foreground">
-                {formatDateTime(dateWithSlots, localeCode) ?? none}
-              </span>
+              {selected}{' '}
+              <AnimatedValue
+                text={formatDateTime(dateWithSlots, localeCode)}
+                fallback={none}
+              />
             </>
           }
         />
 
         <DemoSection
           id="dateWithTimeSelect"
+          index={5}
           preview={
             <DateTimePicker
               value={dateWithTimeSelect}
@@ -237,10 +292,11 @@ export function DatePickerDemoView() {
           }
           result={
             <>
-              {t('selected')}{' '}
-              <span className="font-medium text-foreground">
-                {formatDateTime(dateWithTimeSelect, localeCode) ?? none}
-              </span>
+              {selected}{' '}
+              <AnimatedValue
+                text={formatDateTime(dateWithTimeSelect, localeCode)}
+                fallback={none}
+              />
             </>
           }
         />

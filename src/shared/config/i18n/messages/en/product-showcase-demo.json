@@ -1,0 +1,73 @@
+{
+  "title": "Карточка продукта",
+  "eyebrow": "Product card",
+  "description": "Презентационная карточка курса или вебинара: пастельная обложка-«акварель», крупный заголовок и компактная строка метаданных. Никакой бизнес-логики — только пропсы и анимация наведения.",
+  "sections": {
+    "live": {
+      "eyebrow": "Live",
+      "title": "Живой пример",
+      "description": "Поведите курсором — карточка немного приподнимается. Клик демонстрирует, что компонент кликабельный, если задан onClick."
+    },
+    "accents": {
+      "eyebrow": "Showcase",
+      "title": "Палитра акцентов",
+      "description": "Цвет «акварельной» обложки задаётся пропом accent. Шесть готовых оттенков покрывают курсы, вебинары, подкасты и любые тематические подборки."
+    },
+    "types": {
+      "eyebrow": "Showcase",
+      "title": "Типы продукта",
+      "description": "Маленький пилл слева показывает тип продукта и красится в собственный цвет — независимо от обложки."
+    },
+    "anatomy": {
+      "eyebrow": "Anatomy",
+      "title": "Из чего состоит",
+      "description": "Карточка строится из четырёх слоёв: обложка с radial-градиентом, цветной пилл-тип, заголовок с line-clamp и строка статистики с иконками."
+    },
+    "usage": {
+      "eyebrow": "Usage",
+      "title": "Как использовать",
+      "description": "Импортируйте из барреля @/features/products и передайте набор пропсов."
+    }
+  },
+  "anatomy": {
+    "cover": {
+      "label": "Cover",
+      "description": "Radial-градиент в OKLCH: насыщенный центр + светлый тон по краям."
+    },
+    "pill": {
+      "label": "Type pill",
+      "description": "Цветной чип с типом — course / webinar / podcast."
+    },
+    "title": {
+      "label": "Title",
+      "description": "Заголовок с line-clamp-3 и трекингом."
+    },
+    "stats": {
+      "label": "Stats",
+      "description": "Иконка + подпись. Второй стат — опциональный."
+    }
+  },
+  "demo": {
+    "courseTitle": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed massa orci, finibus ac egestas..",
+    "webinarTitle": "Audio Practice: Cold Calling Practice: Deliver a Product Demo Pitch",
+    "designSystemTitle": "Foundations of a calm, accessible design system",
+    "physicsTitle": "Algebra of Motion: solving kinematics by intuition",
+    "dataTitle": "Live coding with TanStack Query — caching patterns explained",
+    "writingTitle": "Founder-mode writing: turning rough notes into shipping memos",
+    "courseDuration": "2.2 hours",
+    "webinarDuration": "43 mins",
+    "lectureDuration": "1.5 hours",
+    "dueTomorrow": "Due Tomorrow",
+    "dueFriday": "Due Friday",
+    "dueNextWeek": "Next week",
+    "type": {
+      "course": "Course",
+      "webinar": "Webinar",
+      "podcast": "Podcast"
+    }
+  },
+  "usage": {
+    "snippetLabel": "Snippet",
+    "propsLabel": "Props"
+  }
+}

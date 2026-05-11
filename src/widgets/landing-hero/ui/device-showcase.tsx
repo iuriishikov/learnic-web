@@ -1,7 +1,5 @@
-import Image from 'next/image';
-
-import { PLACEHOLDERS } from '@/shared/lib/placeholders';
 import { cn } from '@/shared/lib/utils';
+import { Placeholder } from '@/shared/ui/placeholder';
 
 type DeviceShowcaseProps = {
   className?: string;
@@ -51,11 +49,9 @@ function DesktopFrame() {
               {/* screen */}
               <div className="relative overflow-hidden rounded-t-[14px]">
                 <div className="relative aspect-[16/10] w-full">
-                  <Image
-                    src={PLACEHOLDERS.dynamicMesh}
-                    alt=""
-                    fill
-                    className="object-cover"
+                  <Placeholder
+                    variant="brand"
+                    seed="landing-hero-desktop"
                     priority
                   />
                 </div>
@@ -89,12 +85,7 @@ function PhoneFrame() {
               {/* screen */}
               <div className="relative overflow-hidden rounded-t-[38px]">
                 <div className="relative aspect-[9/16] w-full">
-                  <Image
-                    src={PLACEHOLDERS.dynamicMesh}
-                    alt=""
-                    fill
-                    className="object-cover"
-                  />
+                  <Placeholder variant="brand" seed="landing-hero-phone" />
                 </div>
               </div>
             </div>

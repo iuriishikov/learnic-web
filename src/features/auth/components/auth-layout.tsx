@@ -1,10 +1,9 @@
-import Image from 'next/image';
 import type { ReactNode } from 'react';
 
 import { Link } from '@/shared/config/i18n/navigation';
-import { PLACEHOLDERS } from '@/shared/lib/placeholders';
 import { cn } from '@/shared/lib/utils';
 import { BrandMark } from '@/shared/ui/brand-mark';
+import { Placeholder } from '@/shared/ui/placeholder';
 
 type AuthLayoutProps = {
   brandLabel: string;
@@ -52,12 +51,10 @@ export function AuthLayout({
           'relative hidden w-1/2 overflow-hidden lg:block',
         )}
       >
-        <Image
-          src={PLACEHOLDERS.dreamyBlur}
-          alt=""
-          fill
+        <Placeholder
+          variant="brand"
+          seed="auth-side-panel"
           priority
-          className="object-cover"
           sizes="(min-width: 1024px) 50vw, 0px"
         />
       </aside>

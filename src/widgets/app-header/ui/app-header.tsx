@@ -94,7 +94,8 @@ export function AppHeader({
             variant="outline"
             size="icon"
             className={cn(
-              'hidden size-10 rounded-lg shadow-xs md:inline-flex',
+              'hidden size-10 rounded-lg shadow-xs transition-shadow duration-150 ease-out md:inline-flex',
+              'focus-visible:border-transparent focus-visible:ring-brand/40 data-[popup-open]:border-transparent data-[popup-open]:ring-brand/50 data-popup-open:border-transparent data-popup-open:ring-brand/50',
               isSettingsActive &&
                 'bg-muted text-foreground dark:bg-input/50',
             )}

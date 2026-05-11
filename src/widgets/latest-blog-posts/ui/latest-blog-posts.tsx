@@ -1,6 +1,5 @@
 import { getTranslations } from 'next-intl/server';
 
-import type { PlaceholderKey } from '@/shared/lib/placeholders';
 import { Button } from '@/shared/ui/button';
 
 import { BlogPostCard } from './blog-post-card';
@@ -11,7 +10,8 @@ type BlogPost = {
   description: string;
   author: string;
   date: string;
-  image: PlaceholderKey;
+  /** Deterministic seed picking a brand placeholder for the cover. */
+  image: string;
   avatar: string;
 };
 
@@ -53,7 +53,7 @@ export async function LatestBlogPosts() {
                 description={post.description}
                 author={post.author}
                 date={post.date}
-                image={post.image}
+                imageSeed={post.image}
                 avatar={post.avatar}
                 index={index}
               />

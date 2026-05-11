@@ -10,6 +10,10 @@ export type User = {
   description: string | null;
   avatarUrl: string | null;
   coverUrl: string | null;
+  websiteUrl: string | null;
+  portfolioUrl: string | null;
+  /** Display-only contact email distinct from `email` (login). */
+  publicEmail: string | null;
 };
 
 export type UserResponse = {
@@ -19,6 +23,9 @@ export type UserResponse = {
   description: string | null;
   avatar_url: string | null;
   cover_url: string | null;
+  website_url: string | null;
+  portfolio_url: string | null;
+  public_email: string | null;
 };
 
 type NameParts = {
@@ -60,5 +67,8 @@ export function toUser(raw: UserResponse): User {
     description: raw.description,
     avatarUrl: raw.avatar_url,
     coverUrl: raw.cover_url,
+    websiteUrl: raw.website_url,
+    portfolioUrl: raw.portfolio_url,
+    publicEmail: raw.public_email,
   };
 }

@@ -17,11 +17,10 @@ import {
   type Transition,
   type Variants,
 } from 'motion/react';
-import Image from 'next/image';
 import { useId, useState } from 'react';
 
 import { Link } from '@/shared/config/i18n/navigation';
-import { PLACEHOLDERS } from '@/shared/lib/placeholders';
+import { Placeholder } from '@/shared/ui/placeholder';
 import { cn } from '@/shared/lib/utils';
 import { BrandMark, type BrandMarkTone } from '@/shared/ui/brand-mark';
 import { Button } from '@/shared/ui/button';
@@ -510,12 +509,7 @@ function MegaMenu({ items }: { items: MegaMenuItem[] }) {
 
       <div className="flex flex-col gap-3 rounded-lg bg-muted/40 p-3">
         <div className="relative aspect-[16/10] overflow-hidden rounded-md">
-          <Image
-            src={PLACEHOLDERS.dreamyBlur}
-            alt=""
-            fill
-            className="object-cover"
-          />
+          <Placeholder variant="brand" seed="site-header-featured" />
         </div>
         <div className="flex flex-col gap-1">
           <p className="text-sm font-semibold text-foreground">

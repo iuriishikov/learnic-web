@@ -707,6 +707,43 @@ Dark mode is **not optional** in the "Before You Say Done" checklist, and every 
 
 ---
 
+## Design References — implement them literally
+
+**When the user attaches a design reference (Figma frame, mockup, screenshot, image of another product, link to a live site), it is the spec. Implement it exactly as shown — every element, every piece of copy, every layout decision, every color, every spacing, every state.** A reference is not "inspiration" or "vibes" — it's a binding contract on the visual output.
+
+### The rule
+
+- **Everything visible on the reference must be present in the implementation.** Headings, subtext, icons, badges, helper rows, secondary CTAs, illustrations, dividers, empty-state copy, micro-labels — if it's in the reference, it's in the build. Don't drop elements because they "feel optional" or "could be added later".
+- **Match the layout the reference shows.** Order of elements, alignment, grouping, proportions, whitespace, column counts, card sizes, image aspect ratios. Don't reshuffle the composition or substitute a different pattern (e.g. tabs → accordion) just because a shadcn primitive nudges you that way.
+- **Match the visual treatment.** Typography hierarchy (size/weight ratios), corner radii, border styles, shadow depth, divider weight, density, padding rhythm. Translate to design tokens (`bg-background`, `text-muted-foreground`, `border-input`, `bg-brand`, etc.) — never hardcode hex — but the tokens you pick must reproduce what's on the reference.
+- **Match the copy verbatim** (subject to i18n rules — the key goes to `messages/ru/<namespace>.json` with the reference's exact wording). Don't paraphrase, "improve", shorten, or invent labels the reference doesn't show.
+- **Match the states the reference shows.** If the reference includes hover / active / selected / empty / error / loading frames, build each one as drawn. If it only shows a default frame, derive the other states from existing conventions in this codebase — don't invent a new pattern.
+
+### What you may add on top
+
+- **Animations and micro-interactions** consistent with the Framer Motion conventions above (mount/unmount, hover/tap feedback, list staggers, route transitions). The reference is static; motion polish is expected.
+- **Responsive adaptation** to the viewports the reference doesn't show (see "When a prompt describes only one viewport" — extract the intent, build a viewport-appropriate equivalent). The desktop reference is desktop truth; mobile is your responsibility to translate, not to skip.
+- **Dark theme** built from the same token decisions (see Theming). The reference is the light-theme spec unless the user attached a dark frame too.
+- **Accessibility plumbing** the reference can't show — focus rings, `aria-*`, keyboard handlers, reduced-motion fallbacks. These are additions, never substitutions.
+
+### What you may NOT do
+
+- **Don't omit elements** because you think the screen is "too busy", because shadcn doesn't have a primitive for it, because you'd build it differently, or because "the user probably doesn't need that part". If it's drawn, it ships.
+- **Don't substitute a different component pattern** (tabs → segmented control, modal → sheet, card grid → list) without asking. The reference is the layout decision.
+- **Don't rewrite the copy.** Even if the reference's wording feels long, awkward, or untranslated — ship it as-is and flag the concern separately. Copy edits are a separate task.
+- **Don't "simplify" the visual hierarchy.** Three font sizes in the reference means three font sizes in the build, not two.
+- **Don't invent elements the reference doesn't show** beyond the allow-list above (motion, responsive translation, dark theme, a11y plumbing). If you think something should be added, ask first.
+
+### When the reference conflicts with this file
+
+Design references override generic visual defaults in this CLAUDE.md (default densities, default spacings, your own taste). They do **not** override hard architectural / technical rules: feature boundaries, the shadcn-only primitive layer, design tokens (use the token that matches the reference color, don't hardcode the hex), i18n (copy still goes through `next-intl`), Framer Motion as the animation library, mobile-first responsive, dark theme parity. If a reference seems to require breaking one of these rules, **ask the user before deviating** — don't silently pick one side.
+
+### When the reference is incomplete or ambiguous
+
+Ask. A missing state, an unclear interaction, an unspecified viewport, a label you can't read — surface the gap explicitly rather than guessing. "The reference shows the default and hover frames but not the error state — should I derive it from existing conventions or do you have a frame for it?" is the right move. Inventing visual decisions to fill gaps in a reference is how implementations drift away from the spec.
+
+---
+
 ## Responsive Design — Mobile, Tablet, Desktop
 
 **Every screen must be designed and built for three viewports: mobile, tablet, desktop.** Ship nothing that works only on one. Responsive is not an afterthought — it's part of "done".
@@ -1365,6 +1402,7 @@ If the Playwright MCP is genuinely unavailable (server not connected, `mcp__play
 - **Don't** edit generated shadcn/ui files in `shared/ui/` — wrap them instead.
 - **Don't** hand-roll primitives that exist in shadcn/ui (`Button`, `Input`, `Dialog`, `Select`, etc.). Install via `pnpm dlx shadcn@latest add <component>`.
 - **Don't** build feature components from raw HTML when shadcn primitives exist — wrap and compose shadcn instead, then style with the `brand` token.
+- **Don't** deviate from a design reference the user attached (Figma, mockup, screenshot, link). Implement everything shown — every element, every label, every layout decision, every state — literally. Motion, responsive translation to viewports the reference doesn't show, dark theme, and a11y plumbing are the only things you may add on top. Don't drop elements, don't paraphrase copy, don't swap component patterns (tabs → accordion, modal → sheet), don't "simplify" the hierarchy. If the reference is incomplete or ambiguous, ask — don't guess. See "Design References — implement them literally".
 - **Don't** hardcode the brand color or substitute a generic Tailwind palette color for it. Use `bg-brand` / `text-brand-foreground` etc.
 - **Don't** install other UI libraries (MUI, Mantine, Chakra, Ant Design, HeadlessUI, Flowbite, DaisyUI, NextUI). shadcn/ui is it.
 - **Don't** ship static, motion-less interactive UI. Use Framer Motion (`motion/react`) for transitions, presence, hover/tap feedback, list staggers, and route changes.

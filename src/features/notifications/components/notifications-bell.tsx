@@ -54,7 +54,10 @@ export function NotificationsBell() {
       type="button"
       variant="outline"
       size="icon"
-      className="relative size-10 rounded-lg shadow-xs"
+      className={cn(
+        'relative size-10 rounded-lg shadow-xs transition-shadow duration-150 ease-out',
+        'focus-visible:border-transparent focus-visible:ring-brand/40 data-[popup-open]:border-transparent data-[popup-open]:ring-brand/50 data-popup-open:border-transparent data-popup-open:ring-brand/50',
+      )}
       aria-label={t('triggerAriaLabel', { count: unread })}
     >
       <BellIcon className="size-[18px]" />

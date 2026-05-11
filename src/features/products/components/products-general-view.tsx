@@ -7,9 +7,10 @@ import {
   SearchIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { useRouter } from '@/shared/config/i18n/navigation';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -19,8 +20,11 @@ import { useMyProducts } from '../api/use-my-products';
 import type { Product, ProductType } from '../model/types';
 
 import { CreateProductDialog } from './create-product-dialog';
-import { ProductCard } from './product-card';
 import { ProductCardSkeleton } from './product-card-skeleton';
+import {
+  ProductShowcaseCard,
+  accentFromId,
+} from './product-showcase-card';
 
 type Filter = 'all' | ProductType;
 
@@ -175,7 +179,7 @@ export function ProductsGeneralView({
                         ease: [0.32, 0.72, 0, 1],
                       }}
                     >
-                      <ProductCard product={product} />
+                      <ProductGridCard product={product} />
                     </motion.li>
                   ))}
                 </AnimatePresence>
@@ -199,6 +203,29 @@ export function ProductsGeneralView({
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+function ProductGridCard({ product }: { product: Product }) {
+  const t = useTranslations('teach-products.card');
+  const tType = useTranslations('teach-products.type');
+  const format = useFormatter();
+  const router = useRouter();
+
+  const updated = format.relativeTime(new Date(product.updatedAt), {
+    now: new Date(),
+  });
+
+  return (
+    <ProductShowcaseCard
+      type={product.type}
+      typeLabel={tType(product.type)}
+      title={product.title}
+      durationLabel={t('stats.hours', { count: product.durationHours })}
+      dueLabel={t('updated', { time: updated })}
+      accent={accentFromId(product.id)}
+      onClick={() => router.push(`/products/${product.id}/editor`)}
+    />
   );
 }
 

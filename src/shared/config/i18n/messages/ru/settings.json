@@ -4,11 +4,13 @@
     "tabs": {
       "profile": "Профиль",
       "experience": "Опыт",
+      "contacts": "Контакты",
       "preferences": "Настройки приложения",
       "notifications": "Уведомления",
       "security": "Безопасность"
     }
   },
+
   "page": {
     "title": "Настройки",
     "description": "Управляйте своим профилем, настройками отображения и безопасностью аккаунта."
@@ -94,6 +96,71 @@
     "upload": {
       "avatarUploading": "Загрузка аватара",
       "coverUploading": "Загрузка обложки"
+    }
+  },
+  "contacts": {
+    "page": {
+      "title": "Контакты",
+      "description": "Личный сайт, портфолио, контактный email и ссылки на соцсети — видны посетителям публичного профиля."
+    },
+    "title": "Контакты",
+    "description": "Личный сайт, портфолио и публичный email. Изменения сохраняются автоматически.",
+    "fields": {
+      "website": {
+        "label": "Личный сайт",
+        "description": "Ссылка на ваш сайт.",
+        "placeholder": "example.com"
+      },
+      "portfolio": {
+        "label": "Портфолио",
+        "description": "Ссылка на портфолио — Dribbble, Behance, Notion и т.д.",
+        "placeholder": "dribbble.com/yourname"
+      },
+      "publicEmail": {
+        "label": "Публичный email",
+        "description": "Адрес для связи на публичном профиле. Отличается от email для входа.",
+        "placeholder": "hello@example.com"
+      }
+    },
+    "social": {
+      "title": "Соцсети",
+      "description": "Добавьте ссылки на ваши профили в соцсетях. Порядок строк определяет порядок отображения.",
+      "empty": "Пока пусто. Добавьте первую ссылку — она появится на публичном профиле.",
+      "fields": {
+        "url": {
+          "label": "Ссылка на профиль",
+          "placeholder": "example.com/yourname"
+        }
+      },
+      "actions": {
+        "add": "Добавить ссылку",
+        "remove": "Удалить ссылку"
+      },
+      "kinds": {
+        "linkedin": "LinkedIn",
+        "twitter": "X / Twitter",
+        "github": "GitHub",
+        "telegram": "Telegram",
+        "instagram": "Instagram",
+        "youtube": "YouTube",
+        "facebook": "Facebook",
+        "tiktok": "TikTok",
+        "vk": "ВКонтакте",
+        "dribbble": "Dribbble",
+        "behance": "Behance",
+        "other": "Другое"
+      }
+    },
+    "errors": {
+      "websiteUrlTooLong": "Ссылка слишком длинная.",
+      "websiteUrlScheme": "Ссылка должна начинаться с http:// или https://.",
+      "portfolioUrlTooLong": "Ссылка слишком длинная.",
+      "portfolioUrlScheme": "Ссылка должна начинаться с http:// или https://.",
+      "publicEmailTooLong": "Email слишком длинный.",
+      "publicEmailInvalid": "Это не похоже на email.",
+      "socialUrlTooLong": "Ссылка слишком длинная.",
+      "socialUrlScheme": "Ссылка должна начинаться с http:// или https://.",
+      "saveFailed": "Не удалось сохранить изменения."
     }
   },
   "preferences": {

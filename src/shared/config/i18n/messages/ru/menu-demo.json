@@ -1,0 +1,108 @@
+{
+  "title": "Menu — единый компонент выпадающего меню",
+  "description": "Универсальный action-menu: пункты с иконками, шорткатами и сабменю; переключатель темы, радио-выбор аккаунта, чекбоксы доступа, поиск внутри меню, header с пользователем и нижний футер. Всё на одном API, обе темы, все три viewport.",
+  "sections": {
+    "actions": {
+      "title": "Actions — самое базовое",
+      "description": "Стандартный action-menu: пункты-команды с шорткатами и одним destructive-пунктом внизу. Используется для контекста row/card."
+    },
+    "actionsRich": {
+      "title": "Actions — с иконками, чекбоксами, статусом и сабменю",
+      "description": "Тот же action-menu, но с иконками слева, ✓-индикаторами для toggle-пунктов, статус-точкой у юзера и сабменю «More tools»."
+    },
+    "account": {
+      "title": "Account menu — полный профильный меню",
+      "description": "User-card в header'е, Dark mode как Switch, Support как сабменю, секция Switch account с radio-выбором, Add account, Sign out отдельной footer-кнопкой и брендовый футер."
+    },
+    "accountCompact": {
+      "title": "Account — компактный без header'а",
+      "description": "Тот же набор, но без user-card сверху — для триггера «Account» c chevron."
+    },
+    "kebabAvatar": {
+      "title": "Триггеры — kebab и avatar",
+      "description": "Меню можно прицепить к любому триггеру: трёхточечная кнопка, голый аватар, текстовая кнопка."
+    },
+    "permissionShort": {
+      "title": "Can edit — короткий выбор уровня доступа",
+      "description": "Radio-выбор + destructive-пункт «Delete»."
+    },
+    "manageAccess": {
+      "title": "Manage access — мульти-чек со встроенным поиском",
+      "description": "Чекбокс-режим (несколько отмеченных), поиск сверху, scrollable."
+    },
+    "copyTools": {
+      "title": "Copy — длинный список с разделителями",
+      "description": "Иконки рядом с каждым пунктом, разделители группируют команды."
+    }
+  },
+  "labels": {
+    "switchAccount": "Switch account",
+    "company": "Company"
+  },
+  "items": {
+    "viewProfile": "View profile",
+    "settings": "Settings",
+    "darkMode": "Dark mode",
+    "support": "Support",
+    "documentation": "Documentation",
+    "contactSupport": "Contact support",
+    "changelog": "Changelog",
+    "api": "API",
+    "addAccount": "Add account",
+    "newCompany": "New company",
+    "signOut": "Sign out",
+    "cut": "Cut",
+    "copy": "Copy",
+    "paste": "Paste",
+    "edit": "Edit",
+    "duplicate": "Duplicate",
+    "delete": "Delete",
+    "viewDetails": "View details",
+    "back": "Back",
+    "forward": "Forward",
+    "reload": "Reload",
+    "editPage": "Edit page",
+    "addToFavorites": "Add to favorites",
+    "showBookmarks": "Show bookmarks",
+    "showFullUrls": "Show full URLs",
+    "moreTools": "More tools",
+    "saveAs": "Save as",
+    "developer": "Developer",
+    "owner": "Owner",
+    "canEdit": "Can edit",
+    "canView": "Can view",
+    "search": "Search",
+    "createTeam": "Create team",
+    "viewAsMarkdown": "View as markdown",
+    "copyAsMarkdown": "Copy as markdown",
+    "openIn": "Open in {target}",
+    "openInFigma": "Open in Figma",
+    "createGist": "Create GitHub Gist"
+  },
+  "users": {
+    "olivia": { "name": "Olivia Rhye", "email": "olivia@untitledui.com" },
+    "sienna": { "name": "Sienna Hewitt", "email": "sienna@untitledui.com" },
+    "caitlyn": { "name": "Caitlyn King", "email": "caitlyn@untitledui.com" },
+    "phoenix": { "name": "Phoenix Baker", "email": "phoenix@untitledui.com" },
+    "lana": { "name": "Lana Steiner", "email": "lana@untitledui.com" },
+    "demi": { "name": "Demi Wilkinson", "email": "demi@untitledui.com" },
+    "candice": { "name": "Candice Wu", "email": "candice@untitledui.com" },
+    "natali": { "name": "Natali Craig", "email": "natali@untitledui.com" },
+    "drew": { "name": "Drew Cano", "email": "drew@untitledui.com" }
+  },
+  "triggers": {
+    "actions": "Actions",
+    "account": "Account",
+    "manageAccess": "Manage access",
+    "canEdit": "Can edit",
+    "copy": "Copy"
+  },
+  "userBadges": {
+    "pro": "PRO account",
+    "renews": "Renews {date}"
+  },
+  "footer": {
+    "brand": "© Untitled UI",
+    "version": "v12.6.8"
+  }
+}

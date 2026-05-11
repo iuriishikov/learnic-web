@@ -1,12 +1,11 @@
 'use client';
 
-import Image from 'next/image';
 import { ArrowUpRightIcon } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 
-import { PLACEHOLDERS, type PlaceholderKey } from '@/shared/lib/placeholders';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 import { Card } from '@/shared/ui/card';
+import { Placeholder } from '@/shared/ui/placeholder';
 
 export type BlogPostCardProps = {
   category: string;
@@ -14,7 +13,8 @@ export type BlogPostCardProps = {
   description: string;
   author: string;
   date: string;
-  image: PlaceholderKey;
+  /** Seed used to pick a deterministic brand placeholder for the cover. */
+  imageSeed: string;
   avatar: string;
   index: number;
 };
@@ -25,7 +25,7 @@ export function BlogPostCard({
   description,
   author,
   date,
-  image,
+  imageSeed,
   avatar,
   index,
 }: BlogPostCardProps) {
@@ -45,12 +45,11 @@ export function BlogPostCard({
       >
         <Card className="flex h-full flex-col gap-0 border-0 bg-transparent py-0 shadow-none ring-0">
           <div className="relative aspect-[16/11] w-full overflow-hidden rounded-2xl bg-muted">
-            <Image
-              src={PLACEHOLDERS[image]}
-              alt=""
-              fill
+            <Placeholder
+              variant="brand"
+              seed={imageSeed}
               sizes="(min-width: 1024px) 384px, (min-width: 768px) 50vw, 100vw"
-              className="object-cover transition-transform duration-500 ease-out group-hover/post:scale-[1.03]"
+              className="transition-transform duration-500 ease-out group-hover/post:scale-[1.03]"
             />
           </div>
           <div className="flex flex-1 flex-col gap-2 pt-6">

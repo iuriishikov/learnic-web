@@ -33,6 +33,7 @@ export type ProductSchemaResponse = {
   price_currency: Currency;
   author: AuthorSchemaResponse;
   webinar_details: WebinarDetailsSchemaResponse | null;
+  cover_url: string | null;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -52,6 +53,7 @@ export function fromProductSchema(raw: ProductSchemaResponse): Product {
     webinarDetails: raw.webinar_details
       ? fromWebinarDetails(raw.webinar_details)
       : null,
+    coverUrl: raw.cover_url ?? null,
     publishedAt: raw.published_at,
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,

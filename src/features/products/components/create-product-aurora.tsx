@@ -8,10 +8,9 @@ import {
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
 
-import { PLACEHOLDERS } from '@/shared/lib/placeholders';
 import { cn } from '@/shared/lib/utils';
+import { Placeholder } from '@/shared/ui/placeholder';
 
 import type { ProductType } from '../model/types';
 
@@ -44,14 +43,13 @@ export function CreateProductAurora({
       )}
       aria-hidden="true"
     >
-      <Image
-        src={PLACEHOLDERS.dynamicMesh}
-        alt=""
-        fill
-        sizes="280px"
-        className="-z-10 object-cover"
-        priority={false}
-      />
+      <div className="absolute inset-0 -z-10">
+        <Placeholder
+          variant="brand"
+          seed={`create-product-${productType}`}
+          sizes="280px"
+        />
+      </div>
       <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
 
       <div className="relative z-10 flex h-full flex-col gap-3">

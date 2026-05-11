@@ -9,10 +9,10 @@ import type { HTMLAttributes, ReactNode } from 'react';
 import { useObjectUrl } from '@/shared/hooks/use-object-url';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
+import { Placeholder } from '@/shared/ui/placeholder';
 import { Skeleton } from '@/shared/ui/skeleton';
 
 import { getProductByIdAction } from '../api/get-product-by-id-action';
-import { coverGradient } from '../lib/cover-hue';
 import type { Product } from '../model/types';
 
 type ProductCoverProps = Omit<HTMLAttributes<HTMLDivElement>, 'children'> & {
@@ -131,20 +131,37 @@ export function ProductCover({
         </div>
       </motion.div>
     );
-  } else {
-    const cover = coverGradient(query.data.id);
+  } else if (query.data.coverUrl) {
+    // Keying on the URL forces a fresh mount when the cover changes,
+    // so the fade-in animation replays for the new image instead of
+    // hot-swapping in place.
     body = (
       <motion.div
-        key="success"
+        key={`cover-${query.data.coverUrl}`}
+        initial={reduceMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={FADE}
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url(${query.data.coverUrl})` }}
+        role="img"
+        aria-label={t('alt')}
+      />
+    );
+  } else {
+    body = (
+      <motion.div
+        key="placeholder"
         initial={reduceMotion ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={FADE}
         className="absolute inset-0"
-        style={{ backgroundImage: cover }}
         role="img"
         aria-label={t('alt')}
-      />
+      >
+        <Placeholder variant="soft" seed={query.data.id} />
+      </motion.div>
     );
   }
 

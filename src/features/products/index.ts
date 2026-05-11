@@ -1,8 +1,13 @@
 export { hasDescriptionContent, looksLikeHtml } from './lib/description-html';
 export { ProductsGeneralView } from './components/products-general-view';
 export { ProductsGeneralViewSkeleton } from './components/products-general-view-skeleton';
-export { ProductCard } from './components/product-card';
 export { ProductCardSkeleton } from './components/product-card-skeleton';
+export {
+  ProductShowcaseCard,
+  accentFromId,
+  type ProductShowcaseAccent,
+  type ProductShowcaseType,
+} from './components/product-showcase-card';
 export { CreateProductDialog } from './components/create-product-dialog';
 export { ProductCover } from './components/product-cover';
 export { ProductEditorView } from './components/product-editor-view';

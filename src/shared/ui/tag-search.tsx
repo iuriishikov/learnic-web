@@ -47,14 +47,16 @@ function Chip({
       animate={{ opacity: 1, scale: 1 }}
       exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.92 }}
       transition={{ type: "spring", stiffness: 500, damping: 30 }}
-      className="inline-flex h-6 max-w-full shrink-0 items-center gap-1 rounded-md border border-border bg-background pl-1 pr-0.5 text-xs font-medium text-foreground shadow-sm"
+      className="inline-flex h-6 min-w-0 max-w-full shrink items-center gap-1 overflow-hidden rounded-md border border-border bg-background py-0.5 pl-0.5 pr-0.5 text-xs font-medium text-foreground shadow-sm"
     >
       {(option.chipLeading ?? option.leading) && (
-        <span className="flex size-4 shrink-0 items-center justify-center">
+        <span className="flex shrink-0 items-center justify-center [&_[data-slot=avatar-fallback]]:text-[9px] [&_[data-slot=avatar]]:size-[18px]">
           {option.chipLeading ?? option.leading}
         </span>
       )}
-      <span className="truncate">{option.chipLabel ?? option.label}</span>
+      <span className="min-w-0 truncate px-0.5">
+        {option.chipLabel ?? option.label}
+      </span>
       <button
         type="button"
         onMouseDown={(e) => {
@@ -63,7 +65,7 @@ function Chip({
           onRemove()
         }}
         aria-label="Remove"
-        className="inline-flex size-4 cursor-pointer items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        className="inline-flex size-4 shrink-0 cursor-pointer items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       >
         <XIcon className="size-3" />
       </button>
@@ -136,14 +138,17 @@ function Panel({
                         {option.leading}
                       </span>
                     )}
-                    <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
-                      <span className="truncate font-medium text-foreground">
+                    <span className="min-w-0 flex-1 truncate text-sm">
+                      <span className="font-medium text-foreground">
                         {option.label}
                       </span>
                       {option.meta != null && (
-                        <span className="truncate text-muted-foreground">
-                          {option.meta}
-                        </span>
+                        <>
+                          {" "}
+                          <span className="text-muted-foreground">
+                            {option.meta}
+                          </span>
+                        </>
                       )}
                     </span>
                     {selected && (

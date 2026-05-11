@@ -84,6 +84,13 @@ type UserAvatarProps = VariantProps<typeof userAvatarVariants> & {
   /** Avatar silhouette. Defaults to `square` (rounded square) per design. */
   shape?: AvatarShape;
   /**
+   * Apply the design-system "halo" treatment — a soft outer ring and drop
+   * shadow that lift the avatar off the surface. Defaults to `true`. Pass
+   * `false` in dense or already-elevated contexts (e.g. inside a button or
+   * popup trigger that has its own border / background).
+   */
+  halo?: boolean;
+  /**
    * Local file preview (e.g. picked from `<input type="file">` before save).
    * Takes precedence over `user.avatarUrl` and is shown immediately via a
    * managed object URL — no network request involved.
@@ -106,6 +113,15 @@ const SHAPE_RADIUS: Record<AvatarShape, { root: string; image: string; fallback:
   },
 };
 
+/**
+ * Tailwind radius class matching the avatar silhouette. Apply it to a wrapping
+ * trigger (button, link, popover trigger) so its focus / open ring follows the
+ * avatar shape — otherwise a square avatar ends up inside a circular ring.
+ */
+export function userAvatarRadiusClass(shape: AvatarShape = 'square'): string {
+  return SHAPE_RADIUS[shape].root;
+}
+
 export function UserAvatar({
   user,
   size,
@@ -113,6 +129,7 @@ export function UserAvatar({
   showLoadErrorIndicator = true,
   showStatus = true,
   shape = 'square',
+  halo = true,
   previewFile,
 }: UserAvatarProps) {
   const t = useTranslations('app');
@@ -155,7 +172,7 @@ export function UserAvatar({
         userAvatarVariants({ size }),
         radius.root,
         radius.after,
-        avatarHaloClasses,
+        halo && avatarHaloClasses,
         className,
       )}
     >
@@ -230,3 +247,4 @@ function pickAvatarColorIndex(seed: string): number {
   }
   return Math.abs(hash) % AVATAR_COLOR_CLASSES.length;
 }
+

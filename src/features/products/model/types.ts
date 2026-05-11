@@ -36,6 +36,12 @@ export type Product = {
   priceCurrency: Currency;
   author: ProductAuthor;
   webinarDetails: WebinarDetails | null;
+  /**
+   * Short-lived presigned URL for the cover image. `null` means no
+   * cover is attached; the SPA should fall back to a generated
+   * placeholder. The URL expires — re-fetch the product to refresh.
+   */
+  coverUrl: string | null;
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;

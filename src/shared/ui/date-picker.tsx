@@ -18,6 +18,7 @@ import {
 } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import { ru as ruLocale } from 'date-fns/locale/ru';
+import { LayoutGroup, motion, useReducedMotion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { DateRange, Locale as RdpLocale } from 'react-day-picker';
 import { CalendarIcon, ClockIcon } from 'lucide-react';
@@ -432,7 +433,6 @@ export function DateRangePicker({
 }: DateRangePickerProps) {
   const localeCode = useLocale();
   const tTrigger = useTranslations('date-picker.trigger');
-  const tPresets = useTranslations('date-picker.presets');
   const tLabels = useTranslations('date-picker.labels');
   const locale = getDateFnsLocale(localeCode);
 
@@ -547,18 +547,7 @@ export function DateRangePicker({
                 className="flex-1 tabular-nums"
               />
             </div>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
-              {CHIP_PRESET_IDS.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => applyPreset(preset)}
-                  className="text-sm font-semibold text-brand transition-colors hover:text-brand/80"
-                >
-                  {tPresets(preset)}
-                </button>
-              ))}
-            </div>
+            <ChipPresets onPick={applyPreset} />
             <div className="flex justify-center">
               <Calendar
                 mode="range"
@@ -649,6 +638,32 @@ export function DateRangePicker({
   );
 }
 
+function ChipPresets({
+  onPick,
+}: {
+  onPick: (preset: RangePresetId) => void;
+}) {
+  const tPresets = useTranslations('date-picker.presets');
+  const reduceMotion = useReducedMotion();
+  return (
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+      {CHIP_PRESET_IDS.map((preset) => (
+        <motion.button
+          key={preset}
+          type="button"
+          onClick={() => onPick(preset)}
+          whileTap={reduceMotion ? undefined : { scale: 0.94 }}
+          whileHover={reduceMotion ? undefined : { y: -1 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 28 }}
+          className="text-sm font-semibold text-brand transition-colors hover:text-brand/80"
+        >
+          {tPresets(preset)}
+        </motion.button>
+      ))}
+    </div>
+  );
+}
+
 function PresetSidebar({
   activeRange,
   onPick,
@@ -657,26 +672,45 @@ function PresetSidebar({
   onPick: (preset: RangePresetId) => void;
 }) {
   const tPresets = useTranslations('date-picker.presets');
+  const reduceMotion = useReducedMotion();
+  const activePreset = RANGE_PRESET_IDS.find((preset) =>
+    rangesEqualByDay(activeRange, getPresetRange(preset)),
+  );
   return (
-    <div className="flex flex-row gap-1 overflow-x-auto border-b border-border p-2 md:flex-col md:gap-1 md:overflow-x-visible md:border-r md:border-b-0 md:min-w-[170px] md:p-3">
-      {RANGE_PRESET_IDS.map((preset) => {
-        const range = getPresetRange(preset);
-        const isActive = rangesEqualByDay(activeRange, range);
-        return (
-          <button
-            key={preset}
-            type="button"
-            onClick={() => onPick(preset)}
-            className={cn(
-              'flex h-9 shrink-0 items-center rounded-lg px-3 text-sm font-normal whitespace-nowrap text-foreground transition-colors hover:bg-muted md:w-full md:justify-start',
-              isActive && 'bg-muted font-medium',
-            )}
-          >
-            {tPresets(preset)}
-          </button>
-        );
-      })}
-    </div>
+    <LayoutGroup id="date-picker-preset-sidebar">
+      <div className="flex flex-row gap-1 overflow-x-auto border-b border-border p-2 md:flex-col md:gap-1 md:overflow-x-visible md:border-r md:border-b-0 md:min-w-[180px] md:p-3">
+        {RANGE_PRESET_IDS.map((preset) => {
+          const isActive = activePreset === preset;
+          return (
+            <motion.button
+              key={preset}
+              type="button"
+              onClick={() => onPick(preset)}
+              whileTap={reduceMotion ? undefined : { scale: 0.97 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 32 }}
+              className={cn(
+                'group/preset relative flex h-9 shrink-0 items-center rounded-lg px-3 text-sm font-normal whitespace-nowrap text-foreground md:w-full md:justify-start',
+                'hover:bg-muted/60 transition-colors',
+                isActive && 'font-medium',
+              )}
+            >
+              {isActive ? (
+                <motion.span
+                  layoutId="preset-bg-active"
+                  className="absolute inset-0 rounded-lg bg-muted"
+                  transition={
+                    reduceMotion
+                      ? { duration: 0 }
+                      : { type: 'spring', stiffness: 400, damping: 32 }
+                  }
+                />
+              ) : null}
+              <span className="relative z-10">{tPresets(preset)}</span>
+            </motion.button>
+          );
+        })}
+      </div>
+    </LayoutGroup>
   );
 }
 
@@ -735,6 +769,7 @@ export function DateTimePicker({
   const tButtons = useTranslations('date-picker.buttons');
   const tLabels = useTranslations('date-picker.labels');
   const locale = getDateFnsLocale(localeCode);
+  const reduceMotion = useReducedMotion();
 
   const isControlled = value !== undefined;
   const [internal, setInternal] = React.useState<Date | undefined>(defaultValue);
@@ -845,16 +880,27 @@ export function DateTimePicker({
                           const isActive =
                             pending && formatTime24(pending) === time;
                           return (
-                            <Button
+                            <motion.div
                               key={time}
-                              type="button"
-                              variant={isActive ? 'default' : 'outline'}
-                              size="lg"
-                              onClick={() => handleSetTime(time)}
-                              className="w-full justify-center font-medium"
+                              whileTap={
+                                reduceMotion ? undefined : { scale: 0.97 }
+                              }
+                              transition={{
+                                type: 'spring',
+                                stiffness: 500,
+                                damping: 30,
+                              }}
                             >
-                              {timeOptionLabel(time, locale)}
-                            </Button>
+                              <Button
+                                type="button"
+                                variant={isActive ? 'default' : 'outline'}
+                                size="lg"
+                                onClick={() => handleSetTime(time)}
+                                className="w-full justify-center font-medium"
+                              >
+                                {timeOptionLabel(time, locale)}
+                              </Button>
+                            </motion.div>
                           );
                         })
                       )}

@@ -85,11 +85,25 @@ export function NotificationsView() {
   const [overrideBaseline, setOverrideBaseline] =
     useState<NotificationPreferences | null>(null);
   const [recentlySavedAt, setRecentlySavedAt] = useState<number | null>(null);
+  // JSON snapshot of the override at the moment we last fired a PUT.
+  // Used to decide whether a fresh server snapshot fully covers our local
+  // draft — if the user clicked again while the mutation was in flight,
+  // override has diverged from this snapshot and we must NOT drop it.
+  const [sentSnapshot, setSentSnapshot] = useState<string | null>(null);
 
-  // Reset the local draft whenever a fresh server snapshot arrives — the
-  // baseline pointer detects identity changes without a setState-in-effect.
+  // Reconcile against fresh server data — but only drop the local override
+  // when it matches exactly what we last sent (no unsynced clicks landed
+  // since). Otherwise keep override so the auto-save effect can ship the
+  // extra clicks in a follow-up PUT. Without this guard, fast clicks during
+  // an in-flight mutation are silently lost when the response wipes them.
   if (query.data && query.data !== overrideBaseline) {
-    setOverride(null);
+    if (
+      override === null ||
+      (sentSnapshot !== null && JSON.stringify(override) === sentSnapshot)
+    ) {
+      setOverride(null);
+      setSentSnapshot(null);
+    }
     setOverrideBaseline(query.data);
   }
 
@@ -118,9 +132,13 @@ export function NotificationsView() {
     if (!override || !query.data) return;
     if (JSON.stringify(override) === JSON.stringify(query.data)) return;
     const timeout = setTimeout(() => {
+      setSentSnapshot(JSON.stringify(override));
       void mutateAsync({ push: override.push, email: override.email })
         .then(() => setRecentlySavedAt(Date.now()))
         .catch(() => {
+          // Forget the snapshot — we didn't actually save, so a later
+          // refetch must not be mistaken for a successful sync.
+          setSentSnapshot(null);
           notify.error(t('saveFailed'));
         });
     }, AUTOSAVE_DEBOUNCE_MS);

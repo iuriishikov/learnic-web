@@ -35,6 +35,11 @@ export default async function SettingsLayout({
       label: t('tabs.experience'),
     },
     {
+      key: 'contacts',
+      href: '/settings/contacts',
+      label: t('tabs.contacts'),
+    },
+    {
       key: 'preferences',
       href: '/settings/preferences',
       label: t('tabs.preferences'),

@@ -6,6 +6,7 @@ import { CheckIcon, ChevronDownIcon } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
 import { FieldShell, type FieldShellProps } from "@/shared/ui/field-shell"
+import { optionRowCls } from "@/shared/ui/overlay"
 import {
   Popover,
   PopoverContent,
@@ -85,9 +86,8 @@ function ItemRow({
         onClick={() => onSelect(option.value)}
         data-selected={selected || undefined}
         className={cn(
-          "group/single-item flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none transition-colors",
-          "hover:bg-muted/60 focus-visible:bg-muted/80",
-          "data-selected:bg-muted/70",
+          optionRowCls,
+          "hover:bg-muted focus-visible:bg-muted",
           "disabled:cursor-not-allowed disabled:opacity-50"
         )}
       >
@@ -225,18 +225,23 @@ export function SingleSelectV2({
           </span>
         )}
         {selectedOption ? (
-          <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
-            <span className="truncate font-medium text-foreground">
+          <span className="min-w-0 flex-1 truncate text-sm">
+            <span className="font-medium text-foreground">
               {selectedOption.label}
             </span>
             {selectedOption.meta != null && (
-              <span className="truncate text-muted-foreground">
-                {selectedOption.meta}
-              </span>
+              <>
+                {" "}
+                <span className="text-muted-foreground">
+                  {selectedOption.meta}
+                </span>
+              </>
             )}
           </span>
         ) : (
-          <span className="truncate text-muted-foreground">{placeholder}</span>
+          <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+            {placeholder}
+          </span>
         )}
       </span>
       {endAdornment ? (

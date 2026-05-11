@@ -8,6 +8,7 @@ import { cn } from "@/shared/lib/utils"
 import { Button } from "@/shared/ui/button"
 import { Checkbox } from "@/shared/ui/checkbox"
 import { FieldShell, type FieldShellProps } from "@/shared/ui/field-shell"
+import { optionRowCls } from "@/shared/ui/overlay"
 import {
   Popover,
   PopoverContent,
@@ -169,7 +170,7 @@ function Panel({
           <SearchIcon className="size-4 shrink-0 text-muted-foreground" />
           <input
             id={inputId}
-            type="search"
+            type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={labels.searchPlaceholder}
@@ -235,10 +236,9 @@ function Panel({
                       onClick={() => onToggle(option.value)}
                       data-checked={checked || undefined}
                       className={cn(
-                        "group/multi-item flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none transition-colors",
-                        "hover:bg-muted/60 focus-visible:bg-muted/80",
-                        "disabled:cursor-not-allowed disabled:opacity-50",
-                        "data-checked:bg-transparent"
+                        optionRowCls,
+                        "hover:bg-muted focus-visible:bg-muted",
+                        "disabled:cursor-not-allowed disabled:opacity-50"
                       )}
                     >
                       <Checkbox

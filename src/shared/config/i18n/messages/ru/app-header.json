@@ -11,6 +11,13 @@
   },
   "userMenu": {
     "myProfile": "Мой профиль",
+    "viewProfile": "Профиль",
+    "settings": "Настройки",
+    "darkMode": "Тёмная тема",
+    "changelog": "Что нового",
+    "support": "Поддержка",
+    "supportHelp": "Справочный центр",
+    "supportContact": "Связаться с нами",
     "openStudio": "Студия",
     "openLearn": "Обучение",
     "signOut": "Выйти",
