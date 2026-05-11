@@ -1,0 +1,31 @@
+{
+  "trigger": {
+    "pickDate": "Выберите дату",
+    "pickRange": "Выберите период",
+    "pickDateTime": "Выберите дату и время",
+    "rangeSeparator": "—"
+  },
+  "presets": {
+    "today": "Сегодня",
+    "yesterday": "Вчера",
+    "thisWeek": "На этой неделе",
+    "lastWeek": "На прошлой неделе",
+    "thisMonth": "В этом месяце",
+    "lastMonth": "В прошлом месяце",
+    "thisYear": "В этом году",
+    "lastYear": "В прошлом году",
+    "allTime": "За всё время"
+  },
+  "buttons": {
+    "today": "Сегодня",
+    "cancel": "Отмена",
+    "apply": "Применить"
+  },
+  "labels": {
+    "availableTimes": "Доступное время",
+    "noTimes": "Нет доступного времени",
+    "startDate": "Дата начала",
+    "endDate": "Дата окончания",
+    "selectTime": "Время"
+  }
+}

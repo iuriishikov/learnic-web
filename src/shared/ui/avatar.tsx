@@ -5,6 +5,18 @@ import { Avatar as AvatarPrimitive } from "@base-ui/react/avatar"
 
 import { cn } from "@/shared/lib/utils"
 
+/**
+ * Class set that gives an avatar the "halo" look from the design system:
+ * a 1px outer ring with a small transparent gap from the avatar edge plus
+ * a soft drop shadow. Compose with `cn(...)` on any `Avatar`-rooted element.
+ *
+ * Kept separate from the base `Avatar` primitive so `AvatarGroup`'s stacked
+ * `ring-2 ring-background` rule keeps working — only avatars that explicitly
+ * opt in (UserAvatar and the experience-card icons) get the halo.
+ */
+const avatarHaloClasses =
+  "ring-[3px] ring-foreground/[0.08] shadow-[0_10px_24px_-4px_rgb(0_0_0/0.22),0_4px_8px_-2px_rgb(0_0_0/0.1)]"
+
 function Avatar({
   className,
   size = "default",
@@ -106,4 +118,5 @@ export {
   AvatarGroup,
   AvatarGroupCount,
   AvatarBadge,
+  avatarHaloClasses,
 }

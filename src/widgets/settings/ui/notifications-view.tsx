@@ -418,7 +418,7 @@ function DeviceStatusSection() {
           href="https://support.apple.com/guide/iphone/bookmark-favorite-webpages-iph42ab2f3a7/ios"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-brand hover:underline"
+          className="link inline-flex shrink-0 items-center gap-1 text-sm font-medium"
         >
           {t('actions.howTo')}
           <ExternalLinkIcon className="size-3.5" aria-hidden />

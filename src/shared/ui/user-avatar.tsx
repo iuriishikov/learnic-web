@@ -18,6 +18,7 @@ import {
   AvatarBadge,
   AvatarFallback,
   AvatarImage,
+  avatarHaloClasses,
 } from '@/shared/ui/avatar';
 import { Skeleton } from '@/shared/ui/skeleton';
 
@@ -154,6 +155,7 @@ export function UserAvatar({
         userAvatarVariants({ size }),
         radius.root,
         radius.after,
+        avatarHaloClasses,
         className,
       )}
     >

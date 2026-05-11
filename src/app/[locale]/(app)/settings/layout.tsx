@@ -30,6 +30,11 @@ export default async function SettingsLayout({
   const tabs: AppSubHeaderTab[] = [
     { key: 'profile', href: '/settings', label: t('tabs.profile') },
     {
+      key: 'experience',
+      href: '/settings/experience',
+      label: t('tabs.experience'),
+    },
+    {
       key: 'preferences',
       href: '/settings/preferences',
       label: t('tabs.preferences'),

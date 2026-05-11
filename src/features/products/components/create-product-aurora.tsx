@@ -8,8 +8,9 @@ import {
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import Image from 'next/image';
 
+import { PLACEHOLDERS } from '@/shared/lib/placeholders';
 import { cn } from '@/shared/lib/utils';
 
 import type { ProductType } from '../model/types';
@@ -38,12 +39,20 @@ export function CreateProductAurora({
   return (
     <div
       className={cn(
-        'relative isolate hidden overflow-hidden bg-brand-700 p-5 md:flex md:flex-col md:gap-3',
+        'relative isolate hidden overflow-hidden p-5 md:flex md:flex-col md:gap-3',
         className,
       )}
       aria-hidden="true"
     >
-      <AuroraBackdrop reduceMotion={reduceMotion ?? false} />
+      <Image
+        src={PLACEHOLDERS.dynamicMesh}
+        alt=""
+        fill
+        sizes="280px"
+        className="-z-10 object-cover"
+        priority={false}
+      />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
 
       <div className="relative z-10 flex h-full flex-col gap-3">
         <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/85 ring-1 ring-white/15 backdrop-blur-sm">
@@ -81,85 +90,4 @@ export function CreateProductAurora({
       </div>
     </div>
   );
-}
-
-function AuroraBackdrop({ reduceMotion }: { reduceMotion: boolean }) {
-  const stars = useMemo(() => generateStars(28), []);
-
-  return (
-    <>
-      <motion.div
-        aria-hidden
-        initial={reduceMotion ? false : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.45, ease: 'easeOut' }}
-        className="pointer-events-none absolute inset-0 -z-10"
-        style={{
-          background:
-            'radial-gradient(ellipse 100% 75% at 70% 105%, var(--brand-300) 0%, var(--brand-400) 22%, var(--brand-500) 50%, var(--brand-600) 75%, transparent 100%)',
-        }}
-      />
-      <motion.div
-        aria-hidden
-        initial={reduceMotion ? false : { opacity: 0, scale: 0.85, x: 20 }}
-        animate={{ opacity: 1, scale: 1, x: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 0.61, 0.36, 1] }}
-        className="pointer-events-none absolute -right-10 -bottom-14 -z-10 size-64 rounded-full"
-        style={{
-          background:
-            'radial-gradient(circle, color-mix(in oklch, var(--brand-200) 65%, transparent) 0%, color-mix(in oklch, var(--brand-400) 30%, transparent) 45%, transparent 75%)',
-          filter: 'blur(18px)',
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 opacity-60"
-        style={{
-          background:
-            'radial-gradient(ellipse 70% 55% at 15% 5%, color-mix(in oklch, var(--brand-500) 70%, transparent) 0%, transparent 65%)',
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 opacity-90"
-      >
-        {stars.map((star, i) => (
-          <span
-            key={i}
-            className="absolute rounded-full bg-white"
-            style={{
-              top: `${star.top}%`,
-              left: `${star.left}%`,
-              width: `${star.size}px`,
-              height: `${star.size}px`,
-              opacity: star.opacity,
-            }}
-          />
-        ))}
-      </div>
-    </>
-  );
-}
-
-function generateStars(count: number) {
-  const stars: Array<{
-    top: number;
-    left: number;
-    size: number;
-    opacity: number;
-  }> = [];
-  for (let i = 0; i < count; i++) {
-    stars.push({
-      top: pseudoRandom(i * 7 + 3) * 100,
-      left: pseudoRandom(i * 11 + 5) * 100,
-      size: 1 + Math.round(pseudoRandom(i * 13 + 9) * 1.5),
-      opacity: 0.4 + pseudoRandom(i * 17 + 1) * 0.5,
-    });
-  }
-  return stars;
-}
-
-function pseudoRandom(seed: number): number {
-  const x = Math.sin(seed * 9301 + 49297) * 233280;
-  return x - Math.floor(x);
 }
