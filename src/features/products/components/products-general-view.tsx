@@ -13,7 +13,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from '@/shared/config/i18n/navigation';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
-import { Input } from '@/shared/ui/input';
+import { TextInput } from '@/shared/ui/input-extended';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 
 import { useMyProducts } from '../api/use-my-products';
@@ -128,7 +128,7 @@ export function ProductsGeneralView({
         <div className="flex items-center gap-2">
           <div className="relative w-full md:w-64">
             <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
+            <TextInput
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder={t('searchPlaceholder')}
@@ -224,6 +224,7 @@ function ProductGridCard({ product }: { product: Product }) {
       durationLabel={t('stats.hours', { count: product.durationHours })}
       dueLabel={t('updated', { time: updated })}
       accent={accentFromId(product.id)}
+      coverUrl={product.coverUrl}
       onClick={() => router.push(`/products/${product.id}/editor`)}
     />
   );

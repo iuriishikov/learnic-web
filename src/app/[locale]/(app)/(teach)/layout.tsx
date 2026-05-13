@@ -28,15 +28,7 @@ export default async function TeachLayout({
   return (
     <>
       <ModeTracker mode="teach" />
-      <HeaderConfig
-        navItems={navItems}
-        brandHref="/dashboard"
-        brandSuffix={
-          <span className="rounded-md bg-brand/10 px-2 py-0.5 text-xs font-semibold text-brand">
-            {t('studioBadge')}
-          </span>
-        }
-      />
+      <HeaderConfig navItems={navItems} brandHref="/dashboard" />
       <BreadcrumbConfig
         slot="teach-root"
         order={1}

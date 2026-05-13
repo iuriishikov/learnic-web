@@ -34,7 +34,7 @@ function NumberFieldGroup({
     <NumberFieldPrimitive.Group
       data-slot="number-field-group"
       className={cn(
-        'group/number-field relative flex h-9 w-full min-w-0 items-stretch overflow-hidden rounded-lg border border-input bg-transparent transition-colors outline-none has-disabled:bg-input/50 has-disabled:opacity-50 has-[[data-slot=number-field-input]:focus-visible]:border-ring has-[[data-slot=number-field-input]:focus-visible]:ring-3 has-[[data-slot=number-field-input]:focus-visible]:ring-ring/50 has-[[data-slot][aria-invalid=true]]:border-destructive has-[[data-slot][aria-invalid=true]]:ring-3 has-[[data-slot][aria-invalid=true]]:ring-destructive/20 dark:bg-input/30 dark:has-disabled:bg-input/80 dark:has-[[data-slot][aria-invalid=true]]:ring-destructive/40',
+        'group/number-field relative flex h-10 w-full min-w-0 items-stretch overflow-hidden rounded-lg border border-input bg-transparent shadow-xs transition-[color,background-color,border-color,box-shadow] duration-150 ease-out outline-none has-disabled:cursor-not-allowed has-disabled:bg-muted/40 has-disabled:opacity-60 has-[[data-slot=number-field-input]:focus-visible]:border-ring has-[[data-slot=number-field-input]:focus-visible]:ring-4 has-[[data-slot=number-field-input]:focus-visible]:ring-ring/20 has-[[data-slot][aria-invalid=true]]:border-destructive has-[[data-slot][aria-invalid=true]]:ring-4 has-[[data-slot][aria-invalid=true]]:ring-destructive/20 dark:bg-input/30 dark:has-disabled:bg-input/80 dark:has-[[data-slot][aria-invalid=true]]:ring-destructive/40',
         className,
       )}
       {...props}

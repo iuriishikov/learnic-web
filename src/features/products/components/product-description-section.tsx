@@ -9,7 +9,7 @@ import {
   useRef,
 } from 'react';
 
-import { Input } from '@/shared/ui/input';
+import { TextInput } from '@/shared/ui/input-extended';
 import {
   NumberField,
   NumberFieldAddon,
@@ -143,7 +143,7 @@ function NameField({
   });
 
   return (
-    <Input
+    <TextInput
       // Re-seed only when navigating to a different product, not on every
       // optimistic title update — the user is the source of truth while typing.
       key={productId}

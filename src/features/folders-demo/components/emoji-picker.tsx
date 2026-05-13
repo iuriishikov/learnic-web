@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { cn } from '@/shared/lib/utils';
-import { Input } from '@/shared/ui/input';
+import { TextInput } from '@/shared/ui/input-extended';
 
 import {
   CATEGORY_ICONS,
@@ -101,7 +101,7 @@ export function EmojiPicker({ value, onSelect, className }: EmojiPickerProps) {
       <div className="px-2 pt-2">
         <div className="relative">
           <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
+          <TextInput
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t('searchPlaceholder')}

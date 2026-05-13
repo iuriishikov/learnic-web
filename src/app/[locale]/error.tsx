@@ -7,6 +7,7 @@ import {
   StatusErrorContent,
   resolveSupportedStatus,
 } from '@/widgets/error-content';
+import { SiteFooter } from '@/widgets/site-footer';
 import { SiteHeader } from '@/widgets/site-header';
 
 type ErrorPageProps = {
@@ -27,6 +28,7 @@ export default function LocaleErrorPage({ error }: ErrorPageProps) {
       <main className="flex-1">
         <StatusErrorContent status={status} />
       </main>
+      <SiteFooter />
     </div>
   );
 }

@@ -589,6 +589,11 @@ function PasswordInput({
   invalid,
   disabled,
   previewFocused,
+  // Destructured to keep it out of the DOM-spread `...props`. The password
+  // variant shows the eye toggle instead of the "?" tooltip, so the value
+  // is intentionally unused.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  helpTooltip,
   toggleLabel,
   className,
   ...props
@@ -667,6 +672,60 @@ function PasswordInput({
           </span>
         </motion.button>
       </TrailingSlot>
+    </InputShell>
+  );
+}
+
+// ── Text — generic single-line input matching the new design. Drop-in
+// replacement for the legacy `Input` primitive. Optional leading icon, trailing
+// "?" help tooltip when `helpTooltip` is provided.
+// ──────────────────────────────────────────────────────────────────────────
+type TextInputProps = Omit<
+  React.ComponentProps<'input'>,
+  'disabled' | 'className'
+> &
+  CommonInputProps & {
+    leadingIcon?: React.ReactNode;
+    trailingIcon?: React.ReactNode;
+    /** When false (default), the "?" tooltip icon is hidden if no helpTooltip is set. */
+    alwaysShowHelp?: boolean;
+  };
+
+function TextInput({
+  invalid,
+  disabled,
+  previewFocused,
+  helpTooltip,
+  className,
+  leadingIcon,
+  trailingIcon,
+  alwaysShowHelp,
+  ...props
+}: TextInputProps) {
+  const showTrailing = trailingIcon != null || invalid || helpTooltip != null || alwaysShowHelp;
+  return (
+    <InputShell
+      invalid={invalid}
+      disabled={disabled}
+      previewFocused={previewFocused}
+      className={className}
+    >
+      {leadingIcon != null && <LeadingIcon>{leadingIcon}</LeadingIcon>}
+      <ShellInput
+        disabled={disabled}
+        aria-invalid={invalid || undefined}
+        className={cn(leadingIcon != null && 'pl-2')}
+        {...props}
+      />
+      {showTrailing ? (
+        <TrailingSlot>
+          {trailingIcon != null ? (
+            trailingIcon
+          ) : (
+            <SwapIndicator invalid={invalid} helpTooltip={helpTooltip} />
+          )}
+        </TrailingSlot>
+      ) : null}
     </InputShell>
   );
 }
@@ -1563,6 +1622,7 @@ export {
   HelpTrigger,
   ErrorIndicator,
   // Variants
+  TextInput,
   WebsiteInput,
   HttpsUrlInput as HttpsInput,
   PasswordInput,

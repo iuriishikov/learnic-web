@@ -112,7 +112,11 @@ export function SiteHeader({
         )}
       >
         <div className="flex items-center gap-2 md:gap-10">
-          <Link href="/" aria-label={t('brand')}>
+          <Link
+            href="/"
+            aria-label={t('brand')}
+            className="inline-flex items-center"
+          >
             <BrandMark label={t('brand')} size="md" tone={tone} />
           </Link>
 
@@ -274,7 +278,12 @@ function MobileMenu({
   return (
     <div className="flex h-full flex-col bg-background">
       <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-4">
-        <Link href="/" onClick={onNavigate} aria-label={brand}>
+        <Link
+          href="/"
+          onClick={onNavigate}
+          aria-label={brand}
+          className="inline-flex items-center"
+        >
           <BrandMark label={brand} size="md" />
         </Link>
         <SheetClose

@@ -6,7 +6,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { useAuth } from '@/features/auth';
 import { useNotify } from '@/shared/lib/notify';
 import { HttpsUrlInput } from '@/shared/ui/https-url-input';
-import { Input } from '@/shared/ui/input';
+import { TextInput } from '@/shared/ui/input-extended';
 import {
   AutosaveIndicator,
   SettingsRow,
@@ -220,7 +220,7 @@ function ContactsView({
           description={t('fields.publicEmail.description')}
           labelFor={publicEmailId}
         >
-          <Input
+          <TextInput
             id={publicEmailId}
             type="email"
             inputMode="email"
@@ -228,7 +228,7 @@ function ContactsView({
             placeholder={t('fields.publicEmail.placeholder')}
             maxLength={PUBLIC_EMAIL_MAX}
             aria-invalid={Boolean(errors.publicEmail)}
-            className="h-11 max-w-md rounded-lg px-3.5 text-[15px]"
+            className="h-11 max-w-md rounded-lg text-[15px]"
             value={publicEmail}
             onChange={(e) => setPublicEmail(e.target.value)}
           />

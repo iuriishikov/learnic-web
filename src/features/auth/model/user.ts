@@ -7,6 +7,11 @@ export type User = {
   fullName: string;
   /** Privacy-masked email in the form `f*****d@domain.com`. */
   email: string;
+  /**
+   * Whether the platform granted this user the public "verified" badge.
+   * Surfaced as a brand-coloured checkmark on the avatar.
+   */
+  isVerified: boolean;
   description: string | null;
   avatarUrl: string | null;
   coverUrl: string | null;
@@ -20,6 +25,7 @@ export type UserResponse = {
   oid: string;
   full_name: string;
   email: string;
+  is_verified: boolean;
   description: string | null;
   avatar_url: string | null;
   cover_url: string | null;
@@ -64,6 +70,7 @@ export function toUser(raw: UserResponse): User {
     patronymic,
     fullName: raw.full_name,
     email: raw.email,
+    isVerified: raw.is_verified,
     description: raw.description,
     avatarUrl: raw.avatar_url,
     coverUrl: raw.cover_url,

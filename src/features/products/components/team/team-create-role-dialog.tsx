@@ -21,7 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
-import { Input } from '@/shared/ui/input';
+import { TextInput } from '@/shared/ui/input-extended';
 import { RequiredMark } from '@/shared/ui/required-mark';
 
 import {
@@ -190,7 +190,7 @@ function CreateRoleForm({
           {t('nameLabel')}
           <RequiredMark />
         </label>
-        <Input
+        <TextInput
           id="role-name"
           value={name}
           onChange={(event) => setName(event.target.value)}

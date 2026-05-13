@@ -10,13 +10,13 @@ import { useRouter } from '@/shared/config/i18n/navigation';
 import { cn } from '@/shared/lib/utils';
 import { Alert, AlertDescription } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
+import { PasswordInput } from '@/shared/ui/input-extended';
 import { Label } from '@/shared/ui/label';
 
 import { confirmPasswordResetAction } from '../api/password-reset';
 import { PASSWORD_MIN } from '../model/constants';
 import { resetPasswordSchema } from '../model/password-reset';
 import type { AuthError } from '../model/types';
-import { PasswordInput } from './password-input';
 
 type ResetPasswordFormProps = {
   token: string;
@@ -90,11 +90,13 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         <PasswordInput
           id="reset-password"
           autoComplete="new-password"
-          className="h-11 rounded-lg px-3.5 text-[15px]"
+          className="h-11"
           placeholder={t('fields.password.placeholderCreate')}
-          showToggleLabel={t('fields.password.show')}
-          hideToggleLabel={t('fields.password.hide')}
-          aria-invalid={Boolean(passwordError)}
+          toggleLabel={{
+            show: t('fields.password.show'),
+            hide: t('fields.password.hide'),
+          }}
+          invalid={Boolean(passwordError)}
           {...form.register('password')}
         />
         <p

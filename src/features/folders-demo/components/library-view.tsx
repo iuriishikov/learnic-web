@@ -41,7 +41,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/shared/ui/context-menu';
-import { Input } from '@/shared/ui/input';
+import { TextInput } from '@/shared/ui/input-extended';
 import { Kbd } from '@/shared/ui/kbd';
 import { Skeleton } from '@/shared/ui/skeleton';
 import {
@@ -328,7 +328,7 @@ export function LibraryView() {
               </Button>
               <div className="relative w-full md:w-64">
                 <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
+                <TextInput
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder={t('searchPlaceholder')}

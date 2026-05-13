@@ -14,10 +14,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
-import { Input } from '@/shared/ui/input';
+import { TextInput } from '@/shared/ui/input-extended';
 import { Label } from '@/shared/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
-import { Textarea } from '@/shared/ui/textarea';
+import { DescriptionTextarea } from '@/shared/ui/textarea-extended';
 
 import { Emoji } from './emoji';
 import { EmojiPicker } from './emoji-picker';
@@ -127,7 +127,7 @@ export function CreateFolderDialog({
 
             <div className="flex flex-1 flex-col gap-1.5">
               <Label htmlFor="folder-name">{t('nameLabel')}</Label>
-              <Input
+              <TextInput
                 id="folder-name"
                 ref={inputRef}
                 value={name}
@@ -158,7 +158,7 @@ export function CreateFolderDialog({
                 {description.length} / {DESCRIPTION_MAX}
               </span>
             </div>
-            <Textarea
+            <DescriptionTextarea
               id="folder-description"
               value={description}
               onChange={(event) => {

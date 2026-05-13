@@ -26,7 +26,7 @@ import { CalendarIcon, ClockIcon } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { Calendar } from '@/shared/ui/calendar';
-import { Input } from '@/shared/ui/input';
+import { TextInput } from '@/shared/ui/input-extended';
 import {
   Popover,
   PopoverContent,
@@ -160,7 +160,7 @@ function DateDisplayInput({
 }) {
   const value = date ? format(date, formatStr, { locale }) : '';
   return (
-    <Input
+    <TextInput
       type="text"
       readOnly
       value={value}

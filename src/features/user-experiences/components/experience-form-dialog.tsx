@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ImageIcon, Trash2Icon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 
 import { useObjectUrl } from '@/shared/hooks/use-object-url';
 import { useNotify } from '@/shared/lib/notify';
@@ -17,6 +17,7 @@ import {
 } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
 import { Checkbox } from '@/shared/ui/checkbox';
+import { DatePicker } from '@/shared/ui/date-picker';
 import {
   Dialog,
   DialogContent,
@@ -25,9 +26,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
-import { Input } from '@/shared/ui/input';
+import { TextInput } from '@/shared/ui/input-extended';
 import { RequiredMark } from '@/shared/ui/required-mark';
-import { TextareaAutosize } from '@/shared/ui/textarea-autosize';
+import { DescriptionTextarea } from '@/shared/ui/textarea-extended';
 
 import {
   useAddExperienceMutation,
@@ -45,6 +46,25 @@ import type { UserExperience } from '../model/types';
 
 const ICON_ACCEPT = 'image/png,image/jpeg,image/webp,image/svg+xml';
 const ICON_MAX_BYTES = 5 * 1024 * 1024;
+
+// The form stores dates as `YYYY-MM-DD` strings (see model/form.ts ISO_DATE).
+// DatePicker speaks `Date`; parse/format in local time to avoid a UTC shift
+// turning "2026-05-15" into the previous day east of UTC.
+function parseIsoDate(value: string): Date | undefined {
+  if (!value) return undefined;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return undefined;
+  const [, y, m, d] = match;
+  return new Date(Number(y), Number(m) - 1, Number(d));
+}
+
+function formatIsoDate(date: Date | undefined): string {
+  if (!date) return '';
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
 
 type ExperienceFormDialogProps = {
   userId: string;
@@ -94,8 +114,6 @@ function ExperienceForm({
 
   const titleId = useId();
   const descriptionId = useId();
-  const startDateId = useId();
-  const endDateId = useId();
   const ongoingId = useId();
   const sourceUrlId = useId();
 
@@ -277,7 +295,7 @@ function ExperienceForm({
             {t('fields.title.label')}
             <RequiredMark />
           </label>
-          <Input
+          <TextInput
             id={titleId}
             autoFocus
             placeholder={t('fields.title.placeholder')}
@@ -300,7 +318,7 @@ function ExperienceForm({
           >
             {t('fields.description.label')}
           </label>
-          <TextareaAutosize
+          <DescriptionTextarea
             id={descriptionId}
             placeholder={t('fields.description.placeholder')}
             className="min-h-24"
@@ -321,18 +339,27 @@ function ExperienceForm({
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor={startDateId}
-                className="text-sm font-medium text-foreground"
-              >
+              <span className="text-sm font-medium text-foreground">
                 {t('fields.startDate.label')}
                 <RequiredMark />
-              </label>
-              <Input
-                id={startDateId}
-                type="date"
-                aria-invalid={Boolean(errors.startDate)}
-                {...form.register('startDate')}
+              </span>
+              <Controller
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                  <DatePicker
+                    value={parseIsoDate(field.value)}
+                    onChange={(date) => {
+                      field.onChange(formatIsoDate(date));
+                      void form.trigger('startDate');
+                      if (!ongoing) void form.trigger('endDate');
+                    }}
+                    triggerClassName={cn(
+                      'w-full',
+                      errors.startDate && 'border-destructive',
+                    )}
+                  />
+                )}
               />
               {errors.startDate?.message ? (
                 <p className="text-sm text-destructive">
@@ -341,21 +368,31 @@ function ExperienceForm({
               ) : null}
             </div>
             <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor={endDateId}
+              <span
                 className={cn(
                   'text-sm font-medium',
                   ongoing ? 'text-muted-foreground' : 'text-foreground',
                 )}
               >
                 {t('fields.endDate.label')}
-              </label>
-              <Input
-                id={endDateId}
-                type="date"
-                disabled={ongoing}
-                aria-invalid={Boolean(errors.endDate)}
-                {...form.register('endDate')}
+              </span>
+              <Controller
+                control={form.control}
+                name="endDate"
+                render={({ field }) => (
+                  <DatePicker
+                    value={parseIsoDate(field.value)}
+                    onChange={(date) => {
+                      field.onChange(formatIsoDate(date));
+                      void form.trigger('endDate');
+                    }}
+                    disabled={ongoing}
+                    triggerClassName={cn(
+                      'w-full',
+                      errors.endDate && !ongoing && 'border-destructive',
+                    )}
+                  />
+                )}
               />
               {errors.endDate?.message && !ongoing ? (
                 <p className="text-sm text-destructive">
@@ -392,7 +429,7 @@ function ExperienceForm({
           >
             {t('fields.sourceUrl.label')}
           </label>
-          <Input
+          <TextInput
             id={sourceUrlId}
             type="url"
             inputMode="url"

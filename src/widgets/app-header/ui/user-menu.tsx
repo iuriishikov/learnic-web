@@ -115,6 +115,7 @@ export function UserMenu({ user }: UserMenuProps) {
     id: user.oid,
     fullName: user.fullName,
     avatarUrl: user.avatarUrl,
+    isVerified: user.isVerified,
   };
   const profileHref = `/users/${user.oid}`;
   const isDark = theme === 'dark';
@@ -162,7 +163,7 @@ export function UserMenu({ user }: UserMenuProps) {
               leading={<UserIcon />}
               shortcut="⌘K→P"
             >
-              {tMenu('viewProfile')}
+              {tMenu('myProfile')}
             </MenuItem>
             <MenuItem
               render={<Link href={modeTarget} />}

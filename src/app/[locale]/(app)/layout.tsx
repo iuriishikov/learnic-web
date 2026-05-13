@@ -7,7 +7,6 @@ import { getCurrentUser } from '@/features/auth/server';
 import { PushBanner } from '@/features/web-push';
 import { QueryProvider } from '@/shared/api/query-provider';
 import { redirect } from '@/shared/config/i18n/navigation';
-import { Toaster } from '@/shared/ui/sonner';
 import {
   AppBreadcrumbsShell,
   AppHeaderShell,
@@ -48,7 +47,6 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
               <main className="flex-1">{children}</main>
             </div>
             <PushBanner />
-            <Toaster />
           </BreadcrumbConfigProvider>
         </SubHeaderConfigProvider>
       </HeaderConfigProvider>

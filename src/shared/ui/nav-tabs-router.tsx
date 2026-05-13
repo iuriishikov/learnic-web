@@ -74,5 +74,5 @@ function findActiveTabKey(
       bestLength = tab.href.length;
     }
   }
-  return bestKey ?? tabs[0]?.key;
+  return bestKey;
 }

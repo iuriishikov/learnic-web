@@ -37,9 +37,9 @@ import {
 
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
-import { Input } from '@/shared/ui/input';
+import { TextInput } from '@/shared/ui/input-extended';
 import { Skeleton } from '@/shared/ui/skeleton';
-import { TextareaAutosize } from '@/shared/ui/textarea-autosize';
+import { DescriptionTextarea } from '@/shared/ui/textarea-extended';
 
 import type { ProductQA } from '../api/qa';
 import {
@@ -378,7 +378,7 @@ function QuestionField({
   const isEmpty = draft.trim().length === 0;
   return (
     <div className="flex flex-col gap-1">
-      <Input
+      <TextInput
         key={rowId}
         value={draft}
         maxLength={QUESTION_MAX}
@@ -436,7 +436,7 @@ function AnswerField({
   const isEmpty = draft.trim().length === 0;
   return (
     <div className="flex flex-col gap-1">
-      <TextareaAutosize
+      <DescriptionTextarea
         key={rowId}
         value={draft}
         maxLength={ANSWER_MAX}

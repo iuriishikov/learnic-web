@@ -136,6 +136,8 @@ export type UserSearchResult = {
   /** Display name in the canonical `Last First Patronymic` order. */
   fullName: string;
   avatarUrl: string | null;
+  /** Whether the platform granted this user the public "verified" badge. */
+  isVerified: boolean;
 };
 
 export type CollaborationStatus =

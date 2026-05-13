@@ -38,7 +38,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/shared/ui/hover-card';
-import { Input } from '@/shared/ui/input';
+import { TextInput } from '@/shared/ui/input-extended';
 import { NavTabs } from '@/shared/ui/nav-tabs';
 import { Skeleton } from '@/shared/ui/skeleton';
 import {
@@ -366,7 +366,7 @@ export function TeamMembersTab({
                 aria-hidden
                 className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
               />
-              <Input
+              <TextInput
                 type="search"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}

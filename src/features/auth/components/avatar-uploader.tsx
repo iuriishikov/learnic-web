@@ -30,6 +30,7 @@ export function AvatarUploader() {
     id: user.oid,
     fullName: user.fullName,
     avatarUrl: user.avatarUrl,
+    isVerified: user.isVerified,
   };
 
   function handlePick() {
@@ -87,7 +88,7 @@ export function AvatarUploader() {
         user={avatarUser}
         size="lg"
         shape="circle"
-        showStatus={false}
+        statusType={null}
         previewFile={previewFile}
         className="size-16"
       />

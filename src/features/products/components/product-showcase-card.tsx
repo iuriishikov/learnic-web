@@ -25,6 +25,7 @@ type ProductShowcaseCardProps = {
   durationLabel: string;
   dueLabel?: string | null;
   accent?: ProductShowcaseAccent;
+  coverUrl?: string | null;
   className?: string;
   onClick?: () => void;
 };
@@ -42,6 +43,7 @@ export function ProductShowcaseCard({
   durationLabel,
   dueLabel,
   accent = 'pink',
+  coverUrl,
   className,
   onClick,
 }: ProductShowcaseCardProps) {
@@ -76,7 +78,16 @@ export function ProductShowcaseCard({
     >
       <div className="px-[3px] pt-[3px]">
         <div className="relative h-40 w-full overflow-hidden rounded-t-[9px]">
-          <Placeholder variant="soft" seed={title} accent={accent} />
+          {coverUrl ? (
+            <div
+              role="img"
+              aria-label={title}
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${coverUrl})` }}
+            />
+          ) : (
+            <Placeholder variant="soft" seed={title} accent={accent} />
+          )}
         </div>
       </div>
 

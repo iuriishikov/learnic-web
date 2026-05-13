@@ -22,18 +22,18 @@ export type AcceptInviteOutcome = InviteOutcome;
 export async function acceptInvitationFromNotificationAction(args: {
   collaborationId: string;
 }): Promise<InviteOutcome> {
-  return performInviteResolution(args.collaborationId, 'accept-in-app');
+  return performInviteResolution(args.collaborationId, 'accept');
 }
 
 export async function declineInvitationFromNotificationAction(args: {
   collaborationId: string;
 }): Promise<InviteOutcome> {
-  return performInviteResolution(args.collaborationId, 'decline-in-app');
+  return performInviteResolution(args.collaborationId, 'decline');
 }
 
 async function performInviteResolution(
   collaborationId: string,
-  endpoint: 'accept-in-app' | 'decline-in-app',
+  endpoint: 'accept' | 'decline',
 ): Promise<InviteOutcome> {
   let res: Response;
   try {

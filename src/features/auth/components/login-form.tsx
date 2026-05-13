@@ -10,15 +10,17 @@ import { useForm } from 'react-hook-form';
 import { useRouter } from '@/shared/config/i18n/navigation';
 import { Alert, AlertDescription } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
-import { Input } from '@/shared/ui/input';
-import { Label } from '@/shared/ui/label';
+import {
+  EmailInput,
+  FieldRow,
+  PasswordInput,
+} from '@/shared/ui/input-extended';
 
 import { loginAction } from '../api/login';
 import { sanitizeRedirectTarget } from '../lib/redirect';
 import { loginSchema, type LoginInput } from '../model/login';
 import type { AuthError } from '../model/types';
 import { AuthAltButton } from './auth-alt-button';
-import { PasswordInput } from './password-input';
 
 export function LoginForm() {
   const t = useTranslations('auth');
@@ -66,40 +68,37 @@ export function LoginForm() {
           </AlertDescription>
         </Alert>
       ) : null}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="login-email">{t('fields.email.label')}</Label>
-        <Input
+      <FieldRow
+        id="login-email"
+        label={t('fields.email.label')}
+        error={emailError ? t(`errors.${emailError}`) : undefined}
+      >
+        <EmailInput
           id="login-email"
-          type="email"
-          autoComplete="email"
-          className="h-11 rounded-lg px-3.5 text-[15px]"
+          className="h-11"
           placeholder={t('fields.email.placeholder')}
-          aria-invalid={Boolean(emailError)}
+          invalid={Boolean(emailError)}
           {...form.register('email')}
         />
-        {emailError ? (
-          <p className="text-sm text-destructive">{t(`errors.${emailError}`)}</p>
-        ) : null}
-      </div>
+      </FieldRow>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="login-password">{t('fields.password.label')}</Label>
+      <FieldRow
+        id="login-password"
+        label={t('fields.password.label')}
+        error={passwordError ? t(`errors.${passwordError}`) : undefined}
+      >
         <PasswordInput
           id="login-password"
-          autoComplete="current-password"
-          className="h-11 rounded-lg px-3.5 text-[15px]"
+          className="h-11"
           placeholder={t('fields.password.placeholderEnter')}
-          showToggleLabel={t('fields.password.show')}
-          hideToggleLabel={t('fields.password.hide')}
-          aria-invalid={Boolean(passwordError)}
+          toggleLabel={{
+            show: t('fields.password.show'),
+            hide: t('fields.password.hide'),
+          }}
+          invalid={Boolean(passwordError)}
           {...form.register('password')}
         />
-        {passwordError ? (
-          <p className="text-sm text-destructive">
-            {t(`errors.${passwordError}`)}
-          </p>
-        ) : null}
-      </div>
+      </FieldRow>
 
       {formError ? (
         <Alert variant="destructive">

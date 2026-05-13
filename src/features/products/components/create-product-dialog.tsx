@@ -32,7 +32,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/shared/ui/dialog';
-import { Input } from '@/shared/ui/input';
+import { TextInput } from '@/shared/ui/input-extended';
 import {
   NumberField,
   NumberFieldAddon,
@@ -43,7 +43,7 @@ import {
 } from '@/shared/ui/number-field';
 import { Label } from '@/shared/ui/label';
 import { RequiredMark } from '@/shared/ui/required-mark';
-import { TextareaAutosize } from '@/shared/ui/textarea-autosize';
+import { DescriptionTextarea } from '@/shared/ui/textarea-extended';
 
 import { createProductAction } from '../api/create-product';
 import { myProductsKey } from '../api/use-my-products';
@@ -323,7 +323,7 @@ function DetailsStep({ productType, onBack, onCreated }: DetailsStepProps) {
             required
             error={titleError ? t(`errors.${titleError}`) : null}
           >
-            <Input
+            <TextInput
               id="cp-title"
               autoComplete="off"
               autoFocus
@@ -340,7 +340,7 @@ function DetailsStep({ productType, onBack, onCreated }: DetailsStepProps) {
             hint={t('fields.optional')}
             error={descriptionError ? t(`errors.${descriptionError}`) : null}
           >
-            <TextareaAutosize
+            <DescriptionTextarea
               id="cp-description"
               placeholder={t(`fields.description.placeholder.${productType}`)}
               aria-invalid={Boolean(descriptionError)}

@@ -6,8 +6,8 @@ import { useEffect, useId, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { useNotify } from '@/shared/lib/notify';
-import { Input } from '@/shared/ui/input';
-import { TextareaAutosize } from '@/shared/ui/textarea-autosize';
+import { TextInput } from '@/shared/ui/input-extended';
+import { DescriptionTextarea } from '@/shared/ui/textarea-extended';
 import {
   AutosaveIndicator,
   SettingsRow,
@@ -188,11 +188,11 @@ export function ProfileForm() {
         </SettingsRow>
 
         <SettingsRow label={tFields('lastName.label')} labelFor={lastNameId}>
-          <Input
+          <TextInput
             id={lastNameId}
             autoComplete="family-name"
             aria-invalid={Boolean(errors.lastName)}
-            className="h-11 max-w-md rounded-lg px-3.5 text-[15px]"
+            className="h-11 max-w-md rounded-lg text-[15px]"
             placeholder={tFields('lastName.placeholder')}
             {...form.register('lastName')}
           />
@@ -204,11 +204,11 @@ export function ProfileForm() {
         </SettingsRow>
 
         <SettingsRow label={tFields('firstName.label')} labelFor={firstNameId}>
-          <Input
+          <TextInput
             id={firstNameId}
             autoComplete="given-name"
             aria-invalid={Boolean(errors.firstName)}
-            className="h-11 max-w-md rounded-lg px-3.5 text-[15px]"
+            className="h-11 max-w-md rounded-lg text-[15px]"
             placeholder={tFields('firstName.placeholder')}
             {...form.register('firstName')}
           />
@@ -224,11 +224,11 @@ export function ProfileForm() {
           description={tFields('patronymic.description')}
           labelFor={patronymicId}
         >
-          <Input
+          <TextInput
             id={patronymicId}
             autoComplete="additional-name"
             aria-invalid={Boolean(errors.patronymic)}
-            className="h-11 max-w-md rounded-lg px-3.5 text-[15px]"
+            className="h-11 max-w-md rounded-lg text-[15px]"
             placeholder={tFields('patronymic.placeholder')}
             {...form.register('patronymic')}
           />
@@ -244,7 +244,7 @@ export function ProfileForm() {
           description={tFields('description.description')}
           labelFor={descriptionId}
         >
-          <TextareaAutosize
+          <DescriptionTextarea
             id={descriptionId}
             aria-invalid={Boolean(errors.description)}
             className="min-h-32 max-w-2xl rounded-lg text-[15px]"
@@ -266,12 +266,12 @@ export function ProfileForm() {
           description={tFields('email.description')}
           labelFor={emailId}
         >
-          <Input
+          <TextInput
             id={emailId}
             value={user.email}
             readOnly
             disabled
-            className="h-11 max-w-md rounded-lg px-3.5 text-[15px]"
+            className="h-11 max-w-md rounded-lg text-[15px]"
           />
         </SettingsRow>
       </SettingsSection>

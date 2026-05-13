@@ -11,7 +11,12 @@ import { useRouter } from '@/shared/config/i18n/navigation';
 import { cn } from '@/shared/lib/utils';
 import { Alert, AlertDescription } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
-import { Input } from '@/shared/ui/input';
+import {
+  EmailInput,
+  FieldRow,
+  PasswordInput,
+  TextInput,
+} from '@/shared/ui/input-extended';
 import { Label } from '@/shared/ui/label';
 
 import { registerAction } from '../api/registration';
@@ -20,7 +25,6 @@ import { PASSWORD_MIN } from '../model/constants';
 import { registerSchema, type RegisterInput } from '../model/registration';
 import type { AuthError } from '../model/types';
 import { AuthAltButton } from './auth-alt-button';
-import { PasswordInput } from './password-input';
 
 export function RegisterForm() {
   const t = useTranslations('auth');
@@ -126,81 +130,90 @@ export function RegisterForm() {
       className="flex flex-col gap-5"
     >
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-4">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="register-first-name">
-            {t('fields.firstName.label')}
-          </Label>
-          <Input
+        <FieldRow
+          id="register-first-name"
+          label={t('fields.firstName.label')}
+          error={
+            errors.firstName?.message
+              ? t(`errors.${errors.firstName.message}`)
+              : undefined
+          }
+        >
+          <TextInput
             id="register-first-name"
             type="text"
             autoComplete="given-name"
-            className="h-11 rounded-lg px-3.5 text-[15px]"
+            className="h-11"
             placeholder={t('fields.firstName.placeholder')}
-            aria-invalid={Boolean(errors.firstName)}
+            invalid={Boolean(errors.firstName)}
             {...form.register('firstName')}
           />
-          {errors.firstName?.message ? (
-            <p className="text-sm text-destructive">
-              {t(`errors.${errors.firstName.message}`)}
-            </p>
-          ) : null}
-        </div>
+        </FieldRow>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="register-last-name">
-            {t('fields.lastName.label')}
-          </Label>
-          <Input
+        <FieldRow
+          id="register-last-name"
+          label={t('fields.lastName.label')}
+          error={
+            errors.lastName?.message
+              ? t(`errors.${errors.lastName.message}`)
+              : undefined
+          }
+        >
+          <TextInput
             id="register-last-name"
             type="text"
             autoComplete="family-name"
-            className="h-11 rounded-lg px-3.5 text-[15px]"
+            className="h-11"
             placeholder={t('fields.lastName.placeholder')}
-            aria-invalid={Boolean(errors.lastName)}
+            invalid={Boolean(errors.lastName)}
             {...form.register('lastName')}
           />
-          {errors.lastName?.message ? (
-            <p className="text-sm text-destructive">
-              {t(`errors.${errors.lastName.message}`)}
-            </p>
-          ) : null}
-        </div>
+        </FieldRow>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="register-patronymic">
-          {t('fields.patronymic.label')}
-          <span className="ml-1 text-muted-foreground">
-            {t('fields.patronymic.optional')}
-          </span>
-        </Label>
-        <Input
+      <FieldRow
+        id="register-patronymic"
+        label={
+          <>
+            {t('fields.patronymic.label')}
+            <span className="ml-1 text-muted-foreground">
+              {t('fields.patronymic.optional')}
+            </span>
+          </>
+        }
+        error={
+          errors.patronymic?.message
+            ? t(`errors.${errors.patronymic.message}`)
+            : undefined
+        }
+      >
+        <TextInput
           id="register-patronymic"
           type="text"
           autoComplete="additional-name"
-          className="h-11 rounded-lg px-3.5 text-[15px]"
+          className="h-11"
           placeholder={t('fields.patronymic.placeholder')}
           {...form.register('patronymic')}
         />
-      </div>
+      </FieldRow>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="register-email">{t('fields.email.label')}</Label>
-        <Input
+      <FieldRow
+        id="register-email"
+        label={t('fields.email.label')}
+        error={
+          errors.email?.message
+            ? t(`errors.${errors.email.message}`)
+            : undefined
+        }
+      >
+        <EmailInput
           id="register-email"
-          type="email"
-          autoComplete="email"
-          className="h-11 rounded-lg px-3.5 text-[15px]"
+          className="h-11"
           placeholder={t('fields.email.placeholder')}
-          aria-invalid={Boolean(errors.email)}
+          invalid={Boolean(errors.email)}
           {...form.register('email')}
         />
-        {errors.email?.message ? (
-          <p className="text-sm text-destructive">
-            {t(`errors.${errors.email.message}`)}
-          </p>
-        ) : null}
-      </div>
+      </FieldRow>
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="register-password">
@@ -209,11 +222,13 @@ export function RegisterForm() {
         <PasswordInput
           id="register-password"
           autoComplete="new-password"
-          className="h-11 rounded-lg px-3.5 text-[15px]"
+          className="h-11"
           placeholder={t('fields.password.placeholderCreate')}
-          showToggleLabel={t('fields.password.show')}
-          hideToggleLabel={t('fields.password.hide')}
-          aria-invalid={Boolean(errors.password)}
+          toggleLabel={{
+            show: t('fields.password.show'),
+            hide: t('fields.password.hide'),
+          }}
+          invalid={Boolean(errors.password)}
           {...form.register('password')}
         />
         <p

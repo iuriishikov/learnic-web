@@ -4,11 +4,11 @@ import * as React from 'react';
 
 import { cn } from '@/shared/lib/utils';
 import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-  InputGroupText,
-} from '@/shared/ui/input-group';
+  Divider,
+  InputShell,
+  ShellInput,
+  SideAddon,
+} from '@/shared/ui/input-extended';
 
 const ANY_SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
 
@@ -18,7 +18,7 @@ function stripScheme(v: string): string {
 
 type HttpsUrlInputProps = Omit<
   React.ComponentProps<'input'>,
-  'type' | 'value' | 'defaultValue' | 'onChange'
+  'type' | 'value' | 'defaultValue' | 'onChange' | 'className' | 'disabled'
 > & {
   /**
    * Full URL with `https?://` prefix as stored on the wire. The prefix
@@ -27,7 +27,11 @@ type HttpsUrlInputProps = Omit<
    */
   value: string;
   onValueChange: (next: string) => void;
+  disabled?: boolean;
+  /** Class merged onto the bordered shell (height, max-width, radius). */
   groupClassName?: string;
+  /** Class merged onto the inner `<input>`. */
+  className?: string;
 };
 
 function HttpsUrlInput({
@@ -35,18 +39,23 @@ function HttpsUrlInput({
   onValueChange,
   className,
   groupClassName,
+  disabled,
   ...props
 }: HttpsUrlInputProps) {
   const rest = stripScheme(value);
   return (
-    <InputGroup className={cn(groupClassName)}>
-      <InputGroupAddon align="inline-start">
-        <InputGroupText>https://</InputGroupText>
-      </InputGroupAddon>
-      <InputGroupInput
+    <InputShell disabled={disabled} className={cn(groupClassName)}>
+      <SideAddon align="inline-start">
+        <span className="inline-flex h-full items-center px-3 text-sm text-muted-foreground select-none">
+          https://
+        </span>
+      </SideAddon>
+      <Divider />
+      <ShellInput
         type="url"
         inputMode="url"
         autoComplete="url"
+        disabled={disabled}
         value={rest}
         onChange={(event) => {
           const next = stripScheme(event.target.value);
@@ -55,7 +64,7 @@ function HttpsUrlInput({
         className={className}
         {...props}
       />
-    </InputGroup>
+    </InputShell>
   );
 }
 

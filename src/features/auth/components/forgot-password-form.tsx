@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 
 import { Alert, AlertDescription } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
-import { Input } from '@/shared/ui/input';
+import { TextInput } from '@/shared/ui/input-extended';
 import { Label } from '@/shared/ui/label';
 
 import { requestPasswordResetAction } from '../api/password-reset';
@@ -86,11 +86,11 @@ export function ForgotPasswordForm() {
     >
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="forgot-email">{t('fields.email.label')}</Label>
-        <Input
+        <TextInput
           id="forgot-email"
           type="email"
           autoComplete="email"
-          className="h-11 rounded-lg px-3.5 text-[15px]"
+          className="h-11 rounded-lg text-[15px]"
           placeholder={t('fields.email.placeholder')}
           aria-invalid={Boolean(emailError)}
           {...form.register('email')}

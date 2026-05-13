@@ -41,7 +41,7 @@ import {
   DialogTitle,
 } from '@/shared/ui/dialog';
 import { Skeleton } from '@/shared/ui/skeleton';
-import { TextareaAutosize } from '@/shared/ui/textarea-autosize';
+import { DescriptionTextarea } from '@/shared/ui/textarea-extended';
 
 import {
   type CourseReleaseKind,
@@ -535,7 +535,7 @@ function CreateReleaseDialog({
             >
               {t('notesLabel')}
             </label>
-            <TextareaAutosize
+            <DescriptionTextarea
               id="release-notes"
               value={notes}
               onChange={(e: ReactChangeEvent<HTMLTextAreaElement>) =>

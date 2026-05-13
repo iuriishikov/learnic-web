@@ -38,15 +38,5 @@ export function SettingsHeaderConfig({ mode }: { mode: AppMode }) {
     { key: 'dashboard', href: '/dashboard', label: tTeach('nav.dashboard') },
   ];
 
-  return (
-    <HeaderConfig
-      navItems={navItems}
-      brandHref="/dashboard"
-      brandSuffix={
-        <span className="rounded-md bg-brand/10 px-2 py-0.5 text-xs font-semibold text-brand">
-          {tTeach('studioBadge')}
-        </span>
-      }
-    />
-  );
+  return <HeaderConfig navItems={navItems} brandHref="/dashboard" />;
 }

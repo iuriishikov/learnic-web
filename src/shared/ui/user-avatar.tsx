@@ -1,7 +1,7 @@
 'use client';
 
 import { cva, type VariantProps } from 'class-variance-authority';
-import { AlertCircleIcon } from 'lucide-react';
+import { AlertCircleIcon, BadgeCheckIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -61,7 +61,29 @@ export type AvatarUser = {
   id: string;
   fullName: string;
   avatarUrl: string | null;
+  /**
+   * Whether the platform granted this user the public "verified" badge.
+   * Drives the brand checkmark overlay when `statusType="verified"`.
+   * Defaults to `false` when the caller doesn't carry the flag yet —
+   * the badge stays hidden in that case, which is the safe default.
+   */
+  isVerified?: boolean;
 };
+
+/**
+ * Which optional status overlay the avatar renders.
+ *
+ * - `'online'`: subscribe to the user's live presence and show the green
+ *   online dot when they are online. Default.
+ * - `'verified'`: show the brand-coloured verified checkmark when the
+ *   user carries `isVerified: true`. Static; no presence subscription.
+ * - `null`: render no status overlay (e.g. guest / settings preview
+ *   avatars where presence and verification are both irrelevant).
+ *
+ * Only one overlay can be shown at a time — presence and verification
+ * compete for the same corner of the avatar.
+ */
+export type AvatarStatusType = 'online' | 'verified' | null;
 
 type AvatarUserName = Pick<AvatarUser, 'fullName'>;
 
@@ -74,13 +96,13 @@ type UserAvatarProps = VariantProps<typeof userAvatarVariants> & {
    */
   showLoadErrorIndicator?: boolean;
   /**
-   * Auto-subscribe to the user's live presence over WS and render the online
-   * indicator when they are online. Defaults to `true`. Pass `false` to opt
-   * out — e.g. for guest avatars or surfaces where presence is irrelevant.
-   * The avatar manages the subscription itself; callers should not pass an
-   * online flag manually.
+   * Which status overlay to show, if any. See {@link AvatarStatusType}.
+   * Defaults to `'online'` — the avatar auto-subscribes to presence and
+   * shows the online dot when the user is online. Pass `'verified'` to
+   * surface the brand checkmark for verified users instead, or `null`
+   * to render no overlay at all.
    */
-  showStatus?: boolean;
+  statusType?: AvatarStatusType;
   /** Avatar silhouette. Defaults to `square` (rounded square) per design. */
   shape?: AvatarShape;
   /**
@@ -127,7 +149,7 @@ export function UserAvatar({
   size,
   className,
   showLoadErrorIndicator = true,
-  showStatus = true,
+  statusType = 'online',
   shape = 'square',
   halo = true,
   previewFile,
@@ -143,10 +165,13 @@ export function UserAvatar({
   const isLoading = hasUrl && (status === 'idle' || status === 'loading');
   const isError = hasUrl && status === 'error';
 
-  // Always call the hook (rules-of-hooks). When `showStatus` is false or no
-  // user is provided, we pass `null` and the hook is a no-op (returns
-  // `'unknown'` and never subscribes).
-  const presence = usePresence(showStatus && user ? user.id : null);
+  // Always call the hook (rules-of-hooks). The hook is a no-op for `null`
+  // (returns `'unknown'` and never subscribes); we only pass the real id
+  // when the caller asked for the online overlay AND we actually have a
+  // user — verified-mode avatars don't need presence at all.
+  const presence = usePresence(
+    statusType === 'online' && user ? user.id : null,
+  );
   const isOnline = presence === 'online';
 
   const initials = buildUserInitials(user);
@@ -155,8 +180,14 @@ export function UserAvatar({
     ? AVATAR_COLOR_CLASSES[pickAvatarColorIndex(user.id)]
     : 'bg-muted';
   const showErrorBadge = showLoadErrorIndicator && isError;
-  const showOnlineBadge = isOnline && !showErrorBadge;
+  const showOnlineBadge =
+    statusType === 'online' && isOnline && !showErrorBadge;
+  const showVerifiedBadge =
+    statusType === 'verified' &&
+    Boolean(user?.isVerified) &&
+    !showErrorBadge;
   const onlineLabel = t('presence.online');
+  const verifiedLabel = t('verified.badge');
 
   const radius = SHAPE_RADIUS[shape];
 
@@ -216,6 +247,20 @@ export function UserAvatar({
           title={onlineLabel}
           className="bg-online group-data-[size=sm]/avatar:size-1.5 group-data-[size=default]/avatar:size-2 group-data-[size=lg]/avatar:size-2.5"
         />
+      )}
+      {showVerifiedBadge && (
+        <span
+          aria-label={verifiedLabel}
+          title={verifiedLabel}
+          data-slot="avatar-verified-badge"
+          className={cn(
+            'absolute -right-0.5 -bottom-0.5 z-10 inline-flex items-center justify-center text-brand select-none',
+            'group-data-[size=sm]/avatar:size-3 group-data-[size=default]/avatar:size-3.5 group-data-[size=lg]/avatar:size-4',
+            '[&>svg]:size-full [&>svg]:drop-shadow-[0_1px_2px_rgb(0_0_0/0.25)]',
+          )}
+        >
+          <BadgeCheckIcon strokeWidth={2.25} aria-hidden />
+        </span>
       )}
     </Avatar>
   );

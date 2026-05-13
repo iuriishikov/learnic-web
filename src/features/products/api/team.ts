@@ -440,6 +440,7 @@ export async function updateCollaborationGrantsAction(args: {
 type UserSummarySchemaResponse = {
   oid: string;
   full_name: string;
+  is_verified: boolean;
   avatar_url: string | null;
 };
 
@@ -448,6 +449,7 @@ function fromUserSummary(raw: UserSummarySchemaResponse): UserSearchResult {
     id: raw.oid,
     fullName: raw.full_name,
     avatarUrl: raw.avatar_url,
+    isVerified: raw.is_verified,
   };
 }
 

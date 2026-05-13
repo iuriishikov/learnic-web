@@ -65,83 +65,21 @@
   },
   "footer": {
     "brand": "Learnic",
-    "tagline": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-    "newBadge": "New",
+    "navLabel": "Навигация по сайту",
+    "legalLabel": "Юридическая информация",
+    "nav": [
+      { "label": "Обзор", "href": "#" },
+      { "label": "Возможности", "href": "#" },
+      { "label": "Тарифы", "href": "#" },
+      { "label": "Карьера", "href": "#" },
+      { "label": "Помощь", "href": "#" },
+      { "label": "Конфиденциальность", "href": "#" }
+    ],
     "copyright": "© {year} Learnic. Все права защищены.",
-    "newsletter": {
-      "title": "Lorem ipsum dolor sit amet",
-      "mobileTitle": "Lorem ipsum",
-      "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-      "emailLabel": "Email",
-      "emailPlaceholder": "Email",
-      "subscribe": "Подписаться"
-    },
-    "social": {
-      "label": "Социальные сети",
-      "items": [
-        { "key": "x", "label": "X" },
-        { "key": "linkedin", "label": "LinkedIn" },
-        { "key": "facebook", "label": "Facebook" },
-        { "key": "github", "label": "GitHub" },
-        { "key": "dribbble", "label": "Dribbble" }
-      ]
-    },
-    "columns": [
-      {
-        "title": "Lorem",
-        "items": [
-          { "label": "Ipsum" },
-          { "label": "Dolor" },
-          { "label": "Sit", "isNew": true },
-          { "label": "Amet" },
-          { "label": "Consectetur" },
-          { "label": "Adipiscing" }
-        ]
-      },
-      {
-        "title": "Ipsum",
-        "items": [
-          { "label": "Elit" },
-          { "label": "Sed" },
-          { "label": "Eiusmod" },
-          { "label": "Tempor" },
-          { "label": "Labore" },
-          { "label": "Magna" }
-        ]
-      },
-      {
-        "title": "Dolor",
-        "items": [
-          { "label": "Aliqua" },
-          { "label": "Enim" },
-          { "label": "Minim" },
-          { "label": "Veniam" },
-          { "label": "Quis" },
-          { "label": "Nostrud" }
-        ]
-      },
-      {
-        "title": "Sit",
-        "items": [
-          { "label": "Ullamco" },
-          { "label": "Laboris" },
-          { "label": "Aliquip" },
-          { "label": "Commodo" },
-          { "label": "Duis" },
-          { "label": "Aute" }
-        ]
-      },
-      {
-        "title": "Amet",
-        "items": [
-          { "label": "Irure" },
-          { "label": "Voluptate" },
-          { "label": "Velit" },
-          { "label": "Esse" },
-          { "label": "Cillum" },
-          { "label": "Fugiat" }
-        ]
-      }
+    "legal": [
+      { "label": "Условия", "href": "#" },
+      { "label": "Конфиденциальность", "href": "#" },
+      { "label": "Cookies", "href": "#" }
     ]
   },
   "blog": {

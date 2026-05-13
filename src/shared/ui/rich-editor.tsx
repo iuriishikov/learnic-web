@@ -53,7 +53,7 @@ import {
 
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
-import { Input } from '@/shared/ui/input';
+import { TextInput } from '@/shared/ui/input-extended';
 import {
   Popover,
   PopoverContent,
@@ -959,7 +959,7 @@ function CustomColorRow({
           className="size-5 rounded-full ring-1 ring-foreground/15"
           style={{ backgroundColor: previewColor }}
         />
-        <Input
+        <TextInput
           type="text"
           value={draft}
           onChange={(event) =>
@@ -1021,7 +1021,7 @@ function ImageButton({
           <label className="text-xs font-medium text-muted-foreground">
             {t('image.urlLabel')}
           </label>
-          <Input
+          <TextInput
             type="url"
             autoFocus
             value={src}
@@ -1032,7 +1032,7 @@ function ImageButton({
           <label className="text-xs font-medium text-muted-foreground">
             {t('image.altLabel')}
           </label>
-          <Input
+          <TextInput
             type="text"
             value={alt}
             onChange={(event) => setAlt(event.target.value)}
@@ -1111,7 +1111,7 @@ function LinkButton({ editor }: { editor: Editor }) {
           <label className="text-xs font-medium text-muted-foreground">
             {t('link.urlLabel')}
           </label>
-          <Input
+          <TextInput
             type="url"
             autoFocus
             value={draft}
@@ -1251,7 +1251,7 @@ function FloatingBubbleMenu({ editor }: { editor: Editor }) {
             transition={{ duration: 0.12, ease: [0.32, 0.72, 0, 1] }}
             className="flex items-center gap-1 rounded-lg bg-editor-overlay p-1 text-editor-overlay-foreground shadow-lg ring-1 ring-editor-overlay/30"
           >
-            <Input
+            <TextInput
               type="url"
               autoFocus
               value={draft}

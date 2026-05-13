@@ -1,0 +1,84 @@
+{
+  "sections": {
+    "aboutMe": "О себе",
+    "experience": "Опыт",
+    "products": "Продукты"
+  },
+  "actions": {
+    "viewPortfolio": "Открыть портфолио",
+    "writeMessage": "Написать"
+  },
+  "menu": {
+    "trigger": "Ещё действия",
+    "share": "Поделиться профилем",
+    "report": "Пожаловаться"
+  },
+  "share": {
+    "success": "Ссылка на профиль скопирована",
+    "errorTitle": "Не удалось поделиться",
+    "errorDescription": "Попробуйте скопировать ссылку из адресной строки."
+  },
+  "report": {
+    "title": "Пожаловаться на профиль",
+    "description": "Опишите, что не так с профилем «{name}». Жалобу рассмотрят модераторы.",
+    "categoryLabel": "Причина жалобы",
+    "categories": {
+      "spam": "Спам и реклама",
+      "inappropriate": "Неприемлемый контент",
+      "fraud": "Мошенничество",
+      "harassment": "Оскорбления и угрозы",
+      "impersonation": "Выдача за другого",
+      "other": "Другое"
+    },
+    "reasonLabel": "Подробности",
+    "reasonPlaceholder": "Опишите, что именно не так: что увидели, когда, на каких страницах и почему это нарушает правила.",
+    "reasonHintEmpty": "Хотя бы {min} символов — так модераторам будет проще разобраться",
+    "reasonHintShort": "Ещё {remaining, plural, one {# символ} few {# символа} other {# символов}} до минимума",
+    "reasonHintOk": "Можно отправлять",
+    "attachLabel": "Скриншоты или документы",
+    "attachOptional": "необязательно",
+    "attachDropzone": "Перетащите файлы сюда",
+    "attachAction": "или нажмите, чтобы выбрать",
+    "attachHint": "До {maxFiles} файлов, размер каждого до {maxSize} МБ • Изображения и PDF",
+    "attachRemove": "Удалить",
+    "attachErrorSize": "Файл «{name}» больше {maxSize} МБ — не прикрепили",
+    "attachErrorCount": "Можно прикрепить не более {maxFiles} файлов",
+    "attachCountSummary": "{count, plural, one {# файл прикреплён} few {# файла прикреплено} other {# файлов прикреплено}}",
+    "submit": "Отправить жалобу",
+    "submitting": "Отправляем…",
+    "cancel": "Отмена",
+    "successTitle": "Жалоба отправлена",
+    "successDescription": "Спасибо, мы рассмотрим её в ближайшее время."
+  },
+  "about": {
+    "readMore": "Читать дальше",
+    "readLess": "Свернуть"
+  },
+  "socials": {
+    "moreLabel": "Ещё {count, plural, one {# ссылка} few {# ссылки} other {# ссылок}}",
+    "moreTitle": "Все соцсети"
+  },
+  "info": {
+    "website": "Сайт",
+    "portfolio": "Портфолио",
+    "email": "Email",
+    "empty": "Не указано"
+  },
+  "cover": {
+    "alt": "Обложка профиля",
+    "loading": "Загрузка обложки",
+    "errorTitle": "Не удалось загрузить обложку",
+    "errorDescription": "Проверьте подключение и попробуйте снова.",
+    "notFoundTitle": "Профиль не найден",
+    "notFoundDescription": "Возможно, пользователь был удалён или ссылка устарела.",
+    "retry": "Повторить"
+  },
+  "products": {
+    "type": {
+      "course": "Курс",
+      "webinar": "Вебинар",
+      "podcast": "Подкаст"
+    },
+    "empty": "У пользователя пока нет опубликованных продуктов."
+  }
+}

@@ -29,7 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
-import { Input } from '@/shared/ui/input';
+import { TextInput } from '@/shared/ui/input-extended';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { UserAvatar } from '@/shared/ui/user-avatar';
 
@@ -247,7 +247,7 @@ function InviteSearchPanel({
             aria-hidden
             className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
           />
-          <Input
+          <TextInput
             ref={inputRef}
             type="search"
             value={query}
@@ -663,6 +663,7 @@ function UserRow({
     id: user.id,
     fullName: user.fullName,
     avatarUrl: user.avatarUrl,
+    isVerified: user.isVerified,
   };
 
   return (
