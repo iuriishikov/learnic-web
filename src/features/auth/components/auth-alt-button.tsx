@@ -4,7 +4,7 @@ import { Link } from '@/shared/config/i18n/navigation';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 
-import { appendFrom } from '../lib/redirect';
+import { appendFrom } from '@/shared/lib/redirect';
 
 type AuthAltButtonProps = {
   href: '/login' | '/register';

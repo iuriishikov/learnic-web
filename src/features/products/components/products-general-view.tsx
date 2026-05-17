@@ -10,6 +10,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { useProductTags } from '@/features/product-tags';
 import { useRouter } from '@/shared/config/i18n/navigation';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
@@ -160,7 +161,7 @@ export function ProductsGeneralView({
             </motion.div>
           ) : (
             <motion.div key="grid" initial={false}>
-              <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3">
+              <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-[repeat(auto-fill,minmax(360px,1fr))]">
                 <AnimatePresence mode="popLayout" initial={false}>
                   {visible.map((product, index) => (
                     <motion.li
@@ -216,6 +217,8 @@ function ProductGridCard({ product }: { product: Product }) {
     now: new Date(),
   });
 
+  const { data: tags } = useProductTags(product.id);
+
   return (
     <ProductShowcaseCard
       type={product.type}
@@ -225,6 +228,7 @@ function ProductGridCard({ product }: { product: Product }) {
       dueLabel={t('updated', { time: updated })}
       accent={accentFromId(product.id)}
       coverUrl={product.coverUrl}
+      tags={tags}
       onClick={() => router.push(`/products/${product.id}/editor`)}
     />
   );

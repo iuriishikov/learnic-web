@@ -4,7 +4,7 @@ import { BriefcaseIcon, PlusIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
-import { useAuth } from '@/features/auth';
+import { useAuth } from '@/shared/auth';
 import { useNotify } from '@/shared/lib/notify';
 import {
   AlertDialog,

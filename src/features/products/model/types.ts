@@ -2,7 +2,11 @@ export type ProductType = 'course' | 'webinar';
 
 export type ProductStatus = 'draft' | 'published' | 'archived' | 'banned';
 
-export type Currency = 'USD' | 'EUR' | 'RUB' | 'KZT' | 'BYN';
+// `Currency` lives in `@/shared/types/money` — cross-cutting; wallet
+// and order UI will consume the same union when they land. Re-exported
+// here for backwards compatibility with feature-internal consumers.
+export type { Currency } from '@/shared/types/money';
+import type { Currency } from '@/shared/types/money';
 
 export type ProductAuthor = {
   id: string;

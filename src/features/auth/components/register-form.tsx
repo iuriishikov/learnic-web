@@ -20,7 +20,7 @@ import {
 import { Label } from '@/shared/ui/label';
 
 import { registerAction } from '../api/registration';
-import { sanitizeRedirectTarget } from '../lib/redirect';
+import { sanitizeRedirectTarget } from '@/shared/lib/redirect';
 import { PASSWORD_MIN } from '../model/constants';
 import { registerSchema, type RegisterInput } from '../model/registration';
 import type { AuthError } from '../model/types';

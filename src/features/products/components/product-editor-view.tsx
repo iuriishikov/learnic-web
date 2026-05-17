@@ -53,7 +53,6 @@ import {
   CourseDraftError,
   useCourseDraft,
 } from '../api/use-course-draft';
-import { useCourseContentWs } from '../api/use-course-content-ws';
 import { useProductEventsWs } from '../api/use-product-events-ws';
 import {
   useAddBlockMutation,
@@ -149,8 +148,10 @@ export function ProductEditorView({
 
   // Course draft (modules / lessons / blocks)
   const draftQuery = useCourseDraft(product.id, isCourse);
-  useCourseContentWs(product.id, isCourse);
-  // Product-level deltas (metadata, cover, status, Q&A) — both courses and webinars.
+  // Unified product channel — multiplexes product metadata, Q&A,
+  // collaboration, role and (for courses) content-tree deltas in one
+  // socket. The backend gates content events on the product's
+  // `has_course_content` capability.
   useProductEventsWs(product.id, true);
 
   // Mutations

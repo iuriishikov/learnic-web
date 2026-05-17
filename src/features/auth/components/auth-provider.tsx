@@ -1,34 +1,28 @@
 'use client';
 
 import {
-  createContext,
   useCallback,
-  useContext,
   useMemo,
   useState,
   type ReactNode,
 } from 'react';
 
 import { useRouter } from '@/shared/config/i18n/navigation';
+import { AuthContext, type AuthContextValue } from '@/shared/auth';
+import type { User } from '@/shared/types/user';
 
 import { getMeAction } from '../api/me';
 import { logoutAction } from '../api/session';
-import type { User } from '../model/user';
-
-type AuthContextValue = {
-  user: User | null;
-  setUser: (user: User | null) => void;
-  refresh: () => Promise<User | null>;
-  logout: () => Promise<void>;
-};
-
-const AuthContext = createContext<AuthContextValue | null>(null);
 
 type AuthProviderProps = {
   initialUser: User | null;
   children: ReactNode;
 };
 
+// The concrete provider lives in `features/auth` because it depends on
+// auth-specific server actions (`getMeAction`, `logoutAction`); the
+// context shape and the `useAuth` hook live in `shared/auth` so any
+// feature can consume them without crossing a feature boundary.
 export function AuthProvider({ initialUser, children }: AuthProviderProps) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(initialUser);
@@ -61,12 +55,4 @@ export function AuthProvider({ initialUser, children }: AuthProviderProps) {
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;
-}
-
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error('useAuth must be used within <AuthProvider>');
-  }
-  return ctx;
 }

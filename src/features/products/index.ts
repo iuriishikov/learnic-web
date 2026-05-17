@@ -6,6 +6,7 @@ export {
   ProductShowcaseCard,
   accentFromId,
   type ProductShowcaseAccent,
+  type ProductShowcaseTag,
   type ProductShowcaseType,
 } from './components/product-showcase-card';
 export { CreateProductDialog } from './components/create-product-dialog';

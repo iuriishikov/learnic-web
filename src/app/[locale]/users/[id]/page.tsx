@@ -3,10 +3,9 @@ import { setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 
 import { getPublicUserProfile, UserProfile } from '@/features/user-profile';
-import { QueryProvider } from '@/shared/api/query-provider';
 import { buildPageMetadata } from '@/shared/lib/page-metadata';
+import { PageHeader } from '@/widgets/page-header';
 import { SiteFooter } from '@/widgets/site-footer';
-import { SiteHeader } from '@/widgets/site-header';
 
 type PageProps = {
   params: Promise<{ locale: string; id: string }>;
@@ -40,14 +39,12 @@ export default async function UserProfilePage({ params }: PageProps) {
   }
 
   return (
-    <QueryProvider>
-      <div className="flex min-h-screen flex-col bg-background">
-        <SiteHeader />
-        <main className="flex-1">
-          <UserProfile profile={result.profile} />
-        </main>
-        <SiteFooter />
-      </div>
-    </QueryProvider>
+    <div className="flex min-h-screen flex-col bg-background">
+      <PageHeader />
+      <main className="flex-1">
+        <UserProfile profile={result.profile} />
+      </main>
+      <SiteFooter />
+    </div>
   );
 }

@@ -1,12 +1,10 @@
-'use client';
+import type { QueryClient } from '@tanstack/react-query';
 
-import { useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { courseDraftKey } from '../api/use-course-draft';
+import { courseReleasesKey } from '../api/use-course-releases';
+import { productKey } from '../api/use-product';
+import type { CourseDraft, DraftLesson, DraftModule } from '../model/draft';
 
-import {
-  EventsChannel,
-  type EventEnvelope,
-} from '../lib/events-channel';
 import {
   type DraftLessonResponse,
   type DraftModuleResponse,
@@ -14,26 +12,24 @@ import {
   fromBlockResponse,
   fromLessonResponse,
   fromModuleResponse,
-} from '../lib/draft-wire';
-import type { CourseDraft, DraftLesson, DraftModule } from '../model/draft';
-
-import { courseReleasesKey } from './use-course-releases';
-import { courseDraftKey } from './use-course-draft';
-import { productKey } from './use-product';
+} from './draft-wire';
+import type { EventEnvelope } from './events-channel';
 
 /**
- * Course-content delta channel — `WS /courses/{course_id}/events`.
+ * Course-content `kind` values fanned in over the unified product
+ * channel (`WS /products/{product_id}/events`). The set is fixed
+ * by the spec's `ContentEventKind` enum.
  *
- * The set of `kind` values is fixed by the spec's `ContentEventKind` enum.
- * Each event carries enough state in `payload` to apply the change in
- * place via `setQueryData`. Container events (`module_added`,
- * `lesson_added`, `block_added`, `block_updated`) carry a full snapshot
- * of the affected entity in the same shape `GET /content/draft`
- * returns, deserialized through the shared mappers in `lib/draft-wire`.
- * The only refetches that remain are `release_created` (releases list +
- * product status) and `draft_reset` (full tree replaced server-side).
+ * Each event carries enough state in `payload` to apply the change
+ * in place via `setQueryData`. Container events (`module_added`,
+ * `lesson_added`, `block_added`, `block_updated`) carry a full
+ * snapshot of the affected entity in the same shape
+ * `GET /content/draft` returns, deserialized through the shared
+ * mappers in `lib/draft-wire`. The only refetches that remain are
+ * `release_created` (releases list + product status) and
+ * `draft_reset` (full tree replaced server-side).
  */
-type ContentEventKind =
+export type ContentEventKind =
   | 'module_added'
   | 'module_renamed'
   | 'module_description_updated'
@@ -51,33 +47,30 @@ type ContentEventKind =
   | 'release_created'
   | 'draft_reset';
 
-export function useCourseContentWs(courseId: string, enabled: boolean) {
-  const qc = useQueryClient();
+const CONTENT_EVENT_KINDS: ReadonlySet<string> = new Set<ContentEventKind>([
+  'module_added',
+  'module_renamed',
+  'module_description_updated',
+  'modules_reordered',
+  'module_deleted',
+  'lesson_added',
+  'lesson_renamed',
+  'lesson_moved',
+  'lessons_reordered',
+  'lesson_deleted',
+  'block_added',
+  'block_updated',
+  'block_deleted',
+  'blocks_reordered',
+  'release_created',
+  'draft_reset',
+]);
 
-  useEffect(() => {
-    if (!enabled || typeof window === 'undefined') return;
-
-    const channel = new EventsChannel<ContentEventKind>({
-      url: `/api/courses/${encodeURIComponent(courseId)}/events`,
-      onEvent: (event) => applyContentEvent(qc, courseId, event),
-      onReconnected: () => {
-        // No event replay — refetch initial state on every reconnect.
-        qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
-        qc.invalidateQueries({ queryKey: courseReleasesKey(courseId) });
-        qc.invalidateQueries({ queryKey: productKey(courseId) });
-      },
-      onTerminalClose: (code) => {
-        console.warn(
-          `[course-content-ws] terminal close ${code}; channel will not retry`,
-        );
-      },
-    });
-    channel.start();
-    return () => channel.stop();
-  }, [courseId, enabled, qc]);
+export function isContentEventKind(kind: string): kind is ContentEventKind {
+  return CONTENT_EVENT_KINDS.has(kind);
 }
 
-function applyContentEvent(
+export function applyContentEvent(
   qc: QueryClient,
   courseId: string,
   event: EventEnvelope<ContentEventKind>,
@@ -300,10 +293,16 @@ function applyContentEvent(
       qc.invalidateQueries({ queryKey: productKey(courseId) });
       return;
 
-    default:
-      // Forward-compat: an unknown future kind shouldn't break the editor.
+    default: {
+      // Exhaustiveness guard — every variant of `ContentEventKind` must
+      // map to a case above. If a new kind lands without a matching
+      // case, `kind` retains its concrete string type here and the
+      // assignment fails at compile time.
+      const _exhaustive: never = kind;
+      void _exhaustive;
       qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
       return;
+    }
   }
 }
 

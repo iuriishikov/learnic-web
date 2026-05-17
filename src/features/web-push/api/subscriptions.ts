@@ -19,7 +19,7 @@ import {
 
 export async function getVapidPublicKeyAction(): Promise<GetVapidKeyResult> {
   try {
-    const res = await apiFetch('/push/vapid-public-key', { method: 'GET' });
+    const res = await apiFetch('/web-push/vapid-public-key', { method: 'GET' });
     if (res.status !== 200) {
       return { ok: false, error: statusToError(res.status) };
     }
@@ -37,9 +37,14 @@ export async function subscribePushAction(
   payload: PushSubscribePayload,
 ): Promise<SubscribeResult> {
   try {
-    const res = await apiFetch('/users/me/push/subscriptions', {
+    const res = await apiFetch('/users/me/web-push/subscriptions', {
       method: 'POST',
-      body: payload,
+      body: {
+        endpoint: payload.endpoint,
+        p256dh: payload.p256dh,
+        auth: payload.auth,
+        user_agent: payload.userAgent,
+      },
     });
     if (res.status === 204) return { ok: true };
     return { ok: false, error: statusToError(res.status) };
@@ -52,7 +57,7 @@ export async function unsubscribePushAction(
   endpoint: string,
 ): Promise<UnsubscribeResult> {
   try {
-    const res = await apiFetch('/users/me/push/subscriptions', {
+    const res = await apiFetch('/users/me/web-push/subscriptions', {
       method: 'DELETE',
       body: { endpoint },
     });
@@ -65,7 +70,7 @@ export async function unsubscribePushAction(
 
 export async function listMyPushDevicesAction(): Promise<ListDevicesResult> {
   try {
-    const res = await apiFetch('/users/me/push/subscriptions', {
+    const res = await apiFetch('/users/me/web-push/subscriptions', {
       method: 'GET',
     });
     if (res.status !== 200) {

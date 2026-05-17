@@ -22,10 +22,6 @@ const nextConfig: NextConfig = {
         destination: `${API_URL}/products/:productId/events`,
       },
       {
-        source: '/api/courses/:courseId/events',
-        destination: `${API_URL}/courses/:courseId/events`,
-      },
-      {
         source: '/api/users/me/confirm-events',
         destination: `${API_URL}/users/me/confirm-events`,
       },

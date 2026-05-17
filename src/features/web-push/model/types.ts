@@ -1,8 +1,8 @@
 /**
  * Frontend types for the Web Push subscription flow.
  *
- * These mirror the backend `/users/me/push/subscriptions` and
- * `/push/vapid-public-key` shapes; the api/ layer flattens
+ * These mirror the backend `/users/me/web-push/subscriptions` and
+ * `/web-push/vapid-public-key` shapes; the api/ layer flattens
  * snake_case into camelCase before it reaches the rest of the SPA.
  */
 

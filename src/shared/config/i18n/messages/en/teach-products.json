@@ -287,6 +287,24 @@
         "suffix": "ч",
         "increment": "Увеличить",
         "decrement": "Уменьшить"
+      },
+      "tagsTitle": "Тэги",
+      "tagsHint": "До {max} тэгов на продукт. Можно использовать чужие или создавать свои с любым цветом."
+    },
+    "tags": {
+      "addCta": "Добавить тэг",
+      "removeAria": "Убрать тэг {name}",
+      "empty": "Тэгов пока нет.",
+      "capReachedHint": "Максимум {max} тэгов на продукт.",
+      "searchPlaceholder": "Найти или создать тэг…",
+      "searchEmpty": "Ничего не найдено.",
+      "idleHint": "Начните вводить, чтобы найти или создать тэг.",
+      "createHeading": "Создать новый",
+      "existingHeading": "Существующие",
+      "createCta": "Создать «{name}»",
+      "colorPickerLabel": "Цвет тэга",
+      "toast": {
+        "updateError": "Не удалось сохранить тэги. Попробуйте ещё раз."
       }
     },
     "qa": {

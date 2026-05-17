@@ -18,7 +18,7 @@ export function ProductsGeneralViewSkeleton() {
         </div>
       </div>
 
-      <ul className="mt-6 grid grid-cols-1 gap-4 md:mt-8 md:grid-cols-2 md:gap-5 lg:grid-cols-3">
+      <ul className="mt-6 grid grid-cols-1 gap-4 md:mt-8 md:grid-cols-2 md:gap-5 lg:grid-cols-[repeat(auto-fill,minmax(360px,1fr))]">
         {Array.from({ length: 6 }).map((_, i) => (
           <li key={i}>
             <ProductCardSkeleton />

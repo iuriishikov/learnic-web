@@ -2,7 +2,7 @@
  * Wire types + mappers for the course-draft tree.
  *
  * Used by both the server-only REST loader (`api/draft.ts`) and the
- * client-only WebSocket handler (`api/use-course-content-ws.ts`),
+ * client-only content-event handler (`lib/apply-content-event.ts`),
  * which receives the same `LessonBlockSchema` / `CourseDraftLessonSchema`
  * / `CourseDraftModuleSchema` shapes inside event payloads. Keeping
  * the mappers in `lib/` (no server-only marker, no client-only

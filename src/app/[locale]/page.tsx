@@ -6,8 +6,8 @@ import { FaqSection } from '@/widgets/faq-section';
 import { FeaturesGrid } from '@/widgets/features-grid';
 import { LandingHero } from '@/widgets/landing-hero';
 import { LatestBlogPosts } from '@/widgets/latest-blog-posts';
+import { PageHeader } from '@/widgets/page-header';
 import { SiteFooter } from '@/widgets/site-footer';
-import { SiteHeader } from '@/widgets/site-header';
 
 type HomeProps = {
   params: Promise<{ locale: string }>;
@@ -30,7 +30,7 @@ export default async function Home({ params }: HomeProps) {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <SiteHeader />
+      <PageHeader />
       <main className="flex-1">
         <LandingHero />
         <FeaturesGrid />

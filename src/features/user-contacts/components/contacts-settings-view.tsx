@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState } from 'react';
 
-import { useAuth } from '@/features/auth';
+import { useAuth } from '@/shared/auth';
 import { useNotify } from '@/shared/lib/notify';
 import { HttpsUrlInput } from '@/shared/ui/https-url-input';
 import { TextInput } from '@/shared/ui/input-extended';

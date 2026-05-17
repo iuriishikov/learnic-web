@@ -2,7 +2,7 @@ import { Skeleton } from '@/shared/ui/skeleton';
 
 export function ProductCardSkeleton() {
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl bg-card shadow-md shadow-black/[0.06] ring-1 ring-foreground/10 dark:shadow-black/30">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl bg-card shadow-md shadow-black/[0.06] ring-1 ring-foreground/10 dark:shadow-black/30">
       <div className="px-[3px] pt-[3px]">
         <Skeleton className="h-40 w-full rounded-t-[9px] rounded-b-none" />
       </div>

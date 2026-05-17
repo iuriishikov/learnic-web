@@ -21,7 +21,7 @@ import {
   type ProfileUpdateInput,
 } from '../model/profile-update';
 import { AvatarUploader } from './avatar-uploader';
-import { useAuth } from './auth-provider';
+import { useAuth } from '@/shared/auth';
 import { CoverUploader } from './cover-uploader';
 
 const AUTOSAVE_DEBOUNCE_MS = 800;

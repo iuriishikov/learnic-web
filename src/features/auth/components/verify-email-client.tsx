@@ -14,7 +14,7 @@ import {
   waitForEmailVerificationAction,
 } from '../api/email-verification';
 import { useConfirmEvents } from '../hooks/use-confirm-events';
-import { appendFrom, sanitizeRedirectTarget } from '../lib/redirect';
+import { appendFrom, sanitizeRedirectTarget } from '@/shared/lib/redirect';
 
 type Status =
   | 'verifying-token'

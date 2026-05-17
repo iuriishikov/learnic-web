@@ -17,7 +17,7 @@ import {
 } from '@/shared/ui/input-extended';
 
 import { loginAction } from '../api/login';
-import { sanitizeRedirectTarget } from '../lib/redirect';
+import { sanitizeRedirectTarget } from '@/shared/lib/redirect';
 import { loginSchema, type LoginInput } from '../model/login';
 import type { AuthError } from '../model/types';
 import { AuthAltButton } from './auth-alt-button';

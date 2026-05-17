@@ -9,6 +9,7 @@ import {
   MapPinIcon,
   SmartphoneIcon,
 } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useFormatter, useNow, useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 
@@ -33,7 +34,7 @@ import {
 } from '../api/active-sessions';
 import { logoutAllAction } from '../api/session';
 import type { ActiveSession } from '../model/sessions';
-import { useAuth } from './auth-provider';
+import { useAuth } from '@/shared/auth';
 
 const QUERY_KEY = ['auth', 'active-sessions'] as const;
 
@@ -55,6 +56,7 @@ export function ActiveSessionsList() {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [logoutAllOpen, setLogoutAllOpen] = useState(false);
   const [logoutAllPending, startLogoutAllTransition] = useTransition();
+  const reduceMotion = useReducedMotion();
 
   const query = useQuery({
     queryKey: QUERY_KEY,
@@ -157,7 +159,8 @@ export function ActiveSessionsList() {
   return (
     <div className="flex flex-col gap-3">
       <ul className="flex flex-col gap-2.5">
-        {sessions.map((session) => {
+        <AnimatePresence initial={false} mode="popLayout">
+          {sessions.map((session) => {
           const Icon = isMobile(session.userAgent) ? SmartphoneIcon : LaptopIcon;
           const isPending = pendingId === session.id;
           const lastActive = formatter.relativeTime(
@@ -169,8 +172,16 @@ export function ActiveSessionsList() {
           });
           const ipLabel = formatIp(session.ipAddress);
           return (
-            <li
+            <motion.li
               key={session.id}
+              layout
+              initial={false}
+              exit={
+                reduceMotion
+                  ? { opacity: 0 }
+                  : { opacity: 0, x: 24, scale: 0.96 }
+              }
+              transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
               className={cn(
                 'group/session flex flex-col gap-3 rounded-xl border bg-card p-4 transition-colors md:flex-row md:items-center md:gap-4',
                 session.isCurrent
@@ -235,9 +246,10 @@ export function ActiveSessionsList() {
               >
                 {session.isCurrent ? t('signOut') : t('revoke')}
               </Button>
-            </li>
+            </motion.li>
           );
         })}
+        </AnimatePresence>
       </ul>
 
       <div className="flex justify-end">

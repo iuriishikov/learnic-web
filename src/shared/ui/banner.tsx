@@ -107,12 +107,19 @@ function BannerHost() {
   );
   const active = entries[0];
 
+  // `pointer-events-none` so the empty/transparent slot never blocks
+  // clicks on the page underneath; the banner itself re-enables them.
+  // Sticky needs a containing block taller than the element to actually
+  // engage — the wrapper sits at the bottom of body content and pins to
+  // viewport bottom while the user scrolls the page above.
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      {active ? (
-        <BannerSlot key={active.id}>{active.element}</BannerSlot>
-      ) : null}
-    </AnimatePresence>
+    <div className="pointer-events-none sticky bottom-4 z-50 w-full sm:bottom-6">
+      <AnimatePresence mode="wait" initial={false}>
+        {active ? (
+          <BannerSlot key={active.id}>{active.element}</BannerSlot>
+        ) : null}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -226,10 +233,10 @@ export function Banner(props: BannerProps) {
 /* ---------- visual surface ---------- */
 
 const positionWrapperClasses: Record<BannerPosition, string> = {
-  bottom: 'inset-x-0 mx-auto',
-  'bottom-center': 'inset-x-0 mx-auto',
-  'bottom-left': 'left-0 sm:left-4',
-  'bottom-right': 'right-0 sm:right-4',
+  bottom: 'mx-auto',
+  'bottom-center': 'mx-auto',
+  'bottom-left': 'mr-auto ml-4',
+  'bottom-right': 'ml-auto mr-4',
 };
 
 function BannerSurface({
@@ -251,14 +258,14 @@ function BannerSurface({
   const isBarOnly = layout === 'bar';
 
   const containerBase =
-    'pointer-events-auto fixed bottom-4 z-50 w-[calc(100%-2rem)] max-w-[26rem] sm:bottom-6';
+    'pointer-events-auto w-[calc(100%-2rem)] max-w-[26rem]';
 
   const layoutClass =
     layout === 'card'
       ? ''
       : layout === 'bar'
-        ? 'max-w-none w-[calc(100%-2rem)] mx-4 sm:mx-6 left-0 right-0'
-        : 'md:max-w-none md:w-[calc(100%-3rem)] md:mx-6 md:left-0 md:right-0';
+        ? 'max-w-none w-[calc(100%-2rem)] mx-4 sm:mx-6'
+        : 'md:max-w-none md:w-[calc(100%-3rem)] md:mx-6';
 
   const surfaceClass = cn(
     'relative w-full rounded-2xl shadow-lg shadow-black/10',

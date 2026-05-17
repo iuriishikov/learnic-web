@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 
-import { useAuth } from '@/features/auth';
+import { useAuth } from '@/shared/auth';
 import { NotificationsBell } from '@/features/notifications';
 import { Link, usePathname } from '@/shared/config/i18n/navigation';
 import { cn } from '@/shared/lib/utils';

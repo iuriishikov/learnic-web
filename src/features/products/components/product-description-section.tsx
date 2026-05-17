@@ -9,6 +9,7 @@ import {
   useRef,
 } from 'react';
 
+import { PRODUCT_TAGS_MAX, TagsInput } from '@/features/product-tags';
 import { TextInput } from '@/shared/ui/input-extended';
 import {
   NumberField,
@@ -98,6 +99,16 @@ export function ProductDescriptionSection({
           <HoursStepper
             productId={productId}
             durationHours={durationHours}
+            readOnly={readOnly}
+            disabledTitle={insufficientTitle}
+          />
+        </EditorRow>
+        <EditorRow
+          label={t('tagsTitle')}
+          description={t('tagsHint', { max: PRODUCT_TAGS_MAX })}
+        >
+          <TagsInput
+            productId={productId}
             readOnly={readOnly}
             disabledTitle={insufficientTitle}
           />

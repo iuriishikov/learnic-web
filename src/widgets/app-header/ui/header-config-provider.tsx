@@ -43,10 +43,7 @@ export function HeaderConfigProvider({ children }: { children: ReactNode }) {
 
 export function useHeaderConfig(): HeaderConfigValue {
   const ctx = useContext(Context);
-  if (!ctx) {
-    throw new Error('useHeaderConfig must be used within HeaderConfigProvider');
-  }
-  return ctx.config;
+  return ctx?.config ?? DEFAULT_CONFIG;
 }
 
 export function useSetHeaderConfig() {

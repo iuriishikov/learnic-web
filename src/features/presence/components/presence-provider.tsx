@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 
-import { useAuth } from '@/features/auth';
+import { useAuth } from '@/shared/auth';
 
 import { PresenceConnection } from '../lib/connection';
 import type { PresenceState } from '../model/types';

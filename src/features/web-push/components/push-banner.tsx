@@ -4,7 +4,7 @@ import { BellIcon, ShareIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState, useSyncExternalStore } from 'react';
 
-import { useAuth } from '@/features/auth';
+import { useAuth } from '@/shared/auth';
 import { useNotify } from '@/shared/lib/notify';
 import { Banner, type BannerAction } from '@/shared/ui/banner';
 

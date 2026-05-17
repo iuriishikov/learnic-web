@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { AuthLayout, RegisterForm } from '@/features/auth';
-import { sanitizeRedirectTarget } from '@/features/auth/lib/redirect';
+import { sanitizeRedirectTarget } from '@/shared/lib/redirect';
 import { getCurrentUser } from '@/features/auth/server';
 import { Link, redirect } from '@/shared/config/i18n/navigation';
 import { buildPageMetadata } from '@/shared/lib/page-metadata';

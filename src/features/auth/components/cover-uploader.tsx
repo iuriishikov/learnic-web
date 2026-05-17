@@ -10,7 +10,7 @@ import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 
 import { deleteCoverAction, uploadCoverAction } from '../api/cover';
-import { useAuth } from './auth-provider';
+import { useAuth } from '@/shared/auth';
 import { runUploadWithProgressToast } from './upload-progress';
 
 const ACCEPT = 'image/png,image/jpeg,image/webp,image/gif';

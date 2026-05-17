@@ -1,25 +1,9 @@
-export type User = {
-  oid: string;
-  firstName: string;
-  lastName: string;
-  patronymic: string | null;
-  /** Display name in the canonical `Last First Patronymic` order, returned by the backend. */
-  fullName: string;
-  /** Privacy-masked email in the form `f*****d@domain.com`. */
-  email: string;
-  /**
-   * Whether the platform granted this user the public "verified" badge.
-   * Surfaced as a brand-coloured checkmark on the avatar.
-   */
-  isVerified: boolean;
-  description: string | null;
-  avatarUrl: string | null;
-  coverUrl: string | null;
-  websiteUrl: string | null;
-  portfolioUrl: string | null;
-  /** Display-only contact email distinct from `email` (login). */
-  publicEmail: string | null;
-};
+// `User` itself lives in `@/shared/types/user` because the auth
+// context is cross-cutting. Re-exported here for backwards-compat
+// with feature-internal consumers; auth-specific wire-shape and
+// mapper stay below — only the `/auth/me` endpoint produces them.
+import type { User } from '@/shared/types/user';
+export type { User } from '@/shared/types/user';
 
 export type UserResponse = {
   oid: string;

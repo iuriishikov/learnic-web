@@ -18,6 +18,12 @@ export type ProductShowcaseAccent = SoftAccent;
 /** Stable accent per id — same id always maps to the same accent across renders. */
 export const accentFromId = softAccentFromSeed;
 
+export type ProductShowcaseTag = {
+  id: string;
+  name: string;
+  color: string;
+};
+
 type ProductShowcaseCardProps = {
   type: ProductShowcaseType;
   typeLabel: string;
@@ -26,6 +32,7 @@ type ProductShowcaseCardProps = {
   dueLabel?: string | null;
   accent?: ProductShowcaseAccent;
   coverUrl?: string | null;
+  tags?: ProductShowcaseTag[];
   className?: string;
   onClick?: () => void;
 };
@@ -44,6 +51,7 @@ export function ProductShowcaseCard({
   dueLabel,
   accent = 'pink',
   coverUrl,
+  tags,
   className,
   onClick,
 }: ProductShowcaseCardProps) {
@@ -69,7 +77,7 @@ export function ProductShowcaseCard({
       whileHover={reduceMotion || !interactive ? undefined : { y: -3 }}
       transition={{ type: 'spring', stiffness: 360, damping: 28 }}
       className={cn(
-        'group/showcase relative flex w-full flex-col overflow-hidden rounded-xl bg-card text-card-foreground shadow-md shadow-black/[0.06] ring-1 ring-foreground/10 transition-shadow dark:shadow-black/30',
+        'group/showcase relative flex h-full w-full flex-col overflow-hidden rounded-xl bg-card text-card-foreground shadow-md shadow-black/[0.06] ring-1 ring-foreground/10 transition-shadow dark:shadow-black/30',
         interactive &&
           'cursor-pointer hover:ring-foreground/15 hover:shadow-lg dark:hover:shadow-black/40',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
@@ -103,6 +111,23 @@ export function ProductShowcaseCard({
         <h3 className="font-heading text-base font-semibold leading-snug tracking-tight text-foreground line-clamp-3">
           {title}
         </h3>
+
+        {tags && tags.length > 0 ? (
+          <ul className="flex flex-wrap gap-1.5">
+            {tags.map((tag) => (
+              <li key={tag.id}>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+                  <span
+                    aria-hidden
+                    className="size-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: tag.color }}
+                  />
+                  <span className="max-w-[10rem] truncate">{tag.name}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
 
         <dl className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
           <Stat icon={<ClockIcon />} label={durationLabel} />

@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { AuthLayout, GenericConfirmClient } from '@/features/auth';
-import { CONFIRM_REGISTRY } from '@/features/auth/model/confirm-registry';
+import { CONFIRM_REGISTRY } from '@/features/auth';
 import { Link } from '@/shared/config/i18n/navigation';
 import { buildPageMetadata } from '@/shared/lib/page-metadata';
 

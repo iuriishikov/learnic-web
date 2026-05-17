@@ -8,7 +8,7 @@ import { Button } from '@/shared/ui/button';
 import { UserAvatar, type AvatarUser } from '@/shared/ui/user-avatar';
 
 import { deleteAvatarAction, uploadAvatarAction } from '../api/avatar';
-import { useAuth } from './auth-provider';
+import { useAuth } from '@/shared/auth';
 import { runUploadWithProgressToast } from './upload-progress';
 
 const ACCEPT = 'image/png,image/jpeg,image/webp,image/gif,image/svg+xml';

@@ -52,8 +52,16 @@ export {
 } from './api/session';
 
 export { getMeAction, type GetMeResult } from './api/me';
-export { AuthProvider, useAuth } from './components/auth-provider';
+export { AuthProvider } from './components/auth-provider';
+// `useAuth` now lives in `@/shared/auth` — it is consumed cross-feature
+// (presence, products, web-push, user-contacts, user-experiences) so
+// pinning it to the auth feature would force every consumer into a
+// feature-to-feature import.
 export type { User } from './model/user';
+export {
+  CONFIRM_REGISTRY,
+  type ConfirmPurposeEntry,
+} from './model/confirm-registry';
 
 export { ProfileForm } from './components/profile-form';
 export { AvatarUploader } from './components/avatar-uploader';
@@ -75,6 +83,7 @@ export {
 export type { ActiveSession } from './model/sessions';
 
 export { PasswordResetButton } from './components/password-reset-button';
+export { PasswordResetDialog } from './components/password-reset-dialog';
 
 export type {
   AuthError,

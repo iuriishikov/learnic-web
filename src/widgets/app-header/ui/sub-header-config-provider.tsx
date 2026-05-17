@@ -43,12 +43,7 @@ export function SubHeaderConfigProvider({ children }: { children: ReactNode }) {
 
 export function useSubHeaderConfig(): SubHeaderConfigValue {
   const ctx = useContext(Context);
-  if (!ctx) {
-    throw new Error(
-      'useSubHeaderConfig must be used within SubHeaderConfigProvider',
-    );
-  }
-  return ctx.config;
+  return ctx?.config ?? EMPTY_CONFIG;
 }
 
 export function useSetSubHeaderConfig() {
