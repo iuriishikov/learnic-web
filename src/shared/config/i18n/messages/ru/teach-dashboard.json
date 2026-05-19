@@ -1,0 +1,221 @@
+{
+  "pagination": {
+    "previous": "Назад",
+    "next": "Вперёд",
+    "pageOf": "Стр. {current} из {total}"
+  },
+  "sales": {
+    "header": {
+      "title": "С возвращением, {name}",
+      "fallbackName": "Учитель",
+      "pickRange": "Выбрать период"
+    },
+    "period": {
+      "custom": "Произвольный"
+    },
+    "kpi": {
+      "more": "Действия с метрикой",
+      "students": {
+        "label": "Новые студенты"
+      },
+      "profileViews": {
+        "label": "Просмотры профиля"
+      },
+      "productViews": {
+        "label": "Просмотры продуктов"
+      },
+      "menu": {
+        "details": "Подробнее",
+        "detailsOpened": "Открываем отчёт",
+        "compare": "Сравнить с прошлым",
+        "comparedToast": "Сравнение готово",
+        "pin": "Закрепить",
+        "pinnedToast": "Метрика закреплена"
+      }
+    },
+    "chart": {
+      "title": "Выручка",
+      "current": "Этот период",
+      "previous": "Прошлый период",
+      "vsPrevious": "к прошлому периоду"
+    },
+    "activity": {
+      "title": "Активность",
+      "purchased": "Купил <product>{product}</product>",
+      "productOpenedToast": "Открываем «{product}»",
+      "online": "Сейчас онлайн"
+    },
+    "orders": {
+      "title": "Заказы",
+      "vsPrevious": "к прошлым 30 дням",
+      "selectAll": "Выбрать все заказы",
+      "selectRow": "Выбрать заказ {number}",
+      "rowMenu": "Действия с заказом",
+      "rowActions": {
+        "openDetails": "Открыть детали",
+        "openedToast": "Открываем заказ {number}",
+        "contactCustomer": "Связаться с покупателем",
+        "contactedToast": "Сообщение отправлено",
+        "refund": "Оформить возврат",
+        "refundToast": "Заявка на возврат отправлена"
+      },
+      "filter": {
+        "all": "Все заказы",
+        "paid": "Оплаченные",
+        "refunded": "Возвраты"
+      },
+      "status": {
+        "paid": "Оплачен",
+        "refunded": "Возврат"
+      },
+      "column": {
+        "order": "Заказ",
+        "date": "Дата",
+        "status": "Статус",
+        "amount": "Сумма",
+        "rating": "Оценка",
+        "customer": "Покупатель"
+      },
+      "pagination": {
+        "page": "Страница {current} из {total}",
+        "perPage": "По {count} на страницу",
+        "previous": "Назад",
+        "next": "Вперёд"
+      }
+    }
+  },
+  "wallet": {
+    "header": {
+      "title": "Кошелёк",
+      "subtitle": "Детали счёта и недавние поступления.",
+      "deposit": "Внести",
+      "depositToast": "Открываем пополнение",
+      "sendFunds": "Отправить",
+      "sendFundsToast": "Открываем форму вывода",
+      "selectDates": "Выбрать даты",
+      "filters": "Фильтры"
+    },
+    "withdrawal": {
+      "title": "Вывод средств",
+      "description": "Доступно к выводу: {balance}",
+      "amountLabel": "Сумма",
+      "amountMax": "Максимум",
+      "cardLabel": "Куда вывести",
+      "summary": {
+        "amount": "Сумма",
+        "fee": "Комиссия {percent}%",
+        "total": "К зачислению"
+      },
+      "errorOverLimit": "Сумма превышает доступный остаток",
+      "errorTooSmall": "Минимум — 100 ₽",
+      "submit": "Вывести {amount}",
+      "cancel": "Отмена",
+      "successTitle": "Заявка на вывод {amount} принята",
+      "successDescription": "Средства поступят на {bank} •• {last4} в течение 1 банковского дня"
+    },
+    "filters": {
+      "typeLabel": "Тип операции",
+      "typeDeposit": "Поступления",
+      "typeWithdrawal": "Списания",
+      "amountLabel": "Сумма",
+      "amountSmall": "До 1 000 ₽",
+      "amountMedium": "1 000 – 10 000 ₽",
+      "amountLarge": "Свыше 10 000 ₽",
+      "bankOnly": "Только банковские карты",
+      "reset": "Сбросить фильтры",
+      "resetToast": "Фильтры сброшены"
+    },
+    "period": {
+      "12m": "12 месяцев",
+      "30d": "30 дней",
+      "7d": "7 дней",
+      "24h": "24 часа"
+    },
+    "account": {
+      "available": "Текущий счёт",
+      "pending": "В заморозке",
+      "currentBalance": "Доступно к выводу",
+      "pendingBalance": "Зачислится позже",
+      "holdNotice": "Доступно через ~{days} дней",
+      "more": "Действия со счётом",
+      "menu": {
+        "download": "Скачать выписку",
+        "downloadedToast": "Выписка готова",
+        "hideBalance": "Скрыть баланс",
+        "hiddenToast": "Баланс скрыт",
+        "settings": "Настройки счёта",
+        "settingsToast": "Открываем настройки"
+      }
+    },
+    "balance": {
+      "title": "Баланс по времени",
+      "thisYear": "Этот год",
+      "lastYear": "Прошлый год",
+      "more": "Действия с графиком",
+      "menu": {
+        "exportCsv": "Экспорт в CSV",
+        "exportedToast": "Данные выгружены",
+        "hidePrev": "Скрыть прошлый год",
+        "togglePrev": "Прошлый год скрыт",
+        "openReport": "Открыть полный отчёт",
+        "fullReport": "Полный отчёт скоро"
+      }
+    },
+    "cards": {
+      "title": "Ваши карты",
+      "dailyLimitLabel": "Лимит на вывод сегодня",
+      "manageCards": "Управлять картами",
+      "goToCard": "Перейти к карте {index}",
+      "more": "Действия с картами",
+      "menu": {
+        "manage": "Управлять картами",
+        "copyNumber": "Скопировать номер",
+        "copiedToClipboard": "Номер скопирован в буфер",
+        "lockCard": "Заблокировать карту",
+        "lockedNotice": "Запрос на блокировку отправлен"
+      }
+    },
+    "manageCards": {
+      "title": "Ваши карты для вывода",
+      "description": "Карты привязываются автоматически после первой оплаты ими.",
+      "existingTitle": "Привязанные карты",
+      "count": "{count, plural, one {# карта} few {# карты} other {# карт}}",
+      "close": "Закрыть",
+      "removedToast": "{bank} удалён",
+      "removeAria": "Удалить {bank}",
+      "addInfo": "Чтобы добавить новую карту, оплатите ей любую покупку — она автоматически появится в этом списке.",
+      "emptyTitle": "Пока нет привязанных карт",
+      "emptyDescription": "Оплатите курс или вебинар любой картой — мы привяжем её для будущих выплат.",
+      "kind": {
+        "debit": "Дебетовая",
+        "credit": "Кредитная"
+      }
+    },
+    "deposits": {
+      "title": "Недавние транзакции",
+      "showMore": "Показать ещё",
+      "more": "Действия со списком",
+      "menu": {
+        "exportCsv": "Экспорт в CSV",
+        "exportToast": "Файл выгружен",
+        "openFilters": "Открыть фильтры",
+        "markAll": "Отметить все прочитанными",
+        "notImplemented": "Скоро будет"
+      }
+    },
+    "months": {
+      "jan": "Янв",
+      "feb": "Фев",
+      "mar": "Мар",
+      "apr": "Апр",
+      "may": "Май",
+      "jun": "Июн",
+      "jul": "Июл",
+      "aug": "Авг",
+      "sep": "Сен",
+      "oct": "Окт",
+      "nov": "Ноя",
+      "dec": "Дек"
+    }
+  }
+}

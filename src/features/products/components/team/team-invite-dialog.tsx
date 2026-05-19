@@ -241,33 +241,30 @@ function InviteSearchPanel({
 
       <div className="flex flex-col gap-4 px-6 pt-1 pb-4">
         {/* Search */}
-        <div className="relative">
-          <SearchIcon
-            aria-hidden
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <TextInput
-            ref={inputRef}
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={t('searchPlaceholder')}
-            aria-label={t('searchAriaLabel')}
-            autoFocus
-            inputMode="search"
-            autoComplete="off"
-            className={cn(
-              'h-11 bg-background pl-9 text-sm',
-              'shadow-xs transition-shadow focus-visible:shadow-sm',
-            )}
-          />
-          {search.isFetching && showSearch ? (
-            <Loader2Icon
-              aria-hidden
-              className="absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground"
-            />
-          ) : null}
-        </div>
+        <TextInput
+          ref={inputRef}
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={t('searchPlaceholder')}
+          aria-label={t('searchAriaLabel')}
+          autoFocus
+          inputMode="search"
+          autoComplete="off"
+          leadingIcon={<SearchIcon />}
+          trailingIcon={
+            search.isFetching && showSearch ? (
+              <Loader2Icon
+                aria-hidden
+                className="size-4 animate-spin text-muted-foreground"
+              />
+            ) : undefined
+          }
+          className={cn(
+            'h-11 bg-background text-sm',
+            'transition-shadow focus-visible:shadow-sm',
+          )}
+        />
 
         {/* Role chips */}
         <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted/30 p-3">
