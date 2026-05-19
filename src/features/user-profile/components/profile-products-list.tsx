@@ -55,7 +55,7 @@ export function ProfileProductsList({ products }: ProfileProductsListProps) {
             durationLabel={product.durationLabel}
             dueLabel={product.dueLabel ?? undefined}
             accent={product.accent}
-            coverUrl={product.coverUrl}
+            coverUrl={product.cover?.url ?? null}
             onClick={() => router.push(`/products/${product.id}`)}
           />
         </motion.li>

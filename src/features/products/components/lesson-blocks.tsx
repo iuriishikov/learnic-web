@@ -18,13 +18,19 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
+  CircleDotIcon,
   CodeIcon,
+  FileIcon,
   GripVerticalIcon,
+  ImagesIcon,
+  ListChecksIcon,
   PlayIcon,
   PlusIcon,
   SigmaIcon,
+  TextCursorInputIcon,
   Trash2Icon,
   TypeIcon,
+  VideoIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
@@ -33,9 +39,19 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useState,
 } from 'react';
 
+import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { cn } from '@/shared/lib/utils';
+import {
+  BottomSheet,
+  BottomSheetBody,
+  BottomSheetContent,
+  BottomSheetHeader,
+  BottomSheetTitle,
+  BottomSheetTrigger,
+} from '@/shared/ui/bottom-sheet';
 import { Button } from '@/shared/ui/button';
 import {
   DropdownMenu,
@@ -50,19 +66,59 @@ import {
 import { InlineLatexEditor } from '@/shared/ui/inline-latex-editor';
 import { InlineRichEditor } from '@/shared/ui/inline-rich-editor';
 
+import type { ChoiceOptionDraftInput } from '../api/blocks';
 import {
   CODE_BLOCK_MAX_TABS,
   type CodeTab,
   type LessonBlock,
 } from '../model/draft';
 
-export type CreatableBlockType = 'html' | 'katex' | 'code';
+import {
+  MultiChoiceBlockEditor,
+  SingleChoiceBlockEditor,
+  TextInputBlockEditor,
+} from './answer-block-editors';
+import {
+  AddFileBlockDialog,
+  AddPhotoCollageBlockDialog,
+  AddVideoFileBlockDialog,
+  FileBlockView,
+  VideoFileBlockView,
+} from './file-block-dialogs';
+import { PhotoCollageBlockEditor } from './photo-collage-block-editor';
+
+export type CreatableBlockType =
+  | 'html'
+  | 'katex'
+  | 'code'
+  | 'single_choice'
+  | 'multi_choice'
+  | 'text_input';
+
+export type TextInputBlockUpdate = {
+  acceptedAnswers: string[];
+  caseSensitive: boolean;
+  trimWhitespace: boolean;
+};
 
 export type LessonBlocksProps = {
   blocks: LessonBlock[];
+  /** Owning course id — needed by file-backed block dialogs for multipart upload. */
+  courseId: string;
+  /** Owning lesson id — needed by file-backed block dialogs for multipart upload. */
+  lessonId: string;
   onUpdateHtml: (blockId: string, html: string) => void;
   onUpdateKatex: (blockId: string, source: string) => void;
   onUpdateCode: (blockId: string, tabs: CodeTab[]) => void;
+  onUpdateSingleChoice: (
+    blockId: string,
+    options: ChoiceOptionDraftInput[],
+  ) => void;
+  onUpdateMultiChoice: (
+    blockId: string,
+    options: ChoiceOptionDraftInput[],
+  ) => void;
+  onUpdateTextInput: (blockId: string, args: TextInputBlockUpdate) => void;
   onAddBlock: (type: CreatableBlockType) => void;
   onRemoveBlock: (blockId: string) => void;
   onReorder: (orderedIds: string[]) => void;
@@ -72,20 +128,35 @@ export type LessonBlocksProps = {
   insufficientPermissionsTitle?: string;
 };
 
+// Discriminator for the three file-backed block types, which open a
+// dialog instead of resolving inline via `onAddBlock`. Kept separate
+// from `CreatableBlockType` so existing consumers (`onAddBlock`) don't
+// need to learn about types they can't construct without an upload.
+type FileBackedKind = 'file' | 'video_file' | 'photo_collage';
+
 const HTML_DEBOUNCE_MS = 600;
 const KATEX_DEBOUNCE_MS = 600;
 
 export function LessonBlocks({
   blocks,
+  courseId,
+  lessonId,
   onUpdateHtml,
   onUpdateKatex,
   onUpdateCode,
+  onUpdateSingleChoice,
+  onUpdateMultiChoice,
+  onUpdateTextInput,
   onAddBlock,
   onRemoveBlock,
   onReorder,
   canEditLessons = true,
   insufficientPermissionsTitle,
 }: LessonBlocksProps) {
+  // The three file-backed block types open a modal upload dialog rather
+  // than resolving inline; keeping the open-dialog state here lets the
+  // `AddBlockMenu` stay a thin presentational component.
+  const [openDialog, setOpenDialog] = useState<FileBackedKind | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: canEditLessons
@@ -127,9 +198,17 @@ export function LessonBlocks({
                 key={block.id}
                 block={block}
                 isFirst={idx === 0}
+                courseId={courseId}
                 onUpdateHtml={(html) => onUpdateHtml(block.id, html)}
                 onUpdateKatex={(source) => onUpdateKatex(block.id, source)}
                 onUpdateCode={(nextTabs) => onUpdateCode(block.id, nextTabs)}
+                onUpdateSingleChoice={(opts) =>
+                  onUpdateSingleChoice(block.id, opts)
+                }
+                onUpdateMultiChoice={(opts) =>
+                  onUpdateMultiChoice(block.id, opts)
+                }
+                onUpdateTextInput={(args) => onUpdateTextInput(block.id, args)}
                 onRemove={() => onRemoveBlock(block.id)}
                 canEditLessons={canEditLessons}
                 insufficientPermissionsTitle={insufficientPermissionsTitle}
@@ -141,9 +220,29 @@ export function LessonBlocks({
 
       <AddBlockMenu
         onSelect={onAddBlock}
+        onSelectFileBacked={setOpenDialog}
         hasBlocks={blocks.length > 0}
         disabled={!canEditLessons}
         disabledTitle={insufficientPermissionsTitle}
+      />
+
+      <AddFileBlockDialog
+        open={openDialog === 'file'}
+        onOpenChange={(o) => setOpenDialog(o ? 'file' : null)}
+        courseId={courseId}
+        lessonId={lessonId}
+      />
+      <AddVideoFileBlockDialog
+        open={openDialog === 'video_file'}
+        onOpenChange={(o) => setOpenDialog(o ? 'video_file' : null)}
+        courseId={courseId}
+        lessonId={lessonId}
+      />
+      <AddPhotoCollageBlockDialog
+        open={openDialog === 'photo_collage'}
+        onOpenChange={(o) => setOpenDialog(o ? 'photo_collage' : null)}
+        courseId={courseId}
+        lessonId={lessonId}
       />
     </div>
   );
@@ -152,9 +251,13 @@ export function LessonBlocks({
 type SortableBlockProps = {
   block: LessonBlock;
   isFirst: boolean;
+  courseId: string;
   onUpdateHtml: (html: string) => void;
   onUpdateKatex: (source: string) => void;
   onUpdateCode: (tabs: CodeTab[]) => void;
+  onUpdateSingleChoice: (options: ChoiceOptionDraftInput[]) => void;
+  onUpdateMultiChoice: (options: ChoiceOptionDraftInput[]) => void;
+  onUpdateTextInput: (args: TextInputBlockUpdate) => void;
   onRemove: () => void;
   canEditLessons: boolean;
   insufficientPermissionsTitle?: string;
@@ -163,9 +266,13 @@ type SortableBlockProps = {
 function SortableBlock({
   block,
   isFirst,
+  courseId,
   onUpdateHtml,
   onUpdateKatex,
   onUpdateCode,
+  onUpdateSingleChoice,
+  onUpdateMultiChoice,
+  onUpdateTextInput,
   onRemove,
   canEditLessons,
   insufficientPermissionsTitle,
@@ -254,6 +361,39 @@ function SortableBlock({
           tabs={block.tabs}
           onChange={onUpdateCode}
           emptyText={t('code.empty')}
+        />
+      ) : block.type === 'single_choice' ? (
+        <SingleChoiceBlockEditor
+          blockId={block.id}
+          options={block.options}
+          correctOptionId={block.correctOptionId}
+          onChange={onUpdateSingleChoice}
+        />
+      ) : block.type === 'multi_choice' ? (
+        <MultiChoiceBlockEditor
+          blockId={block.id}
+          options={block.options}
+          correctOptionIds={block.correctOptionIds}
+          onChange={onUpdateMultiChoice}
+        />
+      ) : block.type === 'text_input' ? (
+        <TextInputBlockEditor
+          blockId={block.id}
+          acceptedAnswers={block.acceptedAnswers}
+          caseSensitive={block.caseSensitive}
+          trimWhitespace={block.trimWhitespace}
+          onChange={onUpdateTextInput}
+        />
+      ) : block.type === 'file' ? (
+        <FileBlockView block={block} />
+      ) : block.type === 'video_file' ? (
+        <VideoFileBlockView block={block} />
+      ) : block.type === 'photo_collage' ? (
+        <PhotoCollageBlockEditor
+          block={block}
+          courseId={courseId}
+          canEditLessons={canEditLessons}
+          insufficientPermissionsTitle={insufficientPermissionsTitle}
         />
       ) : (
         <RutubeBlockView
@@ -439,6 +579,7 @@ function RutubeBlockView({
 
 type AddBlockMenuProps = {
   onSelect: (type: CreatableBlockType) => void;
+  onSelectFileBacked: (kind: FileBackedKind) => void;
   hasBlocks: boolean;
   disabled?: boolean;
   disabledTitle?: string;
@@ -446,11 +587,87 @@ type AddBlockMenuProps = {
 
 function AddBlockMenu({
   onSelect,
+  onSelectFileBacked,
   hasBlocks,
   disabled,
   disabledTitle,
 }: AddBlockMenuProps) {
   const t = useTranslations('teach-products.editor');
+  const isMobile = useIsMobile();
+  const [open, setOpen] = useState(false);
+
+  const items: ReadonlyArray<{
+    key: string;
+    icon: ReactNode;
+    label: string;
+    description: string;
+    onSelect: () => void;
+  }> = [
+    {
+      key: 'html',
+      icon: <TypeIcon />,
+      label: t('block.types.html'),
+      description: t('block.types.htmlDescription'),
+      onSelect: () => onSelect('html'),
+    },
+    {
+      key: 'katex',
+      icon: <SigmaIcon />,
+      label: t('block.types.katex'),
+      description: t('block.types.katexDescription'),
+      onSelect: () => onSelect('katex'),
+    },
+    {
+      key: 'code',
+      icon: <CodeIcon />,
+      label: t('block.types.code'),
+      description: t('block.types.codeDescription'),
+      onSelect: () => onSelect('code'),
+    },
+    {
+      key: 'single_choice',
+      icon: <CircleDotIcon />,
+      label: t('block.types.singleChoice'),
+      description: t('block.types.singleChoiceDescription'),
+      onSelect: () => onSelect('single_choice'),
+    },
+    {
+      key: 'multi_choice',
+      icon: <ListChecksIcon />,
+      label: t('block.types.multiChoice'),
+      description: t('block.types.multiChoiceDescription'),
+      onSelect: () => onSelect('multi_choice'),
+    },
+    {
+      key: 'text_input',
+      icon: <TextCursorInputIcon />,
+      label: t('block.types.textInput'),
+      description: t('block.types.textInputDescription'),
+      onSelect: () => onSelect('text_input'),
+    },
+    {
+      key: 'file',
+      icon: <FileIcon />,
+      label: t('block.types.file'),
+      description: t('block.types.fileDescription'),
+      onSelect: () => onSelectFileBacked('file'),
+    },
+    {
+      key: 'video_file',
+      icon: <VideoIcon />,
+      label: t('block.types.videoFile'),
+      description: t('block.types.videoFileDescription'),
+      onSelect: () => onSelectFileBacked('video_file'),
+    },
+    {
+      key: 'photo_collage',
+      icon: <ImagesIcon />,
+      label: t('block.types.photoCollage'),
+      description: t('block.types.photoCollageDescription'),
+      onSelect: () => onSelectFileBacked('photo_collage'),
+    },
+  ];
+
   return (
     <div
       className={cn(
@@ -462,73 +679,101 @@ function AddBlockMenu({
         aria-hidden
         className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border"
       />
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
+      {isMobile ? (
+        <BottomSheet open={open} onOpenChange={setOpen}>
+          <BottomSheetTrigger asChild>
             <Button
               variant="outline"
               size="sm"
               disabled={disabled}
               title={disabled ? disabledTitle : undefined}
               className="relative gap-1.5 bg-background hover:bg-muted dark:bg-background dark:hover:bg-muted"
-            />
-          }
-        >
-          <PlusIcon /> {t('actions.addBlock')}
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="center"
-          sideOffset={8}
-          className="w-[320px] p-1.5"
-        >
-          <p className="px-2 pt-1 pb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-            {t('block.menuLabel')}
-          </p>
-          <BlockTypeMenuItem
-            icon={<TypeIcon />}
-            label={t('block.types.html')}
-            description={t('block.types.htmlDescription')}
-            onSelect={() => onSelect('html')}
-          />
-          <BlockTypeMenuItem
-            icon={<SigmaIcon />}
-            label={t('block.types.katex')}
-            description={t('block.types.katexDescription')}
-            onSelect={() => onSelect('katex')}
-          />
-          <BlockTypeMenuItem
-            icon={<CodeIcon />}
-            label={t('block.types.code')}
-            description={t('block.types.codeDescription')}
-            onSelect={() => onSelect('code')}
-          />
-        </DropdownMenuContent>
-      </DropdownMenu>
+            >
+              <PlusIcon /> {t('actions.addBlock')}
+            </Button>
+          </BottomSheetTrigger>
+          <BottomSheetContent>
+            <BottomSheetHeader>
+              <BottomSheetTitle className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                {t('block.menuLabel')}
+              </BottomSheetTitle>
+            </BottomSheetHeader>
+            <BottomSheetBody className="py-3">
+              <div className="grid h-[420px] grid-cols-2 grid-rows-5 auto-rows-fr gap-2">
+                {items.map((item) => (
+                  <BlockTypeTileButton
+                    key={item.key}
+                    icon={item.icon}
+                    label={item.label}
+                    description={item.description}
+                    onSelect={() => {
+                      setOpen(false);
+                      item.onSelect();
+                    }}
+                  />
+                ))}
+              </div>
+            </BottomSheetBody>
+          </BottomSheetContent>
+        </BottomSheet>
+      ) : (
+        <DropdownMenu open={open} onOpenChange={setOpen}>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={disabled}
+                title={disabled ? disabledTitle : undefined}
+                className="relative gap-1.5 bg-background hover:bg-muted dark:bg-background dark:hover:bg-muted"
+              />
+            }
+          >
+            <PlusIcon /> {t('actions.addBlock')}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="center"
+            sideOffset={8}
+            className="w-[560px] p-1.5"
+          >
+            <p className="px-2 pt-1 pb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              {t('block.menuLabel')}
+            </p>
+            <div className="grid h-[400px] grid-cols-2 grid-rows-5 auto-rows-fr gap-1">
+              {items.map((item) => (
+                <BlockTypeMenuItem
+                  key={item.key}
+                  icon={item.icon}
+                  label={item.label}
+                  description={item.description}
+                  onSelect={item.onSelect}
+                />
+              ))}
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </div>
   );
 }
 
-type BlockTypeMenuItemProps = {
+type BlockTypeTileProps = {
   icon: ReactNode;
   label: string;
   description: string;
   onSelect: () => void;
 };
 
-function BlockTypeMenuItem({
+function BlockTypeTileInner({
   icon,
   label,
   description,
-  onSelect,
-}: BlockTypeMenuItemProps) {
+}: Omit<BlockTypeTileProps, 'onSelect'>) {
   return (
-    <DropdownMenuItem
-      onClick={onSelect}
-      className="group/item flex cursor-pointer items-start gap-3 rounded-md p-2"
-    >
+    <>
       <span
         aria-hidden
-        className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md bg-foreground/[0.04] text-foreground/80 ring-1 ring-foreground/10 transition-colors group-focus/item:bg-foreground/10 group-focus/item:text-foreground"
+        className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md bg-foreground/[0.04] text-foreground/80 ring-1 ring-foreground/10 transition-colors group-hover/item:bg-foreground/10 group-hover/item:text-foreground group-focus/item:bg-foreground/10 group-focus/item:text-foreground"
       >
         {icon}
       </span>
@@ -540,6 +785,47 @@ function BlockTypeMenuItem({
           {description}
         </span>
       </span>
+    </>
+  );
+}
+
+function BlockTypeMenuItem({
+  icon,
+  label,
+  description,
+  onSelect,
+}: BlockTypeTileProps) {
+  return (
+    <DropdownMenuItem
+      onClick={onSelect}
+      className="group/item flex h-full cursor-pointer items-start gap-3 rounded-md p-2"
+    >
+      <BlockTypeTileInner
+        icon={icon}
+        label={label}
+        description={description}
+      />
     </DropdownMenuItem>
+  );
+}
+
+function BlockTypeTileButton({
+  icon,
+  label,
+  description,
+  onSelect,
+}: BlockTypeTileProps) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className="group/item flex h-full w-full items-start gap-3 rounded-md p-2 text-left outline-none transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <BlockTypeTileInner
+        icon={icon}
+        label={label}
+        description={description}
+      />
+    </button>
   );
 }

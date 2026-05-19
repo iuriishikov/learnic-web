@@ -1,13 +1,5 @@
 'use client';
 
-import {
-  AnimatePresence,
-  LazyMotion,
-  domMax,
-  m,
-  useReducedMotion,
-} from 'motion/react';
-
 import { cn } from '@/shared/lib/utils';
 import { NavTabsRouter, type NavTabRoute } from '@/shared/ui/nav-tabs-router';
 
@@ -31,41 +23,26 @@ export function AppSubHeader({
   activeKey,
   className,
 }: AppSubHeaderProps) {
-  const prefersReducedMotion = useReducedMotion();
-  const swapDuration = prefersReducedMotion ? 0 : 0.22;
-  const swapEase: [number, number, number, number] = [0.32, 0.72, 0, 1];
-
   if (tabs.length === 0) return null;
 
   return (
-    <LazyMotion features={domMax} strict>
-      <div
-        className={cn(
-          'sticky top-[73px] z-30 border-b border-border bg-background',
-          className,
-        )}
-      >
-        <div className="mx-auto w-full max-w-[1440px] px-4 md:px-8">
-          <AnimatePresence mode="wait" initial={false}>
-            <m.div
-              key={sectionKey}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: swapDuration, ease: swapEase }}
-              className="-mx-4 px-4 py-2 md:-mx-8 md:px-8"
-            >
-              <NavTabsRouter
-                tabs={tabs}
-                activeKey={activeKey}
-                variant="pill"
-                layoutId={`app-sub-header-${sectionKey}`}
-                ariaLabel={ariaLabel}
-              />
-            </m.div>
-          </AnimatePresence>
+    <div
+      className={cn(
+        'sticky top-[73px] z-30 border-b border-border bg-background',
+        className,
+      )}
+    >
+      <div className="mx-auto w-full max-w-[1440px] px-4 md:px-8">
+        <div className="-mx-4 px-4 py-2 md:-mx-8 md:px-8">
+          <NavTabsRouter
+            tabs={tabs}
+            activeKey={activeKey}
+            variant="pill"
+            layoutId={`app-sub-header-${sectionKey}`}
+            ariaLabel={ariaLabel}
+          />
         </div>
       </div>
-    </LazyMotion>
+    </div>
   );
 }

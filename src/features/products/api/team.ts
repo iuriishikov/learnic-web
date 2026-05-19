@@ -1,6 +1,7 @@
 'use server';
 
 import { apiFetch } from '@/shared/api/client';
+import { toApiFile, type FileResponse } from '@/shared/types/user';
 
 import type {
   Collaboration,
@@ -441,14 +442,14 @@ type UserSummarySchemaResponse = {
   oid: string;
   full_name: string;
   is_verified: boolean;
-  avatar_url: string | null;
+  avatar: FileResponse | null;
 };
 
 function fromUserSummary(raw: UserSummarySchemaResponse): UserSearchResult {
   return {
     id: raw.oid,
     fullName: raw.full_name,
-    avatarUrl: raw.avatar_url,
+    avatar: raw.avatar !== null ? toApiFile(raw.avatar) : null,
     isVerified: raw.is_verified,
   };
 }

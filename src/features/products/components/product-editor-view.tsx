@@ -70,7 +70,11 @@ import {
   useUpdateCodeBlockMutation,
   useUpdateHtmlBlockMutation,
   useUpdateKatexBlockMutation,
+  useUpdateMultiChoiceBlockMutation,
+  useUpdateSingleChoiceBlockMutation,
+  useUpdateTextInputBlockMutation,
 } from '../api/use-course-mutations';
+import type { ChoiceOptionDraftInput } from '../api/blocks';
 import { useProductQuery } from '../api/use-product';
 import {
   useRemoveProductCoverMutation,
@@ -86,6 +90,7 @@ import {
 import {
   LessonBlocks,
   type CreatableBlockType,
+  type TextInputBlockUpdate,
 } from './lesson-blocks';
 import { ProductCover } from './product-cover';
 import { ProductDescriptionSection } from './product-description-section';
@@ -168,6 +173,11 @@ export function ProductEditorView({
   const updateHtmlBlock = useUpdateHtmlBlockMutation(product.id);
   const updateKatexBlock = useUpdateKatexBlockMutation(product.id);
   const updateCodeBlock = useUpdateCodeBlockMutation(product.id);
+  const updateSingleChoiceBlock = useUpdateSingleChoiceBlockMutation(
+    product.id,
+  );
+  const updateMultiChoiceBlock = useUpdateMultiChoiceBlockMutation(product.id);
+  const updateTextInputBlock = useUpdateTextInputBlockMutation(product.id);
   const deleteBlock = useDeleteBlockMutation(product.id);
   const reorderBlocks = useReorderBlocksMutation(product.id);
   const setCover = useSetProductCoverMutation(product.id);
@@ -347,6 +357,27 @@ export function ProductEditorView({
     [updateCodeBlock],
   );
 
+  const handleUpdateSingleChoiceBlock = useCallback(
+    (blockId: string, options: ChoiceOptionDraftInput[]) => {
+      updateSingleChoiceBlock.mutate({ blockId, options });
+    },
+    [updateSingleChoiceBlock],
+  );
+
+  const handleUpdateMultiChoiceBlock = useCallback(
+    (blockId: string, options: ChoiceOptionDraftInput[]) => {
+      updateMultiChoiceBlock.mutate({ blockId, options });
+    },
+    [updateMultiChoiceBlock],
+  );
+
+  const handleUpdateTextInputBlock = useCallback(
+    (blockId: string, args: TextInputBlockUpdate) => {
+      updateTextInputBlock.mutate({ blockId, ...args });
+    },
+    [updateTextInputBlock],
+  );
+
   const handleDeleteBlock = useCallback(
     (blockId: string) => {
       deleteBlock.mutate({ blockId });
@@ -490,7 +521,7 @@ export function ProductEditorView({
         initial={reduceMotion ? false : { opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
-        className="h-28 w-full md:h-44 lg:h-56"
+        className="aspect-[16/5] w-full"
       >
         <ProductCover
           productId={product.id}
@@ -572,7 +603,7 @@ export function ProductEditorView({
         <aside
           aria-label={t('sections.content')}
           style={{ width: sidebarWidth }}
-          className="relative hidden lg:block lg:shrink-0 lg:sticky lg:top-36 lg:self-start"
+          className="relative hidden lg:block lg:shrink-0 lg:sticky lg:top-[88px] lg:self-start"
         >
           <nav
             aria-label={t('sections.content')}
@@ -705,11 +736,15 @@ export function ProductEditorView({
                   key="content"
                   reduceMotion={!!reduceMotion}
                   isCourse={isCourse}
+                  courseId={product.id}
                   query={draftQuery}
                   selectedLesson={selectedLesson}
                   onUpdateHtml={handleUpdateHtmlBlock}
                   onUpdateKatex={handleUpdateKatexBlock}
                   onUpdateCode={handleUpdateCodeBlock}
+                  onUpdateSingleChoice={handleUpdateSingleChoiceBlock}
+                  onUpdateMultiChoice={handleUpdateMultiChoiceBlock}
+                  onUpdateTextInput={handleUpdateTextInputBlock}
                   onAddBlock={handleAddBlock}
                   onRemoveBlock={handleDeleteBlock}
                   onReorderBlocks={handleReorderBlocks}
@@ -967,11 +1002,21 @@ function DraftLoadError({
 type ContentSectionProps = {
   reduceMotion: boolean;
   isCourse: boolean;
+  courseId: string;
   query: DraftQuery;
   selectedLesson: { module: DraftModule; lesson: DraftLesson } | null;
   onUpdateHtml: (blockId: string, html: string) => void;
   onUpdateKatex: (blockId: string, source: string) => void;
   onUpdateCode: (blockId: string, tabs: CodeTab[]) => void;
+  onUpdateSingleChoice: (
+    blockId: string,
+    options: ChoiceOptionDraftInput[],
+  ) => void;
+  onUpdateMultiChoice: (
+    blockId: string,
+    options: ChoiceOptionDraftInput[],
+  ) => void;
+  onUpdateTextInput: (blockId: string, args: TextInputBlockUpdate) => void;
   onAddBlock: (type: CreatableBlockType) => void;
   onRemoveBlock: (blockId: string) => void;
   onReorderBlocks: (orderedIds: string[]) => void;
@@ -982,11 +1027,15 @@ type ContentSectionProps = {
 function ContentSection({
   reduceMotion,
   isCourse,
+  courseId,
   query,
   selectedLesson,
   onUpdateHtml,
   onUpdateKatex,
   onUpdateCode,
+  onUpdateSingleChoice,
+  onUpdateMultiChoice,
+  onUpdateTextInput,
   onAddBlock,
   onRemoveBlock,
   onReorderBlocks,
@@ -1122,9 +1171,14 @@ function ContentSection({
       </div>
       <LessonBlocks
         blocks={selectedLesson.lesson.blocks satisfies LessonBlock[]}
+        courseId={courseId}
+        lessonId={selectedLesson.lesson.id}
         onUpdateHtml={onUpdateHtml}
         onUpdateKatex={onUpdateKatex}
         onUpdateCode={onUpdateCode}
+        onUpdateSingleChoice={onUpdateSingleChoice}
+        onUpdateMultiChoice={onUpdateMultiChoice}
+        onUpdateTextInput={onUpdateTextInput}
         onAddBlock={onAddBlock}
         onRemoveBlock={onRemoveBlock}
         onReorder={onReorderBlocks}

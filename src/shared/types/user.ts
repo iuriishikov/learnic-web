@@ -11,6 +11,37 @@
  * — they ARE auth-specific because only the `/auth/me` endpoint
  * produces them.
  */
+/**
+ * Resolved file reference returned by every API response that embeds
+ * a stored file (avatars, covers, user-experience icons, lesson-block
+ * uploads). The `url` is a short-lived presigned-storage URL the SPA
+ * plugs straight into `<img>` / `<video>` / download links; refetch
+ * the parent resource to refresh it.
+ */
+export type ApiFile = {
+  oid: string;
+  contentType: string;
+  sizeBytes: number;
+  url: string;
+};
+
+/** Backend wire-shape (snake_case) mirroring `FileSchema` in `openapi.json`. */
+export type FileResponse = {
+  oid: string;
+  content_type: string;
+  size_bytes: number;
+  url: string;
+};
+
+export function toApiFile(raw: FileResponse): ApiFile {
+  return {
+    oid: raw.oid,
+    contentType: raw.content_type,
+    sizeBytes: raw.size_bytes,
+    url: raw.url,
+  };
+}
+
 export type User = {
   oid: string;
   firstName: string;
@@ -26,8 +57,8 @@ export type User = {
    */
   isVerified: boolean;
   description: string | null;
-  avatarUrl: string | null;
-  coverUrl: string | null;
+  avatar: ApiFile | null;
+  cover: ApiFile | null;
   websiteUrl: string | null;
   portfolioUrl: string | null;
   /** Display-only contact email distinct from `email` (login). */

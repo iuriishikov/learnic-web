@@ -12,6 +12,15 @@ import { ExperienceCard, type UserExperience } from '@/features/user-experiences
  * cards render against real data the URLs come from presigned S3 GETs
  * resolved server-side in `listUserExperiencesAction`.
  */
+function demoIcon(url: string) {
+  return {
+    oid: url,
+    contentType: 'image/png',
+    sizeBytes: 0,
+    url,
+  };
+}
+
 const SAMPLES: UserExperience[] = [
   {
     id: 'demo-1',
@@ -21,7 +30,7 @@ const SAMPLES: UserExperience[] = [
     startDate: '2020-05-01',
     endDate: null,
     sourceUrl: 'https://example.com/polymath',
-    iconUrl: 'https://picsum.photos/seed/polymath/200',
+    icon: demoIcon('https://picsum.photos/seed/polymath/200'),
   },
   {
     id: 'demo-2',
@@ -31,7 +40,7 @@ const SAMPLES: UserExperience[] = [
     startDate: '2018-01-01',
     endDate: '2020-05-01',
     sourceUrl: 'https://example.com/spherule/editor',
-    iconUrl: 'https://picsum.photos/seed/spherule/200',
+    icon: demoIcon('https://picsum.photos/seed/spherule/200'),
   },
   {
     id: 'demo-3',
@@ -41,7 +50,7 @@ const SAMPLES: UserExperience[] = [
     startDate: '2016-09-01',
     endDate: '2018-06-01',
     sourceUrl: null,
-    iconUrl: null,
+    icon: null,
   },
   {
     id: 'demo-4',
@@ -51,7 +60,7 @@ const SAMPLES: UserExperience[] = [
     startDate: '2015-03-01',
     endDate: '2016-08-01',
     sourceUrl: 'https://example.com/portfolio',
-    iconUrl: null,
+    icon: null,
   },
 ];
 

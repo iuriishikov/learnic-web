@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  AnimatePresence,
   LazyMotion,
   MotionConfig,
   domMax,
@@ -51,22 +50,7 @@ const INDICATOR_SPRING = {
   mass: 0.55,
 } as const;
 
-const MICRO_SPRING = {
-  type: 'spring',
-  stiffness: 600,
-  damping: 34,
-} as const;
-
-const TAB_FLIP_SPRING = {
-  type: 'spring',
-  stiffness: 460,
-  damping: 32,
-  mass: 0.65,
-} as const;
-
 const SOFT_OUT = [0.22, 0.61, 0.36, 1] as const;
-
-const TAB_STAGGER = 0.025;
 
 type IndicatorRect = { x: number; width: number };
 
@@ -100,8 +84,6 @@ export function NavTabs({
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [indicator, setIndicator] = useState<IndicatorRect | null>(null);
 
-  // Re-measure whenever active tab, tab set, or surrounding box changes.
-  // Use offsetLeft/offsetWidth so in-flight transforms (rotateX) don't skew the rect.
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container || !effectiveActiveKey) return;
@@ -136,7 +118,6 @@ export function NavTabs({
           ref={containerRef}
           role="group"
           aria-label={ariaLabel}
-          style={{ perspective: '700px' }}
           className={cn(
             'relative flex items-center overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
             isUnderline ? 'gap-7' : 'gap-1',
@@ -158,20 +139,17 @@ export function NavTabs({
             />
           ) : null}
 
-          <AnimatePresence mode="popLayout">
-            {tabs.map((tab, i) => (
-              <NavTabItem
-                key={tab.key}
-                ref={registerTabRef(tab.key)}
-                tab={tab}
-                index={i}
-                isActive={tab.key === effectiveActiveKey}
-                variant={variant}
-                onSelect={handleSelect}
-                reducedMotion={reduced}
-              />
-            ))}
-          </AnimatePresence>
+          {tabs.map((tab) => (
+            <NavTabItem
+              key={tab.key}
+              ref={registerTabRef(tab.key)}
+              tab={tab}
+              isActive={tab.key === effectiveActiveKey}
+              variant={variant}
+              onSelect={handleSelect}
+              reducedMotion={reduced}
+            />
+          ))}
         </div>
       </MotionConfig>
     </LazyMotion>
@@ -180,7 +158,6 @@ export function NavTabs({
 
 type NavTabItemProps = {
   tab: NavTab;
-  index: number;
   isActive: boolean;
   variant: NavTabsVariant;
   onSelect: ((key: string) => void) | undefined;
@@ -190,7 +167,6 @@ type NavTabItemProps = {
 
 function NavTabItem({
   tab,
-  index,
   isActive,
   variant,
   onSelect,
@@ -198,7 +174,6 @@ function NavTabItem({
   ref,
 }: NavTabItemProps) {
   const isUnderline = variant === 'underline';
-  const stagger = index * TAB_STAGGER;
 
   // Show arrival overlays only when isActive transitions from false → true
   // on a tab that's already mounted. A tab that mounts already-active (e.g.
@@ -215,32 +190,17 @@ function NavTabItem({
   const animateActivation = showArrival && !reducedMotion;
 
   return (
-    <m.button
+    <button
       ref={ref}
       type="button"
       aria-current={isActive ? 'true' : undefined}
       onClick={() => onSelect?.(tab.key)}
-      initial={
-        reducedMotion ? false : { opacity: 0, rotateX: -95, y: -8, scale: 0.9 }
-      }
-      animate={{ opacity: 1, rotateX: 0, y: 0, scale: 1 }}
-      exit={
-        reducedMotion
-          ? undefined
-          : { opacity: 0, rotateX: 95, y: 8, scale: 0.9 }
-      }
-      transition={{
-        rotateX: { ...TAB_FLIP_SPRING, delay: stagger },
-        opacity: { duration: 0.18, delay: stagger, ease: SOFT_OUT },
-        y: { ...TAB_FLIP_SPRING, delay: stagger },
-        scale: MICRO_SPRING,
-      }}
-      style={{ transformOrigin: 'center', transformStyle: 'preserve-3d' }}
       className={cn(
         'group relative inline-flex shrink-0 items-center gap-2 bg-transparent text-sm font-semibold whitespace-nowrap outline-none transition-colors duration-200',
         'focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring/40',
         isUnderline ? 'py-3' : 'rounded-lg px-3 py-2',
         isActive ? 'text-brand' : 'text-muted-foreground hover:text-foreground',
+        !isActive && !isUnderline && 'hover:bg-foreground/5 dark:hover:bg-input/15',
       )}
     >
       {/* Pill: ring pulse expanding outward after the indicator arrives */}
@@ -257,19 +217,6 @@ function NavTabItem({
           }}
           className="pointer-events-none absolute inset-0 rounded-lg ring-2 ring-brand/35"
         />
-      ) : null}
-
-      {/* Pill: shimmer sweep that fires after the indicator slides into place */}
-      {animateActivation && !isUnderline ? (
-        <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-lg">
-          <m.span
-            aria-hidden
-            initial={{ x: '-100%', opacity: 0 }}
-            animate={{ x: '100%', opacity: [0, 1, 1, 0] }}
-            transition={{ duration: 0.45, ease: SOFT_OUT, delay: 0.12 }}
-            className="absolute inset-y-0 left-0 w-full bg-gradient-to-r from-transparent via-brand/25 to-transparent"
-          />
-        </span>
       ) : null}
 
       {/* Underline: glow halo expanding vertically over the line on arrival */}
@@ -308,6 +255,6 @@ function NavTabItem({
           </span>
         ) : null}
       </span>
-    </m.button>
+    </button>
   );
 }

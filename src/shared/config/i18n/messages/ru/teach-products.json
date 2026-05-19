@@ -140,7 +140,103 @@
         "katex": "KaTeX",
         "katexDescription": "Математическая формула в синтаксисе LaTeX",
         "code": "Код",
-        "codeDescription": "Сниппет с подсветкой синтаксиса и копированием"
+        "codeDescription": "Сниппет с подсветкой синтаксиса и копированием",
+        "singleChoice": "Один вариант",
+        "singleChoiceDescription": "Список вариантов, ученик выбирает один правильный",
+        "multiChoice": "Несколько вариантов",
+        "multiChoiceDescription": "Список вариантов, ученик отмечает все подходящие",
+        "textInput": "Свой ответ",
+        "textInputDescription": "Поле для ввода ответа текстом — сравнение с допустимыми вариантами",
+        "file": "Файл",
+        "fileDescription": "Один файл любого типа — ученики скачивают по клику",
+        "videoFile": "Видео",
+        "videoFileDescription": "Видеофайл, загруженный в курс — играется встроенным плеером",
+        "photoCollage": "Фотоколлаж",
+        "photoCollageDescription": "Несколько фотографий с подписями в сетке"
+      }
+    },
+    "fileBlock": {
+      "defaultTitle": "Файл",
+      "downloadHint": "Открыть или скачать",
+      "missing": {
+        "file": "Файл недоступен — возможно, он был удалён",
+        "video_file": "Видео недоступно — возможно, оно было удалено",
+        "photo_collage": "Коллаж пуст или все фото были удалены"
+      }
+    },
+    "addFileDialog": {
+      "title": "Добавить файл",
+      "description": "Загрузите файл — ученики смогут открыть или скачать его прямо из урока.",
+      "dropPrompt": "Перетащите файл сюда или нажмите, чтобы выбрать",
+      "dropHint": "Один файл любого типа, до {maxMb} МБ",
+      "replace": "Сменить",
+      "titleLabel": "Заголовок (опционально)",
+      "titlePlaceholder": "Например: Программа курса",
+      "cancel": "Отмена",
+      "confirm": "Добавить",
+      "uploading": "Загружаем…"
+    },
+    "addVideoFileDialog": {
+      "title": "Добавить видео",
+      "description": "Загрузите видеофайл — он будет показан встроенным плеером в уроке.",
+      "dropPrompt": "Перетащите видео сюда или нажмите, чтобы выбрать",
+      "dropHint": "mp4, mov, webm и другие видеоформаты, до {maxMb} МБ",
+      "replace": "Сменить",
+      "titleLabel": "Заголовок (опционально)",
+      "titlePlaceholder": "Например: Лекция 1. Введение",
+      "cancel": "Отмена",
+      "confirm": "Добавить",
+      "uploading": "Загружаем…"
+    },
+    "addCollageDialog": {
+      "title": "Добавить фотоколлаж",
+      "description": "Загрузите от {min} до {max} фотографий — у каждой можно задать подпись.",
+      "dropPromptInitial": "Перетащите фото сюда или нажмите, чтобы выбрать",
+      "dropPromptMore": "Добавить ещё фото",
+      "dropHint": "До {maxMb} МБ на одну фотографию",
+      "maxReached": "Достигнут максимум — {max} фото. Удалите одно, чтобы добавить новое.",
+      "titleLabel": "Заголовок коллажа (опционально)",
+      "titlePlaceholder": "Например: Стенд лаборатории",
+      "photosLabel": "Фотографии",
+      "captionPlaceholder": "Подпись (опционально)",
+      "removeItem": "Удалить фото",
+      "dragItem": "Перетащить фото",
+      "cancel": "Отмена",
+      "confirm": "Добавить",
+      "uploading": "Загружаем…"
+    },
+    "collageBlock": {
+      "uploadPromptBold": "Нажмите, чтобы загрузить",
+      "uploadPromptRest": " или перетащите файл",
+      "uploadHint": "SVG, PNG, JPG или GIF (до {maxMb} МБ)",
+      "titlePlaceholder": "Подпись к коллажу (опционально)",
+      "captionPlaceholder": "Подпись (опционально)",
+      "removeItem": "Удалить фото",
+      "dragItem": "Перетащить фото",
+      "maxReached": "Достигнут максимум — {max} фото",
+      "preparingExisting": "Готовим фото для редактирования…",
+      "saving": "Сохраняем…",
+      "saveFailed": "Не удалось сохранить коллаж"
+    },
+    "answer": {
+      "singleChoice": {
+        "title": "Выбор одного варианта"
+      },
+      "multiChoice": {
+        "title": "Выбор нескольких вариантов"
+      },
+      "textInput": {
+        "title": "Текстовый ответ",
+        "placeholder": "Допустимый ответ",
+        "addAnswer": "Добавить вариант ответа",
+        "caseSensitive": "Учитывать регистр",
+        "trimWhitespace": "Игнорировать пробелы по краям"
+      },
+      "option": {
+        "placeholder": "Текст варианта",
+        "add": "Добавить вариант",
+        "remove": "Удалить вариант",
+        "markCorrect": "Отметить как правильный"
       }
     },
     "sections": {
@@ -244,9 +340,21 @@
       "reorderLessonsFailed": "Не удалось переупорядочить уроки",
       "moveLessonFailed": "Не удалось перенести урок",
       "addBlockFailed": "Не удалось добавить блок",
+      "addBlockSucceeded": "Блок добавлен",
       "updateBlockFailed": "Не удалось сохранить изменения",
       "deleteBlockFailed": "Не удалось удалить блок",
       "reorderBlocksFailed": "Не удалось переупорядочить блоки",
+      "quotaExceeded": "Лимит хранилища исчерпан. План {plan}: использовано {used} из {limit}, попытка загрузить ещё {attempted}.",
+      "wrongContentType": "Файл не подходит по типу. Попробуйте загрузить другой.",
+      "wrongContentTypeVideo": "Этот файл не является видео. Выберите видеофайл (mp4, mov, webm и т.п.).",
+      "wrongContentTypeImage": "Этот файл не является изображением. Выберите фото (jpeg, png, webp и т.п.).",
+      "fileTooLargeClient": "Файл «{name}» больше {maxMb} МБ — выберите файл меньшего размера.",
+      "unauthorized": "Нужно войти в аккаунт",
+      "forbidden": "Недостаточно прав для этого действия",
+      "notFound": "Ресурс не найден",
+      "network": "Не удалось связаться с сервером. Проверьте соединение.",
+      "validation": "Проверьте данные и попробуйте ещё раз",
+      "unknown": "Что-то пошло не так. Попробуйте позже.",
       "renameProductFailed": "Не удалось переименовать продукт",
       "updateDescriptionFailed": "Не удалось сохранить описание",
       "updateDurationFailed": "Не удалось сохранить продолжительность",

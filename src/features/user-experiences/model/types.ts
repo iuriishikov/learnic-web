@@ -1,3 +1,5 @@
+import type { ApiFile } from '@/shared/types/user';
+
 /**
  * Public profile entry mirroring the backend `UserExperienceSchema`
  * returned by `GET /users/{user_id}/experiences`.
@@ -17,8 +19,8 @@ export type UserExperience = {
   endDate: string | null;
   sourceUrl: string | null;
   /**
-   * Short-lived presigned URL for the icon, or `null` when no icon
-   * is attached. Refetch the list to refresh — URLs expire.
+   * Resolved icon file with a short-lived presigned URL, or `null`
+   * when no icon is attached. Refetch the list to refresh.
    */
-  iconUrl: string | null;
+  icon: ApiFile | null;
 };

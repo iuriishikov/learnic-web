@@ -157,7 +157,7 @@ function ResponsiveSheetContent({
       className={cn(
         // Desktop floating right panel — small margin, gentle rounding.
         'data-[side=right]:left-auto data-[side=right]:top-2 data-[side=right]:bottom-2 data-[side=right]:right-2',
-        'data-[side=right]:h-auto data-[side=right]:w-[calc(100%-1rem)] data-[side=right]:max-w-[560px]',
+        'data-[side=right]:h-auto data-[side=right]:w-[calc(100%-1rem)] data-[side=right]:max-w-[420px] data-[side=right]:sm:max-w-[420px]',
         'data-[side=right]:border-l-0 data-[side=right]:rounded-xl',
         'data-[side=right]:data-starting-style:translate-x-6',
         'data-[side=right]:data-ending-style:translate-x-6',

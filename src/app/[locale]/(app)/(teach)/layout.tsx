@@ -27,7 +27,7 @@ export default async function TeachLayout({
   return (
     <>
       <ModeTracker mode="teach" />
-      <HeaderConfig navItems={navItems} brandHref="/products" />
+      <HeaderConfig navItems={navItems} brandHref="/" />
       <BreadcrumbConfig
         slot="teach-root"
         order={1}

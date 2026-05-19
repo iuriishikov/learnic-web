@@ -12,6 +12,8 @@
  * Pydantic schemas), camelCase in the domain types.
  */
 
+import { toApiFile, type FileResponse } from '@/shared/types/user';
+
 import type {
   CodeBlockLanguage,
   CourseDraft,
@@ -56,11 +58,76 @@ export type CodeBlockResponse = {
   tabs: CodeTabResponse[];
 };
 
+export type ChoiceOptionResponse = {
+  oid: string;
+  label: string;
+};
+
+export type SingleChoiceBlockResponse = {
+  type: 'single_choice';
+  oid: string;
+  position: number;
+  options: ChoiceOptionResponse[];
+  correct_option_id: string;
+};
+
+export type MultiChoiceBlockResponse = {
+  type: 'multi_choice';
+  oid: string;
+  position: number;
+  options: ChoiceOptionResponse[];
+  correct_option_ids: string[];
+};
+
+export type TextInputBlockResponse = {
+  type: 'text_input';
+  oid: string;
+  position: number;
+  accepted_answers: string[];
+  case_sensitive: boolean;
+  trim_whitespace: boolean;
+};
+
+export type FileBlockResponse = {
+  type: 'file';
+  oid: string;
+  position: number;
+  file: FileResponse | null;
+  title: string | null;
+};
+
+export type VideoFileBlockResponse = {
+  type: 'video_file';
+  oid: string;
+  position: number;
+  file: FileResponse | null;
+  title: string | null;
+};
+
+export type CollageItemResponse = {
+  file: FileResponse | null;
+  caption: string | null;
+};
+
+export type PhotoCollageBlockResponse = {
+  type: 'photo_collage';
+  oid: string;
+  position: number;
+  items: CollageItemResponse[];
+  title: string | null;
+};
+
 export type LessonBlockResponse =
   | HtmlBlockResponse
   | KatexBlockResponse
   | RutubeVideoBlockResponse
-  | CodeBlockResponse;
+  | CodeBlockResponse
+  | SingleChoiceBlockResponse
+  | MultiChoiceBlockResponse
+  | TextInputBlockResponse
+  | FileBlockResponse
+  | VideoFileBlockResponse
+  | PhotoCollageBlockResponse;
 
 export type DraftLessonResponse = {
   oid: string;
@@ -138,6 +205,64 @@ export function fromBlockResponse(raw: LessonBlockResponse): LessonBlock {
         source: t.source,
         language: t.language,
       })),
+    };
+  }
+  if (raw.type === 'single_choice') {
+    return {
+      type: 'single_choice',
+      id: raw.oid,
+      position: raw.position,
+      options: raw.options.map((o) => ({ oid: o.oid, label: o.label })),
+      correctOptionId: raw.correct_option_id,
+    };
+  }
+  if (raw.type === 'multi_choice') {
+    return {
+      type: 'multi_choice',
+      id: raw.oid,
+      position: raw.position,
+      options: raw.options.map((o) => ({ oid: o.oid, label: o.label })),
+      correctOptionIds: [...raw.correct_option_ids],
+    };
+  }
+  if (raw.type === 'text_input') {
+    return {
+      type: 'text_input',
+      id: raw.oid,
+      position: raw.position,
+      acceptedAnswers: [...raw.accepted_answers],
+      caseSensitive: raw.case_sensitive,
+      trimWhitespace: raw.trim_whitespace,
+    };
+  }
+  if (raw.type === 'file') {
+    return {
+      type: 'file',
+      id: raw.oid,
+      position: raw.position,
+      file: raw.file !== null ? toApiFile(raw.file) : null,
+      title: raw.title,
+    };
+  }
+  if (raw.type === 'video_file') {
+    return {
+      type: 'video_file',
+      id: raw.oid,
+      position: raw.position,
+      file: raw.file !== null ? toApiFile(raw.file) : null,
+      title: raw.title,
+    };
+  }
+  if (raw.type === 'photo_collage') {
+    return {
+      type: 'photo_collage',
+      id: raw.oid,
+      position: raw.position,
+      items: raw.items.map((it) => ({
+        file: it.file !== null ? toApiFile(it.file) : null,
+        caption: it.caption,
+      })),
+      title: raw.title,
     };
   }
   return {

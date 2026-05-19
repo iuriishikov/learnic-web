@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import type { ApiFile } from '@/shared/types/user';
+
 /* -------------------------------------------------------------------------- */
 /* Permissions                                                                */
 /* -------------------------------------------------------------------------- */
@@ -135,7 +137,7 @@ export type UserSearchResult = {
   id: string;
   /** Display name in the canonical `Last First Patronymic` order. */
   fullName: string;
-  avatarUrl: string | null;
+  avatar: ApiFile | null;
   /** Whether the platform granted this user the public "verified" badge. */
   isVerified: boolean;
 };

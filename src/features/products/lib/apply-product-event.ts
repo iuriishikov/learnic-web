@@ -234,9 +234,16 @@ export function applyProductEvent(
         // shape — fall back to a refetch so the cache doesn't
         // get nullified by malformed input.
         qc.invalidateQueries({ queryKey: productTagsKey(productId) });
+        qc.invalidateQueries({ queryKey: productKey(productId) });
         return;
       }
+      // Editor's optimistic flow keys off `productTagsKey`; cards
+      // (marketplace / my-products / profile-products) consume the
+      // embedded `product.tags` field on the Product cache. Refetch
+      // the product so its inline `tags` array stays consistent with
+      // the per-tags cache we just wrote.
       qc.setQueryData<Tag[]>(productTagsKey(productId), tags);
+      qc.invalidateQueries({ queryKey: productKey(productId) });
       return;
     }
 

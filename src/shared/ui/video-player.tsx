@@ -82,7 +82,8 @@ export function VideoPlayer({
     React.useState<PlaybackRate>(defaultPlaybackRate);
   const [isFullscreen, setIsFullscreen] = React.useState(false);
   const [controlsVisible, setControlsVisible] = React.useState(true);
-  const [previewPct, setPreviewPct] = React.useState<number | null>(null);
+  const [previewPct, setPreviewPct] = React.useState(0);
+  const [previewVisible, setPreviewVisible] = React.useState(false);
   const [isScrubbing, setIsScrubbing] = React.useState(false);
 
   const hideTimer = React.useRef<number | null>(null);
@@ -126,7 +127,7 @@ export function VideoPlayer({
 
   React.useEffect(() => {
     const pv = previewVideoRef.current;
-    if (!pv || previewPct === null || !duration) return;
+    if (!pv || !previewVisible || !duration) return;
     const target = previewPct * duration;
     if (Math.abs(pv.currentTime - target) > 0.05) {
       try {
@@ -135,7 +136,7 @@ export function VideoPlayer({
         // ignore seek race
       }
     }
-  }, [previewPct, duration]);
+  }, [previewPct, previewVisible, duration]);
 
   const togglePlay = React.useCallback(async () => {
     const v = videoRef.current;
@@ -185,6 +186,7 @@ export function VideoPlayer({
     const pct = (clientX - rect.left) / rect.width;
     const clamped = Math.min(1, Math.max(0, pct));
     setPreviewPct(clamped);
+    setPreviewVisible(true);
     return clamped;
   }, []);
 
@@ -209,7 +211,7 @@ export function VideoPlayer({
   };
 
   const handleProgressPointerLeave = () => {
-    if (!isScrubbing) setPreviewPct(null);
+    if (!isScrubbing) setPreviewVisible(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -255,12 +257,12 @@ export function VideoPlayer({
 
   const playedPct = duration > 0 ? (currentTime / duration) * 100 : 0;
   const bufferedPct = duration > 0 ? (buffered / duration) * 100 : 0;
-  const hoverTime = previewPct !== null ? previewPct * duration : 0;
+  const hoverTime = previewPct * duration;
   const remaining = Math.max(0, duration - currentTime);
 
   const showCenterPlay = !isPlaying && duration > 0;
   const showControls = !isPlaying || controlsVisible || isScrubbing;
-  const showPreview = previewPct !== null && duration > 0;
+  const showPreview = previewVisible && duration > 0;
 
   return (
     <div
@@ -276,10 +278,11 @@ export function VideoPlayer({
         }
       }}
       className={cn(
-        'group/player relative isolate aspect-video w-full overflow-hidden rounded-2xl bg-black text-white shadow-lg outline-none ring-offset-2 ring-offset-background focus-visible:ring-2 focus-visible:ring-brand',
+        'group/player relative aspect-video w-full rounded-2xl text-white shadow-lg outline-none ring-offset-2 ring-offset-background focus-visible:ring-2 focus-visible:ring-brand',
         className,
       )}
     >
+    <div className="absolute inset-0 isolate overflow-hidden rounded-2xl bg-black [-webkit-mask-image:linear-gradient(#fff,#fff)] [clip-path:inset(0_round_var(--radius-2xl))] [mask-image:linear-gradient(#fff,#fff)]">
       <video
         ref={videoRef}
         src={src}
@@ -349,41 +352,42 @@ export function VideoPlayer({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="relative">
-              <motion.div
+              <div
                 aria-hidden={!showPreview}
-                animate={{
-                  opacity: showPreview ? 1 : 0,
-                  y: showPreview || reduceMotion ? 0 : 6,
-                  scale: showPreview || reduceMotion ? 1 : 0.96,
-                }}
-                transition={{ type: 'spring', stiffness: 480, damping: 30 }}
-                style={{
-                  left: `${(previewPct ?? 0) * 100}%`,
-                  transform: 'translateX(-50%)',
-                }}
-                className="pointer-events-none absolute bottom-full mb-3"
+                style={{ left: `${previewPct * 100}%` }}
+                className="pointer-events-none absolute bottom-full mb-2 -translate-x-1/2"
               >
-                <div className="relative aspect-video w-32 overflow-hidden rounded-md bg-black/90 shadow-xl ring-1 ring-white/25 sm:w-40">
-                  <video
-                    ref={previewVideoRef}
-                    src={src}
-                    muted
-                    playsInline
-                    preload="auto"
-                    className="absolute inset-0 size-full object-cover"
-                  />
-                  <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-0.5 bg-gradient-to-t from-black/85 to-transparent px-1.5 py-1 text-center text-[10px] font-medium leading-tight tabular-nums sm:text-xs">
-                    <span>{formatTime(hoverTime)}</span>
-                    <span className="flex items-center gap-1 text-[9px] text-white/85 sm:text-[10px]">
-                      <span
-                        aria-hidden
-                        className="inline-block size-1.5 rounded-full bg-brand"
-                      />
-                      {formatTime(currentTime)}
-                    </span>
+                <motion.div
+                  initial={false}
+                  animate={{
+                    opacity: showPreview ? 1 : 0,
+                    y: showPreview || reduceMotion ? 0 : 6,
+                  }}
+                  transition={{
+                    opacity: { duration: 0.18, ease: 'easeOut' },
+                    y: { duration: 0.22, ease: 'easeOut' },
+                  }}
+                  className="flex flex-col items-center"
+                >
+                  <div className="relative aspect-video w-40 overflow-hidden rounded-xl bg-black/90 shadow-xl ring-1 ring-white/40 sm:w-48 md:w-56">
+                    <video
+                      ref={previewVideoRef}
+                      src={src}
+                      muted
+                      playsInline
+                      preload="auto"
+                      className="absolute inset-0 size-full object-cover"
+                    />
                   </div>
-                </div>
-              </motion.div>
+                  <div className="mt-1.5 flex items-center gap-2 text-sm font-semibold tabular-nums text-white [text-shadow:0_1px_2px_rgb(0_0_0_/_0.7)] sm:text-base">
+                    <span>{formatTime(hoverTime)}</span>
+                    <span aria-hidden className="text-white/45">
+                      |
+                    </span>
+                    <span className="text-white/85">{formatTime(duration)}</span>
+                  </div>
+                </motion.div>
+              </div>
 
               <div
                 ref={progressRef}
@@ -396,7 +400,10 @@ export function VideoPlayer({
                 onPointerMove={handleProgressPointerMove}
                 onPointerUp={handleProgressPointerUp}
                 onPointerLeave={handleProgressPointerLeave}
-                className="relative h-3 cursor-pointer touch-none select-none"
+                className={cn(
+                  'relative h-3 touch-none select-none',
+                  isScrubbing ? 'cursor-grabbing' : 'cursor-grab',
+                )}
               >
                 <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-white/25">
                   <div
@@ -408,12 +415,6 @@ export function VideoPlayer({
                     style={{ width: `${playedPct}%` }}
                   />
                 </div>
-                {previewPct !== null ? (
-                  <div
-                    className="absolute top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/70"
-                    style={{ left: `${previewPct * 100}%` }}
-                  />
-                ) : null}
                 <div
                   className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow"
                   style={{ left: `${playedPct}%` }}
@@ -519,6 +520,7 @@ export function VideoPlayer({
           </motion.div>
         ) : null}
       </AnimatePresence>
+    </div>
     </div>
   );
 }

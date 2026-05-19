@@ -1,3 +1,5 @@
+import { toApiFile, type FileResponse } from '@/shared/types/user';
+
 import type { UserExperience } from '../model/types';
 
 export type UserExperienceSchemaResponse = {
@@ -8,7 +10,7 @@ export type UserExperienceSchemaResponse = {
   start_date: string;
   end_date: string | null;
   source_url: string | null;
-  icon_url: string | null;
+  icon: FileResponse | null;
 };
 
 export function fromUserExperienceSchema(
@@ -22,7 +24,7 @@ export function fromUserExperienceSchema(
     startDate: raw.start_date,
     endDate: raw.end_date,
     sourceUrl: raw.source_url,
-    iconUrl: raw.icon_url,
+    icon: raw.icon !== null ? toApiFile(raw.icon) : null,
   };
 }
 

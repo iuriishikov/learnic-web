@@ -95,7 +95,7 @@ export function NotificationItem({
                 ? {
                     id: displayActor.oid,
                     fullName: displayActor.fullName,
-                    avatarUrl: null,
+                    avatar: null,
                   }
                 : null
             }

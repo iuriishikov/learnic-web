@@ -9,7 +9,6 @@ import {
 } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
-import { useProductTags } from '@/features/product-tags';
 import type { Tag } from '@/features/product-tags';
 import { usePathname, useRouter } from '@/shared/config/i18n/navigation';
 import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
@@ -408,16 +407,11 @@ type MarketplaceCardWrapperProps = {
 };
 
 /**
- * Eagerly loads each product's tags (same pattern as the editor's
- * ``ProductGridCard``) so marketplace cards render with the same
- * body content — type pill + title + duration + tag chips —
- * instead of looking sparse next to the editor variant.
- * TanStack Query caches per-product tag responses so toggling
- * the tag filter is instant.
- *
- * Until the backend grows a ``GET /products?tag_ids=…`` server
- * filter, the same fetched tag set powers client-side tag
- * filtering when one is active.
+ * Marketplace cards render type pill + title + duration + tag chips
+ * using ``product.tags`` embedded inline by the backend — no
+ * per-card fetch. Until the backend grows
+ * ``GET /products?tag_ids=…``, the same embedded set powers the
+ * client-side tag filter when one is active.
  */
 function MarketplaceCardWrapper({
   product,
@@ -426,23 +420,13 @@ function MarketplaceCardWrapper({
 }: MarketplaceCardWrapperProps) {
   const reduceMotion = useReducedMotion();
   const tCard = useTranslations('marketplace.card');
-  const tagsQuery = useProductTags(product.id);
-  const tags = tagsQuery.data ?? [];
+  const tags = product.tags;
   const productTagIds = useMemo(
     () => new Set(tags.map((t) => t.id)),
     [tags],
   );
 
   if (tagFilterActive) {
-    if (tagsQuery.isLoading) {
-      // Hide candidates whose tags aren't loaded yet — otherwise
-      // they'd flash in and out as the lazy fetch resolves.
-      return (
-        <li>
-          <ProductCardSkeleton />
-        </li>
-      );
-    }
     const matchesAll = Array.from(selectedTagIds).every((id) =>
       productTagIds.has(id),
     );
@@ -479,7 +463,7 @@ function MarketplaceCardWrapper({
             : tCard('durationUnset')
         }
         accent={accentFromId(product.id)}
-        coverUrl={product.coverUrl}
+        coverUrl={product.cover?.url ?? null}
         tags={tags}
       />
     </motion.li>

@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { usePresence } from '@/features/presence';
 import { useObjectUrl } from '@/shared/hooks/use-object-url';
 import { cn } from '@/shared/lib/utils';
+import type { ApiFile } from '@/shared/types/user';
 import {
   Avatar,
   AvatarBadge,
@@ -60,7 +61,7 @@ export type AvatarShape = 'square' | 'circle';
 export type AvatarUser = {
   id: string;
   fullName: string;
-  avatarUrl: string | null;
+  avatar: ApiFile | null;
   /**
    * Whether the platform granted this user the public "verified" badge.
    * Drives the brand checkmark overlay when `statusType="verified"`.
@@ -114,7 +115,7 @@ type UserAvatarProps = VariantProps<typeof userAvatarVariants> & {
   halo?: boolean;
   /**
    * Local file preview (e.g. picked from `<input type="file">` before save).
-   * Takes precedence over `user.avatarUrl` and is shown immediately via a
+   * Takes precedence over `user.avatar?.url` and is shown immediately via a
    * managed object URL — no network request involved.
    */
   previewFile?: File | Blob | null;
@@ -156,7 +157,7 @@ export function UserAvatar({
 }: UserAvatarProps) {
   const t = useTranslations('app');
   const previewUrl = useObjectUrl(previewFile);
-  const effectiveSrc = previewUrl ?? user?.avatarUrl ?? null;
+  const effectiveSrc = previewUrl ?? user?.avatar?.url ?? null;
   const hasUrl = Boolean(effectiveSrc);
   const [status, setStatus] = useState<AvatarLoadStatus>(
     hasUrl ? 'loading' : 'idle',

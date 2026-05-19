@@ -46,8 +46,8 @@ export function ExperienceCard({ experience, className }: ExperienceCardProps) {
       <div className="flex flex-col gap-4 p-5">
         <div className="flex items-start gap-4">
           <Avatar className={cn('size-12 shrink-0', avatarHaloClasses)}>
-            {experience.iconUrl ? (
-              <AvatarImage src={experience.iconUrl} alt="" />
+            {experience.icon ? (
+              <AvatarImage src={experience.icon.url} alt="" />
             ) : null}
             <AvatarFallback className="bg-primary text-base font-semibold text-primary-foreground">
               {fallbackInitial}

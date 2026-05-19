@@ -1,0 +1,7 @@
+{
+  "subscription": {
+    "label": "Ваш тариф",
+    "storageUsage": "Использовано хранилища",
+    "expiresAt": "Действует до {date}"
+  }
+}

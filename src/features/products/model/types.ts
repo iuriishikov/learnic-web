@@ -1,3 +1,6 @@
+import type { Tag } from '@/features/product-tags';
+import type { ApiFile } from '@/shared/types/user';
+
 export type ProductType = 'course';
 
 export type ProductStatus = 'draft' | 'published' | 'archived' | 'banned';
@@ -36,11 +39,18 @@ export type Product = {
   priceAmount: number | null;
   author: ProductAuthor;
   /**
-   * Short-lived presigned URL for the cover image. `null` means no
-   * cover is attached; the SPA should fall back to a generated
-   * placeholder. The URL expires — re-fetch the product to refresh.
+   * Resolved cover file with a short-lived presigned URL, or `null`
+   * when no cover is attached (the SPA falls back to a generated
+   * placeholder). The URL expires — re-fetch the product to refresh.
    */
-  coverUrl: string | null;
+  cover: ApiFile | null;
+  /**
+   * Product tags in author-defined order, embedded inline by the
+   * backend so cards/details render chips without an extra
+   * `GET /products/{id}/tags` round-trip. The editor still uses
+   * `useProductTags` because it owns optimistic mutations.
+   */
+  tags: Tag[];
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;

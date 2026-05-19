@@ -217,32 +217,43 @@ export function applyContentEvent(
     case 'block_added': {
       const lessonId = strField(payload, 'lesson_id');
       const raw = blockField(payload, 'block');
-      if (lessonId && raw) {
-        const block = fromBlockResponse(raw);
-        patchDraft(qc, courseId, (draft) =>
-          mapLesson(draft, lessonId, (l) => ({
-            ...l,
-            blocks: upsertById(l.blocks, block),
-          })),
-        );
+      if (!lessonId || !raw) return;
+      // File-bearing block snapshots travel through the WS without a
+      // resolved presigned URL (the backend snapshotter is sync;
+      // pre-signing in the event publisher is invasive). Fall back
+      // to a draft refetch for those types so `block.file?.url` is
+      // populated correctly — other types apply in place.
+      if (_blockTypeNeedsRefetch(raw.type)) {
+        qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
+        return;
       }
+      const block = fromBlockResponse(raw);
+      patchDraft(qc, courseId, (draft) =>
+        mapLesson(draft, lessonId, (l) => ({
+          ...l,
+          blocks: upsertById(l.blocks, block),
+        })),
+      );
       return;
     }
     case 'block_updated': {
       const raw = blockField(payload, 'block');
-      if (raw) {
-        const updated = fromBlockResponse(raw);
-        patchDraft(qc, courseId, (draft) => ({
-          ...draft,
-          modules: draft.modules.map((m) => ({
-            ...m,
-            lessons: m.lessons.map((l) => ({
-              ...l,
-              blocks: l.blocks.map((b) => (b.id === updated.id ? updated : b)),
-            })),
-          })),
-        }));
+      if (!raw) return;
+      if (_blockTypeNeedsRefetch(raw.type)) {
+        qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
+        return;
       }
+      const updated = fromBlockResponse(raw);
+      patchDraft(qc, courseId, (draft) => ({
+        ...draft,
+        modules: draft.modules.map((m) => ({
+          ...m,
+          lessons: m.lessons.map((l) => ({
+            ...l,
+            blocks: l.blocks.map((b) => (b.id === updated.id ? updated : b)),
+          })),
+        })),
+      }));
       return;
     }
     case 'modules_reordered': {
@@ -453,4 +464,15 @@ function reorderModulesByIds(
   orderedIds: string[],
 ): CourseDraft {
   return { ...draft, modules: orderByIds(draft.modules, orderedIds) };
+}
+
+/**
+ * WS event payloads for file-bearing blocks (`file`, `video_file`,
+ * `photo_collage`) currently travel without a resolved presigned URL
+ * — the backend snapshotter is sync and pre-signing inside the event
+ * publisher is invasive. The client refetches the draft to pick up
+ * the fresh FileSchema instead of applying the partial snapshot.
+ */
+function _blockTypeNeedsRefetch(type: unknown): boolean {
+  return type === 'file' || type === 'video_file' || type === 'photo_collage';
 }

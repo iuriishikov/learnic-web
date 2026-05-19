@@ -85,7 +85,7 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
               user={{
                 id: profile.id,
                 fullName: profile.fullName,
-                avatarUrl: profile.avatarUrl,
+                avatar: profile.avatar,
                 isVerified: profile.isVerified,
               }}
               className={cn(

@@ -29,7 +29,7 @@ export function AvatarUploader() {
   const avatarUser: AvatarUser = {
     id: user.oid,
     fullName: user.fullName,
-    avatarUrl: user.avatarUrl,
+    avatar: user.avatar,
     isVerified: user.isVerified,
   };
 
@@ -80,7 +80,7 @@ export function AvatarUploader() {
     });
   }
 
-  const hasAvatar = Boolean(user.avatarUrl) || Boolean(previewFile);
+  const hasAvatar = user.avatar !== null || Boolean(previewFile);
 
   return (
     <div className="flex items-center gap-4">

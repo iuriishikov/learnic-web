@@ -143,7 +143,7 @@ function ExperienceForm({
   const [iconRemoved, setIconRemoved] = useState(false);
   const previewUrl = useObjectUrl(iconFile);
   const displayIconUrl =
-    previewUrl ?? (iconRemoved ? null : (editing?.iconUrl ?? null));
+    previewUrl ?? (iconRemoved ? null : (editing?.icon?.url ?? null));
   const iconInputRef = useRef<HTMLInputElement | null>(null);
   const fallbackInitial =
     form.watch('title').trim().charAt(0).toUpperCase() ||
@@ -179,7 +179,7 @@ function ExperienceForm({
       setIconFile(null);
       return;
     }
-    if (editing?.iconUrl) {
+    if (editing?.icon) {
       removeIcon.mutate(
         { id: editing.id },
         {

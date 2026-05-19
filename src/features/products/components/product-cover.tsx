@@ -131,19 +131,19 @@ export function ProductCover({
         </div>
       </motion.div>
     );
-  } else if (query.data.coverUrl) {
+  } else if (query.data.cover?.url) {
     // Keying on the URL forces a fresh mount when the cover changes,
     // so the fade-in animation replays for the new image instead of
     // hot-swapping in place.
     body = (
       <motion.div
-        key={`cover-${query.data.coverUrl}`}
+        key={`cover-${query.data.cover?.url}`}
         initial={reduceMotion ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={FADE}
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${query.data.coverUrl})` }}
+        style={{ backgroundImage: `url(${query.data.cover?.url})` }}
         role="img"
         aria-label={t('alt')}
       />

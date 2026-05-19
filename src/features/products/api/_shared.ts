@@ -1,3 +1,6 @@
+import type { Tag } from '@/features/product-tags';
+import { toApiFile, type FileResponse } from '@/shared/types/user';
+
 import type {
   Product,
   ProductAuthor,
@@ -11,6 +14,12 @@ type AuthorSchemaResponse = {
   email: string;
 };
 
+type TagSchemaResponse = {
+  oid: string;
+  name: string;
+  color: string;
+};
+
 export type ProductSchemaResponse = {
   oid: string;
   type: ProductType;
@@ -20,11 +29,16 @@ export type ProductSchemaResponse = {
   total_duration_in_hours: number | null;
   price_amount: number | null;
   author: AuthorSchemaResponse;
-  cover_url: string | null;
+  cover: FileResponse | null;
+  tags: TagSchemaResponse[];
   published_at: string | null;
   created_at: string;
   updated_at: string;
 };
+
+function fromTagSchema(raw: TagSchemaResponse): Tag {
+  return { id: raw.oid, name: raw.name, color: raw.color };
+}
 
 export function fromProductSchema(raw: ProductSchemaResponse): Product {
   return {
@@ -36,7 +50,8 @@ export function fromProductSchema(raw: ProductSchemaResponse): Product {
     durationHours: raw.total_duration_in_hours ?? 0,
     priceAmount: raw.price_amount,
     author: fromAuthorSchema(raw.author),
-    coverUrl: raw.cover_url ?? null,
+    cover: raw.cover !== null ? toApiFile(raw.cover) : null,
+    tags: (raw.tags ?? []).map(fromTagSchema),
     publishedAt: raw.published_at,
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
@@ -51,35 +66,122 @@ function fromAuthorSchema(raw: AuthorSchemaResponse): ProductAuthor {
   };
 }
 
+// Failure reasons used by every mutating server-action wrapper.
+// `quota-exceeded` (HTTP 413) and `wrong-content-type` (HTTP 415)
+// carry extra metadata so the UI can render an actionable message
+// (current usage vs cap; what content type was rejected).
+export type QuotaExceededDetails = {
+  planCode: string;
+  usedBytes: number;
+  attemptedBytes: number;
+  limitBytes: number;
+};
+
+export type WrongContentTypeDetails = {
+  fileId: string;
+  expectedPrefix: string;
+  actual: string;
+};
+
+export type MutationFailureReason =
+  | 'unauthorized'
+  | 'forbidden'
+  | 'not-found'
+  | 'conflict'
+  | 'validation'
+  | 'quota-exceeded'
+  | 'wrong-content-type'
+  | 'network'
+  | 'unknown';
+
 export type MutationResult =
   | { ok: true }
   | {
       ok: false;
-      reason:
-        | 'unauthorized'
-        | 'forbidden'
-        | 'not-found'
-        | 'conflict'
-        | 'validation'
-        | 'network'
-        | 'unknown';
+      reason: MutationFailureReason;
       message?: string;
+      quota?: QuotaExceededDetails;
+      wrongContentType?: WrongContentTypeDetails;
     };
 
 export type CreatedResult =
   | { ok: true; id: string }
   | {
       ok: false;
-      reason:
-        | 'unauthorized'
-        | 'forbidden'
-        | 'not-found'
-        | 'conflict'
-        | 'validation'
-        | 'network'
-        | 'unknown';
+      reason: MutationFailureReason;
       message?: string;
+      quota?: QuotaExceededDetails;
+      wrongContentType?: WrongContentTypeDetails;
     };
+
+function _quotaFromBody(
+  body: Record<string, unknown> | null,
+): QuotaExceededDetails | undefined {
+  if (!body) return undefined;
+  const planCode = typeof body.plan_code === 'string' ? body.plan_code : null;
+  const used = typeof body.used_bytes === 'number' ? body.used_bytes : null;
+  const attempted =
+    typeof body.attempted_bytes === 'number' ? body.attempted_bytes : null;
+  const limit =
+    typeof body.limit_bytes === 'number' ? body.limit_bytes : null;
+  if (
+    planCode === null ||
+    used === null ||
+    attempted === null ||
+    limit === null
+  ) {
+    return undefined;
+  }
+  return {
+    planCode,
+    usedBytes: used,
+    attemptedBytes: attempted,
+    limitBytes: limit,
+  };
+}
+
+function _wrongContentTypeFromBody(
+  body: Record<string, unknown> | null,
+): WrongContentTypeDetails | undefined {
+  if (!body) return undefined;
+  const fileId = typeof body.file_id === 'string' ? body.file_id : null;
+  const expected =
+    typeof body.expected_prefix === 'string' ? body.expected_prefix : null;
+  const actual = typeof body.actual === 'string' ? body.actual : null;
+  if (fileId === null || expected === null || actual === null) {
+    return undefined;
+  }
+  return { fileId, expectedPrefix: expected, actual };
+}
+
+export async function mapErrorResponse(
+  res: Response,
+): Promise<
+  Extract<MutationResult, { ok: false }> | Extract<CreatedResult, { ok: false }>
+> {
+  if (res.status === 401) return { ok: false, reason: 'unauthorized' };
+  if (res.status === 403) return { ok: false, reason: 'forbidden' };
+  if (res.status === 404) return { ok: false, reason: 'not-found' };
+  if (res.status === 409) return { ok: false, reason: 'conflict' };
+  if (res.status === 413) {
+    const body = await safeJson(res);
+    return { ok: false, reason: 'quota-exceeded', quota: _quotaFromBody(body) };
+  }
+  if (res.status === 415) {
+    const body = await safeJson(res);
+    return {
+      ok: false,
+      reason: 'wrong-content-type',
+      wrongContentType: _wrongContentTypeFromBody(body),
+    };
+  }
+  if (res.status === 422) {
+    const body = await safeJson(res);
+    const message = typeof body?.error === 'string' ? body.error : undefined;
+    return { ok: false, reason: 'validation', message };
+  }
+  return { ok: false, reason: 'unknown' };
+}
 
 export function mapMutationStatus(
   status: number,

@@ -149,7 +149,7 @@ export function TeamMembersTab({
       avatar: {
         id: product.author.id,
         fullName: product.author.fullName,
-        avatarUrl: null,
+        avatar: null,
       },
     });
 
@@ -195,7 +195,7 @@ export function TeamMembersTab({
         avatar: {
           id: c.collaborator?.id ?? c.id,
           fullName: avatarFullName,
-          avatarUrl: null,
+          avatar: null,
         },
       });
     }

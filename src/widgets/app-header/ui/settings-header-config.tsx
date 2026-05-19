@@ -30,12 +30,12 @@ export function SettingsHeaderConfig({ mode }: { mode: AppMode }) {
       },
       { key: 'community', href: '/community', label: tLearn('nav.community') },
     ];
-    return <HeaderConfig navItems={navItems} brandHref="/marketplace" />;
+    return <HeaderConfig navItems={navItems} brandHref="/" />;
   }
 
   const navItems: AppHeaderNavItem[] = [
     { key: 'products', href: '/products', label: tTeach('nav.products') },
   ];
 
-  return <HeaderConfig navItems={navItems} brandHref="/products" />;
+  return <HeaderConfig navItems={navItems} brandHref="/" />;
 }

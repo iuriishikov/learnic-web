@@ -1,0 +1,39 @@
+{
+  "title": "PromoCard",
+  "description": "Карточка-промо для нативных подсказок и upsell-сценариев: гибкий слот для визуала сверху, заголовок с акцессуаром, описание и пара текстовых действий. Аргумент storageKey включает запоминание закрытия через localStorage.",
+  "examples": {
+    "title": "Примеры",
+    "description": "Две карточки из дизайн-системы — лимит хранилища и приглашение на воркшоп. Состояние можно сбросить через кнопку ниже."
+  },
+  "sizes": {
+    "title": "Размеры",
+    "description": "Три размера — sm, default, lg. Меняются паддинги, радиусы, размеры текста и кнопки закрытия. Визуал внутри слота — на усмотрение вызывающего кода.",
+    "sm": "Small",
+    "default": "Default",
+    "lg": "Large"
+  },
+  "usedSpace": {
+    "title": "Used space",
+    "description": "Your team has used 80% of your available space. Need more?",
+    "dismiss": "Dismiss",
+    "primary": "Upgrade plan"
+  },
+  "workshop": {
+    "title": "Join our workshop",
+    "live": "Live",
+    "description": "Learn how to leverage Claude to supercharge your workflow.",
+    "dismiss": "Dismiss",
+    "primary": "Join now!"
+  },
+  "playground": {
+    "title": "Песочница",
+    "description": "Закрой карточку и обнови страницу. Если запоминание включено — карточка не вернётся, пока ты не сбросишь состояние.",
+    "rememberLabel": "Запоминать закрытие",
+    "rememberDescription": "Когда включено — закрытие сохраняется в localStorage и переживёт перезагрузку страницы.",
+    "showAgain": "Показать снова",
+    "storageKeyLabel": "Ключ хранилища"
+  },
+  "footer": {
+    "props": "Props"
+  }
+}

@@ -30,7 +30,7 @@ export function CoverUploader() {
 
   if (!user) return null;
 
-  const displayUrl = previewUrl ?? user.coverUrl;
+  const displayUrl = previewUrl ?? user.cover?.url ?? null;
   const hasCover = Boolean(displayUrl);
 
   function handlePick() {

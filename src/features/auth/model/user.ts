@@ -2,7 +2,7 @@
 // context is cross-cutting. Re-exported here for backwards-compat
 // with feature-internal consumers; auth-specific wire-shape and
 // mapper stay below — only the `/auth/me` endpoint produces them.
-import type { User } from '@/shared/types/user';
+import { toApiFile, type FileResponse, type User } from '@/shared/types/user';
 export type { User } from '@/shared/types/user';
 
 export type UserResponse = {
@@ -11,8 +11,8 @@ export type UserResponse = {
   email: string;
   is_verified: boolean;
   description: string | null;
-  avatar_url: string | null;
-  cover_url: string | null;
+  avatar: FileResponse | null;
+  cover: FileResponse | null;
   website_url: string | null;
   portfolio_url: string | null;
   public_email: string | null;
@@ -56,8 +56,8 @@ export function toUser(raw: UserResponse): User {
     email: raw.email,
     isVerified: raw.is_verified,
     description: raw.description,
-    avatarUrl: raw.avatar_url,
-    coverUrl: raw.cover_url,
+    avatar: raw.avatar !== null ? toApiFile(raw.avatar) : null,
+    cover: raw.cover !== null ? toApiFile(raw.cover) : null,
     websiteUrl: raw.website_url,
     portfolioUrl: raw.portfolio_url,
     publicEmail: raw.public_email,

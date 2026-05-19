@@ -647,7 +647,7 @@ function UserRow({
   const avatarUser = {
     id: user.id,
     fullName: user.fullName,
-    avatarUrl: user.avatarUrl,
+    avatar: user.avatar,
     isVerified: user.isVerified,
   };
 

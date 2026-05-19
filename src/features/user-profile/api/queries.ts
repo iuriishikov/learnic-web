@@ -14,6 +14,7 @@ import {
   type UserExperience,
 } from '@/features/user-experiences';
 import { apiFetch } from '@/shared/api/client';
+import { toApiFile, type FileResponse } from '@/shared/types/user';
 
 import type { PublicProfileProduct, PublicUserProfile } from '../model/types';
 
@@ -22,8 +23,8 @@ type UserSchemaResponse = {
   full_name: string;
   email: string;
   description: string | null;
-  avatar_url: string | null;
-  cover_url: string | null;
+  avatar: FileResponse | null;
+  cover: FileResponse | null;
   // Optional in the openapi snapshot but present on the live backend.
   // Surface them when provided; treat absence as "field not set".
   is_verified?: boolean;
@@ -40,7 +41,7 @@ type ProductSchemaResponse = {
   description: string | null;
   total_duration_in_hours: number | null;
   author: { oid: string; full_name: string; email: string };
-  cover_file_id: string | null;
+  cover: FileResponse | null;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -60,7 +61,7 @@ function toProduct(raw: ProductSchemaResponse): PublicProfileProduct {
     durationLabel: durationLabel(raw.total_duration_in_hours),
     dueLabel: null,
     accent: softAccentFromSeed(raw.oid) as ProductShowcaseAccent,
-    coverUrl: null,
+    cover: raw.cover !== null ? toApiFile(raw.cover) : null,
   };
 }
 
@@ -140,8 +141,8 @@ export async function getPublicUserProfile(
       id: user.oid,
       fullName: user.full_name,
       email: user.email,
-      avatarUrl: user.avatar_url,
-      coverUrl: user.cover_url,
+      avatar: user.avatar !== null ? toApiFile(user.avatar) : null,
+      cover: user.cover !== null ? toApiFile(user.cover) : null,
       isVerified: user.is_verified ?? false,
       descriptionHtml: user.description,
       websiteUrl: user.website_url ?? null,

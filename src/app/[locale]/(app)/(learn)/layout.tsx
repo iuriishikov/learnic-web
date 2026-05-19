@@ -29,7 +29,7 @@ export default async function LearnLayout({
   return (
     <>
       <ModeTracker mode="learn" />
-      <HeaderConfig navItems={navItems} brandHref="/marketplace" />
+      <HeaderConfig navItems={navItems} brandHref="/" />
       <BreadcrumbConfig
         slot="learn-root"
         order={1}

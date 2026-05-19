@@ -10,6 +10,7 @@ import { useTranslations } from 'next-intl';
 import { useNotify } from '@/shared/lib/notify';
 
 import type {
+  ChoiceOption,
   CodeBlock,
   CodeBlockLanguage,
   CodeTab,
@@ -22,15 +23,29 @@ import type {
 } from '../model/draft';
 
 import {
+  type ChoiceOptionDraftInput,
   addCodeBlockAction,
+  addFileBlockAction,
   addHtmlBlockAction,
   addKatexBlockAction,
+  addMultiChoiceBlockAction,
+  addPhotoCollageBlockAction,
+  addSingleChoiceBlockAction,
+  addTextInputBlockAction,
+  addVideoFileBlockAction,
   deleteLessonBlockAction,
   reorderLessonBlocksAction,
   updateCodeBlockAction,
+  updateFileBlockAction,
   updateHtmlBlockAction,
   updateKatexBlockAction,
+  updateMultiChoiceBlockAction,
+  updatePhotoCollageBlockAction,
+  updateSingleChoiceBlockAction,
+  updateTextInputBlockAction,
+  updateVideoFileBlockAction,
 } from './blocks';
+import type { CreatedResult, MutationResult } from './_shared';
 import {
   addCourseLessonAction,
   deleteCourseLessonAction,
@@ -46,22 +61,23 @@ import {
 } from './modules';
 import { courseDraftKey } from './use-course-draft';
 
-// Backend rejects whitespace-only KaTeX source (Pydantic strips, then the
-// minLength=1 invariant fails). `\,` is a no-op LaTeX spacing command — it's
-// a valid 2-char string the server accepts and renders as nothing visible,
-// so the UI keeps showing the "click to add formula" empty state via
-// `InlineLatexEditor`'s blank check.
-const KATEX_BLANK_SOURCE = '\\,';
+// Fresh blocks start empty — the author fills them in inside the editor.
+const KATEX_BLANK_SOURCE = '';
 
 // Default language for a freshly created code block. Plain stays neutral
 // — the author picks a real language from the editor's toolbar.
 const CODE_BLANK_LANGUAGE: CodeBlockLanguage = 'plain';
 
-// A fresh code block starts with a single tab (label hidden). Multi-tab
-// is opt-in via the editor's "Add tab" button.
 const CODE_BLANK_TABS: CodeTab[] = [
   { label: '', source: '', language: CODE_BLANK_LANGUAGE },
 ];
+
+const CHOICE_BLANK_OPTIONS: ChoiceOptionDraftInput[] = [
+  { label: '', isCorrect: true },
+  { label: '', isCorrect: false },
+];
+
+const TEXT_INPUT_BLANK_ACCEPTED: string[] = [''];
 
 type MutationContext = {
   previous?: CourseDraft;
@@ -526,13 +542,72 @@ export function useMoveLessonMutation(courseId: string) {
 
 /* ---------- blocks ---------- */
 
+export type AddableBlockType =
+  | 'html'
+  | 'katex'
+  | 'code'
+  | 'single_choice'
+  | 'multi_choice'
+  | 'text_input';
+
+function _buildOptimisticBlock(
+  type: AddableBlockType,
+  newId: string,
+  position: number,
+): LessonBlock {
+  if (type === 'html') {
+    return { type: 'html', id: newId, position, html: '' };
+  }
+  if (type === 'code') {
+    return { type: 'code', id: newId, position, tabs: CODE_BLANK_TABS };
+  }
+  if (type === 'katex') {
+    return {
+      type: 'katex',
+      id: newId,
+      position,
+      source: KATEX_BLANK_SOURCE,
+    };
+  }
+  if (type === 'single_choice' || type === 'multi_choice') {
+    const opts: ChoiceOption[] = CHOICE_BLANK_OPTIONS.map((o, i) => ({
+      oid: `${newId}-opt-${i}`,
+      label: o.label,
+    }));
+    if (type === 'single_choice') {
+      return {
+        type: 'single_choice',
+        id: newId,
+        position,
+        options: opts,
+        correctOptionId: opts[0].oid,
+      };
+    }
+    return {
+      type: 'multi_choice',
+      id: newId,
+      position,
+      options: opts,
+      correctOptionIds: [opts[0].oid],
+    };
+  }
+  return {
+    type: 'text_input',
+    id: newId,
+    position,
+    acceptedAnswers: TEXT_INPUT_BLANK_ACCEPTED,
+    caseSensitive: false,
+    trimWhitespace: true,
+  };
+}
+
 export function useAddBlockMutation(courseId: string) {
   const qc = useQueryClient();
   const fail = useFailureToast();
   return useMutation<
     { id: string; tempId: string },
     Error,
-    { lessonId: string; type: 'html' | 'katex' | 'code' },
+    { lessonId: string; type: AddableBlockType },
     MutationContext & { tempId: string }
   >({
     mutationFn: async ({ lessonId, type }) => {
@@ -540,7 +615,7 @@ export function useAddBlockMutation(courseId: string) {
         const result = await addHtmlBlockAction({
           courseId,
           lessonId,
-          html: '<p></p>',
+          html: '',
         });
         if (!result.ok) throw new Error(result.reason);
         return { id: result.id, tempId: '' };
@@ -554,10 +629,39 @@ export function useAddBlockMutation(courseId: string) {
         if (!result.ok) throw new Error(result.reason);
         return { id: result.id, tempId: '' };
       }
-      const result = await addKatexBlockAction({
+      if (type === 'katex') {
+        const result = await addKatexBlockAction({
+          courseId,
+          lessonId,
+          source: KATEX_BLANK_SOURCE,
+        });
+        if (!result.ok) throw new Error(result.reason);
+        return { id: result.id, tempId: '' };
+      }
+      if (type === 'single_choice') {
+        const result = await addSingleChoiceBlockAction({
+          courseId,
+          lessonId,
+          options: CHOICE_BLANK_OPTIONS,
+        });
+        if (!result.ok) throw new Error(result.reason);
+        return { id: result.id, tempId: '' };
+      }
+      if (type === 'multi_choice') {
+        const result = await addMultiChoiceBlockAction({
+          courseId,
+          lessonId,
+          options: CHOICE_BLANK_OPTIONS,
+        });
+        if (!result.ok) throw new Error(result.reason);
+        return { id: result.id, tempId: '' };
+      }
+      const result = await addTextInputBlockAction({
         courseId,
         lessonId,
-        source: KATEX_BLANK_SOURCE,
+        acceptedAnswers: TEXT_INPUT_BLANK_ACCEPTED,
+        caseSensitive: false,
+        trimWhitespace: true,
       });
       if (!result.ok) throw new Error(result.reason);
       return { id: result.id, tempId: '' };
@@ -567,30 +671,13 @@ export function useAddBlockMutation(courseId: string) {
       const ctx = snapshot(qc, courseId);
       const newId = tempId('block');
       setDraft(qc, courseId, (draft) =>
-        mapLesson(draft, lessonId, (l) => {
-          const block: LessonBlock =
-            type === 'html'
-              ? {
-                  type: 'html',
-                  id: newId,
-                  position: l.blocks.length,
-                  html: '<p></p>',
-                }
-              : type === 'code'
-                ? {
-                    type: 'code',
-                    id: newId,
-                    position: l.blocks.length,
-                    tabs: CODE_BLANK_TABS,
-                  }
-                : {
-                    type: 'katex',
-                    id: newId,
-                    position: l.blocks.length,
-                    source: KATEX_BLANK_SOURCE,
-                  };
-          return { ...l, blocks: [...l.blocks, block] };
-        }),
+        mapLesson(draft, lessonId, (l) => ({
+          ...l,
+          blocks: [
+            ...l.blocks,
+            _buildOptimisticBlock(type, newId, l.blocks.length),
+          ],
+        })),
       );
       return { ...ctx, tempId: newId };
     },
@@ -755,6 +842,76 @@ export function useUpdateCodeBlockMutation(courseId: string) {
   });
 }
 
+// The answer-block update mutations skip the on-mutate optimistic
+// dance: the editor already shows the in-progress local state
+// (the editor component owns it via ``useState``). The server call
+// only persists; the WS `block_updated` event keeps the cache in
+// sync via `applyContentEvent`.
+
+export function useUpdateSingleChoiceBlockMutation(courseId: string) {
+  const fail = useFailureToast();
+  return useMutation<
+    void,
+    Error,
+    { blockId: string; options: ChoiceOptionDraftInput[] }
+  >({
+    mutationFn: async ({ blockId, options }) => {
+      const result = await updateSingleChoiceBlockAction({
+        courseId,
+        blockId,
+        options,
+      });
+      if (!result.ok) throw new Error(result.reason);
+    },
+    onError: () => fail('updateBlockFailed'),
+  });
+}
+
+export function useUpdateMultiChoiceBlockMutation(courseId: string) {
+  const fail = useFailureToast();
+  return useMutation<
+    void,
+    Error,
+    { blockId: string; options: ChoiceOptionDraftInput[] }
+  >({
+    mutationFn: async ({ blockId, options }) => {
+      const result = await updateMultiChoiceBlockAction({
+        courseId,
+        blockId,
+        options,
+      });
+      if (!result.ok) throw new Error(result.reason);
+    },
+    onError: () => fail('updateBlockFailed'),
+  });
+}
+
+export function useUpdateTextInputBlockMutation(courseId: string) {
+  const fail = useFailureToast();
+  return useMutation<
+    void,
+    Error,
+    {
+      blockId: string;
+      acceptedAnswers: string[];
+      caseSensitive: boolean;
+      trimWhitespace: boolean;
+    }
+  >({
+    mutationFn: async (args) => {
+      const result = await updateTextInputBlockAction({
+        courseId,
+        blockId: args.blockId,
+        acceptedAnswers: args.acceptedAnswers,
+        caseSensitive: args.caseSensitive,
+        trimWhitespace: args.trimWhitespace,
+      });
+      if (!result.ok) throw new Error(result.reason);
+    },
+    onError: () => fail('updateBlockFailed'),
+  });
+}
+
 export function useDeleteBlockMutation(courseId: string) {
   const qc = useQueryClient();
   const fail = useFailureToast();
@@ -825,6 +982,163 @@ export function useReorderBlocksMutation(courseId: string) {
     onError: (_err, _vars, ctx) => {
       restore(qc, courseId, ctx);
       fail('reorderBlocksFailed');
+    },
+  });
+}
+
+/* ---------- file / video-file / photo-collage (multipart, no optimistic) ---------- */
+
+// File-backed mutations skip the optimistic dance: the block can't
+// exist client-side before the server has minted both a `File` row
+// and a `LessonBlock` row from the multipart body. The mutation
+// returns the discriminated result verbatim so the calling editor
+// can surface quota / wrong-content-type errors with the precise
+// metadata the backend carried back; the draft query is invalidated
+// on success so the new block streams in via the standard refetch.
+
+export type AddFileBlockVars = {
+  lessonId: string;
+  file: File;
+  title?: string | null;
+};
+
+export function useAddFileBlockMutation(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation<CreatedResult, never, AddFileBlockVars>({
+    mutationFn: async ({ lessonId, file, title }) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      if (title) fd.append('title', title);
+      return addFileBlockAction(courseId, lessonId, fd);
+    },
+    onSuccess: (result) => {
+      if (result.ok) {
+        void qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
+      }
+    },
+  });
+}
+
+export type UpdateFileBlockVars = {
+  blockId: string;
+  file?: File | null;
+  title?: string | null;
+};
+
+export function useUpdateFileBlockMutation(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation<MutationResult, never, UpdateFileBlockVars>({
+    mutationFn: async ({ blockId, file, title }) => {
+      const fd = new FormData();
+      if (file) fd.append('file', file);
+      if (title) fd.append('title', title);
+      return updateFileBlockAction(courseId, blockId, fd);
+    },
+    onSuccess: (result) => {
+      if (result.ok) {
+        void qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
+      }
+    },
+  });
+}
+
+export type AddVideoFileBlockVars = AddFileBlockVars;
+
+export function useAddVideoFileBlockMutation(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation<CreatedResult, never, AddVideoFileBlockVars>({
+    mutationFn: async ({ lessonId, file, title }) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      if (title) fd.append('title', title);
+      return addVideoFileBlockAction(courseId, lessonId, fd);
+    },
+    onSuccess: (result) => {
+      if (result.ok) {
+        void qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
+      }
+    },
+  });
+}
+
+export type UpdateVideoFileBlockVars = UpdateFileBlockVars;
+
+export function useUpdateVideoFileBlockMutation(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation<MutationResult, never, UpdateVideoFileBlockVars>({
+    mutationFn: async ({ blockId, file, title }) => {
+      const fd = new FormData();
+      if (file) fd.append('file', file);
+      if (title) fd.append('title', title);
+      return updateVideoFileBlockAction(courseId, blockId, fd);
+    },
+    onSuccess: (result) => {
+      if (result.ok) {
+        void qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
+      }
+    },
+  });
+}
+
+export type CollageItemDraft = {
+  file: File;
+  caption?: string | null;
+};
+
+export type AddPhotoCollageBlockVars = {
+  lessonId: string;
+  items: CollageItemDraft[];
+  title?: string | null;
+};
+
+function _appendCollageItems(fd: FormData, items: CollageItemDraft[]) {
+  for (const item of items) {
+    fd.append('files', item.file);
+  }
+  // Captions go as a parallel list — empty string at a position is
+  // "no caption for this photo" (clients can't omit individual
+  // entries in a multipart list).
+  for (const item of items) {
+    fd.append('captions', item.caption ?? '');
+  }
+}
+
+export function useAddPhotoCollageBlockMutation(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation<CreatedResult, never, AddPhotoCollageBlockVars>({
+    mutationFn: async ({ lessonId, items, title }) => {
+      const fd = new FormData();
+      _appendCollageItems(fd, items);
+      if (title) fd.append('title', title);
+      return addPhotoCollageBlockAction(courseId, lessonId, fd);
+    },
+    onSuccess: (result) => {
+      if (result.ok) {
+        void qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
+      }
+    },
+  });
+}
+
+export type UpdatePhotoCollageBlockVars = {
+  blockId: string;
+  items: CollageItemDraft[];
+  title?: string | null;
+};
+
+export function useUpdatePhotoCollageBlockMutation(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation<MutationResult, never, UpdatePhotoCollageBlockVars>({
+    mutationFn: async ({ blockId, items, title }) => {
+      const fd = new FormData();
+      _appendCollageItems(fd, items);
+      if (title) fd.append('title', title);
+      return updatePhotoCollageBlockAction(courseId, blockId, fd);
+    },
+    onSuccess: (result) => {
+      if (result.ok) {
+        void qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
+      }
     },
   });
 }

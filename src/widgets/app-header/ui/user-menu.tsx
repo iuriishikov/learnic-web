@@ -114,7 +114,7 @@ export function UserMenu({ user }: UserMenuProps) {
   const avatarUser: AvatarUser = {
     id: user.oid,
     fullName: user.fullName,
-    avatarUrl: user.avatarUrl,
+    avatar: user.avatar,
     isVerified: user.isVerified,
   };
   const profileHref = `/users/${user.oid}`;

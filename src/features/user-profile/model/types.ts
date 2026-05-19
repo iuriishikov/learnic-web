@@ -1,6 +1,7 @@
 import type { ProductShowcaseAccent, ProductShowcaseType } from '@/features/products';
 import type { SocialLink } from '@/features/user-contacts';
 import type { UserExperience } from '@/features/user-experiences';
+import type { ApiFile } from '@/shared/types/user';
 
 export type PublicProfileProduct = {
   id: string;
@@ -11,7 +12,7 @@ export type PublicProfileProduct = {
   /** Pre-formatted due-date label, or `null` for evergreen products. */
   dueLabel: string | null;
   accent: ProductShowcaseAccent;
-  coverUrl: string | null;
+  cover: ApiFile | null;
 };
 
 export type PublicUserProfile = {
@@ -19,8 +20,8 @@ export type PublicUserProfile = {
   fullName: string;
   /** Privacy-masked email (`f*****d@domain.com`) returned by the backend. */
   email: string;
-  avatarUrl: string | null;
-  coverUrl: string | null;
+  avatar: ApiFile | null;
+  cover: ApiFile | null;
   isVerified: boolean;
   /** Sanitized HTML bio; render directly via dangerouslySetInnerHTML. */
   descriptionHtml: string | null;

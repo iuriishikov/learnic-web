@@ -9,6 +9,17 @@ const API_URL = process.env.API_URL ?? 'http://127.0.0.1:8000';
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  experimental: {
+    serverActions: {
+      // Lesson-block uploads (video 1 GB, collage up to 12 × 80 MB,
+      // file 50 MB) go through Server Actions as multipart FormData.
+      // The Next.js default cap is 1 MB — without lifting it, every
+      // non-trivial upload fails before the body reaches the backend.
+      // Keep this in lockstep with
+      // `presentation/http/common/upload_limits.py` on the backend.
+      bodySizeLimit: '1100mb',
+    },
+  },
   async rewrites() {
     // Proxy backend WebSockets through Next.js so they're same-origin in the
     // browser. The `accessCookie` is httpOnly and scoped to the frontend host

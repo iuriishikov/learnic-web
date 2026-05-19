@@ -9,7 +9,6 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { useProductTags } from '@/features/product-tags';
 import { useRouter } from '@/shared/config/i18n/navigation';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
@@ -211,8 +210,6 @@ function ProductGridCard({ product }: { product: Product }) {
     now: new Date(),
   });
 
-  const { data: tags } = useProductTags(product.id);
-
   return (
     <ProductShowcaseCard
       type={product.type}
@@ -221,8 +218,8 @@ function ProductGridCard({ product }: { product: Product }) {
       durationLabel={t('stats.hours', { count: product.durationHours })}
       dueLabel={t('updated', { time: updated })}
       accent={accentFromId(product.id)}
-      coverUrl={product.coverUrl}
-      tags={tags}
+      coverUrl={product.cover?.url ?? null}
+      tags={product.tags}
       onClick={() => router.push(`/products/${product.id}/editor`)}
     />
   );

@@ -12,7 +12,13 @@ import { useTransition } from 'react';
 
 import { usePathname, useRouter } from '@/shared/config/i18n/navigation';
 import { cn } from '@/shared/lib/utils';
-import { NativeSelect, NativeSelectOption } from '@/shared/ui/native-select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/select';
 import { SettingsRow, SettingsSection } from '@/widgets/settings';
 
 const THEME_OPTIONS = [
@@ -33,8 +39,8 @@ export function PreferencesView() {
   const pathname = usePathname();
   const [pending, startTransition] = useTransition();
 
-  function handleLocaleChange(next: string) {
-    if (next === locale) return;
+  function handleLocaleChange(next: string | null) {
+    if (!next || next === locale) return;
     startTransition(() => {
       router.replace(pathname, { locale: next as 'ru' | 'en' });
     });
@@ -92,19 +98,25 @@ export function PreferencesView() {
         description={tLanguage('description')}
         labelFor="settings-language"
       >
-        <NativeSelect
-          id="settings-language"
-          className="w-full max-w-xs"
+        <Select
           value={locale}
+          onValueChange={handleLocaleChange}
           disabled={pending}
-          onChange={(event) => handleLocaleChange(event.target.value)}
         >
-          {LOCALE_OPTIONS.map((option) => (
-            <NativeSelectOption key={option.value} value={option.value}>
-              {tLanguage(`options.${option.value}`)}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
+          <SelectTrigger
+            id="settings-language"
+            className="w-full max-w-xs"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {LOCALE_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {tLanguage(`options.${option.value}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </SettingsRow>
     </SettingsSection>
   );
