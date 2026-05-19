@@ -13,10 +13,6 @@ type CreatedProductSchemaResponse = {
   oid: string;
 };
 
-const WEBINAR_DEFAULT_TOTAL_LESSONS = 1;
-const WEBINAR_DEFAULT_DURATION_MINUTES = 60;
-const WEBINAR_DEFAULT_ALLOW_RECORDING = true;
-
 export async function createProductAction(
   values: CreateProductInput & { cover?: File | null },
 ): Promise<CreateProductResult> {
@@ -29,21 +25,7 @@ export async function createProductAction(
     formData.append('cover', values.cover);
   }
 
-  let path: string;
-  if (values.type === 'course') {
-    path = '/products/courses';
-  } else {
-    path = '/products/webinars';
-    formData.append('total_lessons', String(WEBINAR_DEFAULT_TOTAL_LESSONS));
-    formData.append(
-      'default_duration_minutes',
-      String(WEBINAR_DEFAULT_DURATION_MINUTES),
-    );
-    formData.append(
-      'allow_recording',
-      String(WEBINAR_DEFAULT_ALLOW_RECORDING),
-    );
-  }
+  const path = '/products/courses';
 
   let res: Response;
   try {

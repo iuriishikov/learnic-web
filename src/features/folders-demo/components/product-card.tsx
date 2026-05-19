@@ -9,7 +9,6 @@ import {
   GraduationCapIcon,
   LayersIcon,
   PencilIcon,
-  RadioIcon,
   Trash2Icon,
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
@@ -65,7 +64,6 @@ export function ProductCard({
       disabled: !draggable,
     });
 
-  const isCourse = product.type === 'course';
   const isArchived = product.status === 'archived';
   const updated = format.relativeTime(new Date(product.updatedAt), {
     now: new Date('2026-05-10T10:00:00Z'),
@@ -171,12 +169,8 @@ export function ProductCard({
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
 
             <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-medium tracking-wide text-white ring-1 ring-white/20 backdrop-blur-md">
-              {isCourse ? (
-                <GraduationCapIcon className="size-2.5" />
-              ) : (
-                <RadioIcon className="size-2.5" />
-              )}
-              {isCourse ? t('type.course') : t('type.webinar')}
+              <GraduationCapIcon className="size-2.5" />
+              {t('type.course')}
             </span>
 
             <StatusGlassChip

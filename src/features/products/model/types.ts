@@ -1,4 +1,4 @@
-export type ProductType = 'course' | 'webinar';
+export type ProductType = 'course';
 
 export type ProductStatus = 'draft' | 'published' | 'archived' | 'banned';
 
@@ -20,15 +20,6 @@ export type ProductAuthor = {
   email: string;
 };
 
-export type WebinarDetails = {
-  totalLessons: number;
-  defaultDurationMinutes: number;
-  allowRecording: boolean;
-  defaultMaxParticipants: number | null;
-  defaultStreamUrl: string | null;
-  accessWindowMinutes: number | null;
-};
-
 export type Product = {
   id: string;
   type: ProductType;
@@ -44,7 +35,6 @@ export type Product = {
    */
   priceAmount: number | null;
   author: ProductAuthor;
-  webinarDetails: WebinarDetails | null;
   /**
    * Short-lived presigned URL for the cover image. `null` means no
    * cover is attached; the SPA should fall back to a generated

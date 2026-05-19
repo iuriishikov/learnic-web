@@ -15,13 +15,10 @@ import { motion, useReducedMotion } from 'motion/react';
 import { useFormatter, useTranslations } from 'next-intl';
 import {
   type ChangeEvent as ReactChangeEvent,
-  type FocusEvent as ReactFocusEvent,
   type FormEvent as ReactFormEvent,
-  type KeyboardEvent as ReactKeyboardEvent,
   useState,
 } from 'react';
 
-import { useAuth } from '@/shared/auth';
 import { useRouter } from '@/shared/config/i18n/navigation';
 import { cn } from '@/shared/lib/utils';
 import {
@@ -43,7 +40,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
-import { MoneyInput } from '@/shared/ui/input-extended';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { DescriptionTextarea } from '@/shared/ui/textarea-extended';
 
@@ -60,7 +56,6 @@ import {
 } from '../api/use-course-releases';
 import {
   useArchiveProductMutation,
-  useChangeProductPriceMutation,
   useDeleteProductMutation,
   usePublishProductMutation,
   useUnarchiveProductMutation,
@@ -70,23 +65,6 @@ import type { Product, ProductStatus } from '../model/types';
 import { EditorRow, EditorSection } from './editor-row';
 
 const NOTES_MAX = 5000;
-
-// Mirrors the backend's per-product price cap in
-// `entities/product/constants.py`: PRICE_AMOUNT_MIN/MAX are stored
-// in minor units (kopecks for RUB); the UI works in whole rubles.
-const PRICE_MIN_KOPECKS = 0;
-const PRICE_MAX_KOPECKS = 50_000 * 100;
-const PRICE_MIN_RUB = PRICE_MIN_KOPECKS / 100;
-const PRICE_MAX_RUB = PRICE_MAX_KOPECKS / 100;
-
-function kopecksToText(amount: number | null): string {
-  if (amount === null) return '';
-  // Strip trailing ``.00`` for whole-ruble prices — feels less noisy
-  // in the input while the user is not editing fractional kopecks.
-  return amount % 100 === 0
-    ? String(amount / 100)
-    : (amount / 100).toFixed(2);
-}
 
 type ProductSettingsSectionProps = {
   product: Product;
@@ -108,106 +86,11 @@ export function ProductSettingsSection({
       transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
     >
       <EditorSection title={t('title')} description={t('description')}>
-        <PriceRow product={product} />
         <StatusRow product={product} />
         {isCourse ? <ReleasesRow product={product} /> : null}
         <DangerRow product={product} />
       </EditorSection>
     </motion.div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Price row                                                                  */
-/* -------------------------------------------------------------------------- */
-
-function PriceRow({ product }: { product: Product }) {
-  const t = useTranslations('teach-products.editor.settings.price');
-  const auth = useAuth();
-  // Owner-only — non-author collaborators see the field as disabled
-  // regardless of any roles they hold on the product. The backend
-  // enforces the same rule (NotResourceOwnerError → 403).
-  const isOwner = auth.user?.oid === product.author.id;
-  const update = useChangeProductPriceMutation(product.id);
-
-  const serverAmount = product.priceAmount;
-  const serverText = kopecksToText(serverAmount);
-
-  // Keep error as the only local state; the input itself is
-  // uncontrolled and re-seeded via `key={serverText}` whenever the
-  // server value changes (initial load, WS `price_changed`,
-  // optimistic rollback). Avoids the React anti-pattern of
-  // mirroring an external value into local state via useEffect.
-  const [error, setError] = useState<string | null>(null);
-
-  const commit = (raw: string) => {
-    const normalised = raw.replace(',', '.').trim();
-    if (normalised === '') {
-      // Empty input is a no-op — clearing a price is not part of this
-      // surface (free products are amount=0, not amount=null).
-      setError(null);
-      return;
-    }
-    const parsed = Number(normalised);
-    if (!Number.isFinite(parsed) || parsed < 0) {
-      setError(t('invalid', { min: PRICE_MIN_RUB, max: PRICE_MAX_RUB }));
-      return;
-    }
-    const kopecks = Math.round(parsed * 100);
-    if (kopecks < PRICE_MIN_KOPECKS || kopecks > PRICE_MAX_KOPECKS) {
-      setError(t('outOfRange', { min: PRICE_MIN_RUB, max: PRICE_MAX_RUB }));
-      return;
-    }
-    setError(null);
-    if (kopecks === serverAmount) return;
-    update.mutate({ amount: kopecks });
-  };
-
-  const handleBlur = (event: ReactFocusEvent<HTMLInputElement>) => {
-    commit(event.currentTarget.value);
-  };
-
-  const handleChange = (event: ReactChangeEvent<HTMLInputElement>) => {
-    // Clear the error while typing so the field doesn't keep
-    // shouting after the user has started correcting their input.
-    if (error !== null) setError(null);
-    void event;
-  };
-
-  const handleKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      event.currentTarget.blur();
-    }
-  };
-
-  return (
-    <EditorRow
-      label={t('label')}
-      description={t('hint', { min: PRICE_MIN_RUB, max: PRICE_MAX_RUB })}
-    >
-      <div className="flex w-full max-w-[320px] flex-col gap-2">
-        <MoneyInput
-          key={serverText}
-          currencies={[{ value: 'RUB', label: t('currencyLabel') }]}
-          defaultCurrency="RUB"
-          prefix="₽"
-          placeholder={t('placeholder')}
-          disabled={!isOwner}
-          invalid={error !== null}
-          defaultValue={serverText}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          onKeyDown={handleKeyDown}
-          aria-label={t('label')}
-        />
-        {error ? (
-          <p className="text-sm text-destructive">{error}</p>
-        ) : !isOwner ? (
-          <p className="text-xs text-muted-foreground">{t('ownerOnly')}</p>
-        ) : null}
-      </div>
-    </EditorRow>
   );
 }
 

@@ -1,4 +1,4 @@
-export type DemoProductType = 'course' | 'webinar';
+export type DemoProductType = 'course';
 
 export type DemoProductStatus = 'draft' | 'published' | 'archived';
 

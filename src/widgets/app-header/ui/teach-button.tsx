@@ -17,7 +17,7 @@ type TeachButtonProps = {
  * from the right rail and the button gains a touch of right padding to host it.
  * No glow, no shine, no sparkles — the rail is the entire effect.
  */
-export function TeachButton({ href = '/dashboard', className }: TeachButtonProps) {
+export function TeachButton({ href = '/products', className }: TeachButtonProps) {
   const t = useTranslations('learn-shell.teachButton');
 
   return (

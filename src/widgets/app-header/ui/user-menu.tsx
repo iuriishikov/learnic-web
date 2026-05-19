@@ -55,7 +55,7 @@ type UserMenuProps = {
   user: User;
 };
 
-const TEACH_PATH_PREFIXES = ['/dashboard', '/products'] as const;
+const TEACH_PATH_PREFIXES = ['/products'] as const;
 const LEARN_PATH_PREFIXES = [
   '/marketplace',
   '/my-courses',
@@ -106,7 +106,7 @@ export function UserMenu({ user }: UserMenuProps) {
     : isInLearnPath
       ? false
       : (resolvedCookieMode ?? DEFAULT_APP_MODE) === 'teach';
-  const modeTarget = isInTeach ? '/marketplace' : '/dashboard';
+  const modeTarget = isInTeach ? '/marketplace' : '/products';
   const modeLabel = isInTeach ? tMenu('openLearn') : tMenu('openStudio');
   const ModeIcon = isInTeach ? BookOpenIcon : GraduationCapIcon;
 

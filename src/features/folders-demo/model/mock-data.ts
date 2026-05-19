@@ -116,7 +116,7 @@ const products: DemoProduct[] = [
   },
   {
     id: 'p-vectors',
-    type: 'webinar',
+    type: 'course',
     status: 'published',
     title: 'Векторные пространства',
     description:
@@ -181,7 +181,7 @@ const products: DemoProduct[] = [
   },
   {
     id: 'p-optics',
-    type: 'webinar',
+    type: 'course',
     status: 'published',
     title: 'Геометрическая оптика',
     description:
@@ -220,7 +220,7 @@ const products: DemoProduct[] = [
   },
   {
     id: 'p-reactions',
-    type: 'webinar',
+    type: 'course',
     status: 'draft',
     title: 'Скорость реакций',
     description:
@@ -246,7 +246,7 @@ const products: DemoProduct[] = [
   },
   {
     id: 'p-essay',
-    type: 'webinar',
+    type: 'course',
     status: 'published',
     title: 'Как читать научные тексты',
     description:

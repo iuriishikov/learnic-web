@@ -3,22 +3,12 @@ import type {
   ProductAuthor,
   ProductStatus,
   ProductType,
-  WebinarDetails,
 } from '../model/types';
 
 type AuthorSchemaResponse = {
   oid: string;
   full_name: string;
   email: string;
-};
-
-type WebinarDetailsSchemaResponse = {
-  total_lessons: number;
-  default_duration_minutes: number;
-  allow_recording: boolean;
-  default_max_participants: number | null;
-  default_stream_url: string | null;
-  access_window_minutes: number | null;
 };
 
 export type ProductSchemaResponse = {
@@ -30,7 +20,6 @@ export type ProductSchemaResponse = {
   total_duration_in_hours: number | null;
   price_amount: number | null;
   author: AuthorSchemaResponse;
-  webinar_details: WebinarDetailsSchemaResponse | null;
   cover_url: string | null;
   published_at: string | null;
   created_at: string;
@@ -47,9 +36,6 @@ export function fromProductSchema(raw: ProductSchemaResponse): Product {
     durationHours: raw.total_duration_in_hours ?? 0,
     priceAmount: raw.price_amount,
     author: fromAuthorSchema(raw.author),
-    webinarDetails: raw.webinar_details
-      ? fromWebinarDetails(raw.webinar_details)
-      : null,
     coverUrl: raw.cover_url ?? null,
     publishedAt: raw.published_at,
     createdAt: raw.created_at,
@@ -62,17 +48,6 @@ function fromAuthorSchema(raw: AuthorSchemaResponse): ProductAuthor {
     id: raw.oid,
     fullName: raw.full_name,
     email: raw.email,
-  };
-}
-
-function fromWebinarDetails(raw: WebinarDetailsSchemaResponse): WebinarDetails {
-  return {
-    totalLessons: raw.total_lessons,
-    defaultDurationMinutes: raw.default_duration_minutes,
-    allowRecording: raw.allow_recording,
-    defaultMaxParticipants: raw.default_max_participants,
-    defaultStreamUrl: raw.default_stream_url,
-    accessWindowMinutes: raw.access_window_minutes,
   };
 }
 

@@ -9,16 +9,6 @@
     "description": "Все продукты, доступные ученикам.",
     "body": "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
   },
-  "dashboard": {
-    "title": "Дашборд",
-    "description": "Сводка по студии — продажи, ученики, активность.",
-    "body": "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur."
-  },
-  "overview": {
-    "title": "Обзор",
-    "description": "Ключевые метрики студии за выбранный период.",
-    "body": "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-  },
   "settings": {
     "title": "Настройки",
     "description": "Параметры студии, оплаты и доступов.",

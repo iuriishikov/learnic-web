@@ -3,21 +3,13 @@
     "root": "Студия"
   },
   "nav": {
-    "products": "Продукты",
-    "dashboard": "Дашборд"
+    "products": "Продукты"
   },
   "products": {
     "ariaLabel": "Разделы продуктов",
     "tabs": {
       "general": "Общие",
       "catalog": "Каталог"
-    }
-  },
-  "dashboard": {
-    "ariaLabel": "Разделы дашборда",
-    "tabs": {
-      "overview": "Баланс",
-      "sales": "Преподавание"
     }
   },
   "settings": {

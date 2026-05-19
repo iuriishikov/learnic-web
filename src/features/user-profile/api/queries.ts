@@ -40,7 +40,6 @@ type ProductSchemaResponse = {
   description: string | null;
   total_duration_in_hours: number | null;
   author: { oid: string; full_name: string; email: string };
-  webinar_details: { starts_at: string | null } | null;
   cover_file_id: string | null;
   published_at: string | null;
   created_at: string;
@@ -54,18 +53,12 @@ function durationLabel(hours: number | null): string {
 }
 
 function toProduct(raw: ProductSchemaResponse): PublicProfileProduct {
-  const dueLabel = raw.webinar_details?.starts_at
-    ? new Date(raw.webinar_details.starts_at).toLocaleDateString('ru-RU', {
-        day: 'numeric',
-        month: 'short',
-      })
-    : null;
   return {
     id: raw.oid,
     type: raw.type,
     title: raw.name,
     durationLabel: durationLabel(raw.total_duration_in_hours),
-    dueLabel,
+    dueLabel: null,
     accent: softAccentFromSeed(raw.oid) as ProductShowcaseAccent,
     coverUrl: null,
   };

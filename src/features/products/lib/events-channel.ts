@@ -7,7 +7,7 @@
  *
  *   - `4401` — missing or denied access cookie. Terminal.
  *   - `4403` — authenticated but not authorised. Terminal.
- *   - `4404` — wrong resource (e.g. opening course channel on a webinar). Terminal.
+ *   - `4404` — wrong resource. Terminal.
  *
  * The server does not buffer events. When the socket reopens after an
  * unexpected drop, the client must refetch initial state via REST — events

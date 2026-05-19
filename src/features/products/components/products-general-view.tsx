@@ -3,7 +3,6 @@
 import {
   GraduationCapIcon,
   PlusIcon,
-  RadioIcon,
   SearchIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
@@ -76,7 +75,7 @@ export function ProductsGeneralView({
         acc[p.type] += 1;
         return acc;
       },
-      { all: 0, course: 0, webinar: 0 } as Record<Filter, number>,
+      { all: 0, course: 0 } as Record<Filter, number>,
     );
   }, [products]);
 
@@ -117,11 +116,6 @@ export function ProductsGeneralView({
               value="course"
               label={tFilter('courses')}
               count={counts.course}
-            />
-            <FilterTab
-              value="webinar"
-              label={tFilter('webinars')}
-              count={counts.webinar}
             />
           </TabsList>
         </Tabs>
@@ -271,11 +265,6 @@ function EmptyState({ filtered }: { filtered: boolean }) {
             <GraduationCapIcon className="size-7" />
           )}
         </div>
-        {!filtered ? (
-          <div className="absolute -right-3 -bottom-3 flex size-9 items-center justify-center rounded-xl bg-card ring-1 ring-foreground/10 text-brand">
-            <RadioIcon className="size-4" />
-          </div>
-        ) : null}
       </div>
 
       <div className="space-y-1.5 max-w-md">

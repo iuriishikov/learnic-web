@@ -29,8 +29,8 @@ export function DefaultHeaderConfig() {
       label: t('nav.myLearning'),
     },
     {
-      key: 'dashboard',
-      href: '/dashboard',
+      key: 'products',
+      href: '/products',
       label: t('nav.teach'),
     },
   ];

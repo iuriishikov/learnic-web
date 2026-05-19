@@ -470,10 +470,8 @@ function MarketplaceCardWrapper({
         intentionally non-interactive.
       */}
       <ProductShowcaseCard
-        type={product.type === 'webinar' ? 'webinar' : 'course'}
-        typeLabel={tCard(
-          product.type === 'webinar' ? 'typeWebinar' : 'typeCourse',
-        )}
+        type="course"
+        typeLabel={tCard('typeCourse')}
         title={product.title}
         durationLabel={
           product.durationHours > 0

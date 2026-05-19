@@ -10,7 +10,7 @@ import {
 } from '@/shared/lib/placeholder-accent';
 import { Placeholder } from '@/shared/ui/placeholder';
 
-export type ProductShowcaseType = 'course' | 'webinar' | 'podcast';
+export type ProductShowcaseType = 'course' | 'podcast';
 
 /** Re-export of the shared soft accent palette for ergonomic consumption from products. */
 export type ProductShowcaseAccent = SoftAccent;
@@ -39,7 +39,6 @@ type ProductShowcaseCardProps = {
 
 const TYPE_PILL: Record<ProductShowcaseType, string> = {
   course: 'bg-violet-200 text-violet-950',
-  webinar: 'bg-rose-200 text-rose-950',
   podcast: 'bg-emerald-200 text-emerald-950',
 };
 

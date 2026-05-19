@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   CloudUploadIcon,
   GraduationCapIcon,
-  RadioIcon,
   Trash2Icon,
   XIcon,
 } from 'lucide-react';
@@ -18,7 +17,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 
 import {
   PRODUCT_TAGS_MAX,
@@ -54,7 +53,6 @@ import {
   createProductSchema,
   type CreateProductInput,
 } from '../model/create-product';
-import type { ProductType } from '../model/types';
 
 type CreateProductDialogProps = {
   trigger: ReactElement;
@@ -86,7 +84,6 @@ export function CreateProductDialog({ trigger }: CreateProductDialogProps) {
     mode: 'onTouched',
   });
 
-  const productType: ProductType = form.watch('type') ?? 'course';
   const titleError = form.formState.errors.title?.message;
   const descriptionError = form.formState.errors.description?.message;
   const submitting = form.formState.isSubmitting;
@@ -167,15 +164,11 @@ export function CreateProductDialog({ trigger }: CreateProductDialogProps) {
           <ResponsiveSheetHeader>
             <div className="flex items-start gap-3">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand [&>svg]:size-5">
-                {productType === 'course' ? (
-                  <GraduationCapIcon />
-                ) : (
-                  <RadioIcon />
-                )}
+                <GraduationCapIcon />
               </span>
               <div className="flex flex-col gap-1">
                 <ResponsiveSheetTitle>
-                  {t(`details.title.${productType}`)}
+                  {t('details.title.course')}
                 </ResponsiveSheetTitle>
                 <ResponsiveSheetDescription>
                   {t('details.description')}
@@ -194,29 +187,6 @@ export function CreateProductDialog({ trigger }: CreateProductDialogProps) {
           </ResponsiveSheetHeader>
 
           <ResponsiveSheetBody>
-            <FormSection label={t('fields.typeLabel')} required>
-              <Controller
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <div className="grid grid-cols-2 gap-2">
-                    <TypeOption
-                      label={t('options.course.label')}
-                      icon={<GraduationCapIcon />}
-                      selected={field.value === 'course'}
-                      onSelect={() => field.onChange('course')}
-                    />
-                    <TypeOption
-                      label={t('options.webinar.label')}
-                      icon={<RadioIcon />}
-                      selected={field.value === 'webinar'}
-                      onSelect={() => field.onChange('webinar')}
-                    />
-                  </div>
-                )}
-              />
-            </FormSection>
-
             <FormSection
               label={t('fields.cover.label')}
               hint={t('fields.optional')}
@@ -265,7 +235,7 @@ export function CreateProductDialog({ trigger }: CreateProductDialogProps) {
             >
               <DescriptionTextarea
                 id="cp-description"
-                placeholder={t(`fields.description.placeholder.${productType}`)}
+                placeholder={t('fields.description.placeholder.course')}
                 aria-invalid={Boolean(descriptionError)}
                 className="min-h-24 max-h-64 text-[15px]"
                 {...form.register('description')}
@@ -310,43 +280,6 @@ export function CreateProductDialog({ trigger }: CreateProductDialogProps) {
         </form>
       </ResponsiveSheetContent>
     </ResponsiveSheet>
-  );
-}
-
-type TypeOptionProps = {
-  label: string;
-  icon: ReactNode;
-  selected: boolean;
-  onSelect: () => void;
-};
-
-function TypeOption({ label, icon, selected, onSelect }: TypeOptionProps) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-pressed={selected}
-      data-state={selected ? 'on' : 'off'}
-      className={cn(
-        'group relative flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2.5 text-left transition-colors',
-        'hover:border-brand/40 hover:bg-brand/[0.04]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30',
-        selected &&
-          'border-brand bg-brand/[0.06] ring-2 ring-brand/15 hover:border-brand hover:bg-brand/[0.08]',
-      )}
-    >
-      <span
-        className={cn(
-          'flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors [&>svg]:size-4',
-          selected && 'bg-brand/12 text-brand',
-        )}
-      >
-        {icon}
-      </span>
-      <span className="font-heading text-sm font-medium text-foreground">
-        {label}
-      </span>
-    </button>
   );
 }
 

@@ -35,8 +35,7 @@ export function SettingsHeaderConfig({ mode }: { mode: AppMode }) {
 
   const navItems: AppHeaderNavItem[] = [
     { key: 'products', href: '/products', label: tTeach('nav.products') },
-    { key: 'dashboard', href: '/dashboard', label: tTeach('nav.dashboard') },
   ];
 
-  return <HeaderConfig navItems={navItems} brandHref="/dashboard" />;
+  return <HeaderConfig navItems={navItems} brandHref="/products" />;
 }

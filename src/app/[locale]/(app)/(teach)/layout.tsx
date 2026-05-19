@@ -22,17 +22,16 @@ export default async function TeachLayout({
 
   const navItems: AppHeaderNavItem[] = [
     { key: 'products', href: '/products', label: t('nav.products') },
-    { key: 'dashboard', href: '/dashboard', label: t('nav.dashboard') },
   ];
 
   return (
     <>
       <ModeTracker mode="teach" />
-      <HeaderConfig navItems={navItems} brandHref="/dashboard" />
+      <HeaderConfig navItems={navItems} brandHref="/products" />
       <BreadcrumbConfig
         slot="teach-root"
         order={1}
-        segments={[{ label: t('breadcrumbs.root'), href: '/dashboard' }]}
+        segments={[{ label: t('breadcrumbs.root'), href: '/products' }]}
       />
       {children}
     </>

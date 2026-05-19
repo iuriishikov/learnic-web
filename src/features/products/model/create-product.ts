@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { ProductType } from './types';
 
 export const createProductSchema = z.object({
-  type: z.enum(['course', 'webinar']),
+  type: z.enum(['course']),
   title: z.string().trim().min(2, 'titleMin').max(120, 'titleMax'),
   description: z
     .string()
@@ -15,4 +15,4 @@ export const createProductSchema = z.object({
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 
-export const PRODUCT_TYPES: ProductType[] = ['course', 'webinar'];
+export const PRODUCT_TYPES: ProductType[] = ['course'];

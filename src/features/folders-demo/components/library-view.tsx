@@ -21,7 +21,6 @@ import {
   GraduationCapIcon,
   HomeIcon,
   PlusIcon,
-  RadioIcon,
   RotateCcwIcon,
   SearchIcon,
 } from 'lucide-react';
@@ -147,7 +146,7 @@ export function LibraryView() {
         acc[p.type] += 1;
         return acc;
       },
-      { all: 0, course: 0, webinar: 0 } as Record<Filter, number>,
+      { all: 0, course: 0 } as Record<Filter, number>,
     );
   }, [state, folderId]);
 
@@ -305,12 +304,6 @@ export function LibraryView() {
                   label={tFilter('courses')}
                   count={counts.course}
                   icon={<GraduationCapIcon className="size-3.5" />}
-                />
-                <FilterTab
-                  value="webinar"
-                  label={tFilter('webinars')}
-                  count={counts.webinar}
-                  icon={<RadioIcon className="size-3.5" />}
                 />
               </TabsList>
             </Tabs>

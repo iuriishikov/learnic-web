@@ -50,7 +50,6 @@ export type {
   ProductAuthor,
   ProductStatus,
   ProductType,
-  WebinarDetails,
 } from './model/types';
 export type {
   CodeBlock,

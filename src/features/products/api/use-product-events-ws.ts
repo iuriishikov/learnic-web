@@ -38,9 +38,7 @@ import {
  * - **Product** events (`ProductEventKind` in `lib/apply-product-event`) —
  *   metadata, cover, status, Q&A, collaboration lifecycle, role catalogue.
  * - **Content** events (`ContentEventKind` in `lib/apply-content-event`) —
- *   modules, lessons, blocks, releases, draft reset. Emitted by the
- *   backend only for products that carry the `has_course_content`
- *   capability; webinar products never see content kinds.
+ *   modules, lessons, blocks, releases, draft reset.
  *
  * This hook owns the WS lifecycle (open / reconnect / terminal close)
  * and routes each envelope to the right pure reducer. The reducers
@@ -82,10 +80,7 @@ export function useProductEventsWs(productId: string, enabled: boolean) {
       },
       onReconnected: () => {
         // No replay — refetch every cache the channel might have
-        // mutated while disconnected. Course-specific keys
-        // (`courseDraftKey`, `courseReleasesKey`) are invalidated
-        // unconditionally; for webinars the cache entry doesn't
-        // exist and `invalidateQueries` is a no-op.
+        // mutated while disconnected.
         qc.invalidateQueries({ queryKey: productKey(productId) });
         qc.invalidateQueries({ queryKey: productQAKey(productId) });
         qc.invalidateQueries({
