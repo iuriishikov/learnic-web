@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ChevronDownIcon, PlusIcon, RotateCwIcon, Trash2Icon } from 'lucide-react';
+import { ArrowLeftRightIcon, ChevronDownIcon, MinusIcon, PlusIcon } from 'lucide-react';
 
 import { cn } from '@/shared/lib/utils';
 import {
@@ -78,6 +78,13 @@ export function GradientPicker({
     if (id === activeStopId) setActiveStopId(next[0]?.id ?? '');
   };
 
+  const reverseStops = () => {
+    onChange({
+      ...value,
+      stops: value.stops.map((s) => ({ ...s, position: 100 - s.position })),
+    });
+  };
+
   return (
     <div className="flex flex-col gap-3">
       {/* Large gradient preview */}
@@ -89,6 +96,22 @@ export function GradientPicker({
           className="absolute inset-0 rounded-lg"
           style={{ background: gradientToCss(value) }}
         />
+      </div>
+
+      {/* Type + reverse row */}
+      <div className="flex items-center justify-between gap-2">
+        <TypeMenu
+          value={value.type}
+          onChange={(type) => onChange({ ...value, type })}
+        />
+        <button
+          type="button"
+          onClick={reverseStops}
+          className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground focus-visible:outline-none"
+          aria-label="Развернуть градиент"
+        >
+          <ArrowLeftRightIcon className="size-3.5" />
+        </button>
       </div>
 
       {/* Stops bar (visual scrubber) — outer wrapper has no `overflow-hidden`
@@ -119,20 +142,6 @@ export function GradientPicker({
             aria-label={`Стоп на ${Math.round(stop.position)}%`}
           />
         ))}
-      </div>
-
-      {/* Type + angle row */}
-      <div className="flex items-stretch gap-2">
-        <TypeMenu
-          value={value.type}
-          onChange={(type) => onChange({ ...value, type })}
-        />
-        {value.type === 'linear' && (
-          <AngleControl
-            angle={value.angle}
-            onChange={(angle) => onChange({ ...value, angle })}
-          />
-        )}
       </div>
 
       {/* Stops list */}
@@ -216,61 +225,6 @@ function TypeMenu({
         </MenuGroup>
       </MenuContent>
     </Menu>
-  );
-}
-
-// ──────────────────────────────────────────────────────────────────────────
-// Angle control
-
-function AngleControl({
-  angle,
-  onChange,
-}: {
-  angle: number;
-  onChange: (next: number) => void;
-}) {
-  const rounded = Math.round(angle);
-  const [draft, setDraft] = React.useState(`${rounded}`);
-  const [prevAngle, setPrevAngle] = React.useState(rounded);
-  if (prevAngle !== rounded) {
-    setPrevAngle(rounded);
-    setDraft(`${rounded}`);
-  }
-
-  return (
-    <CompactInput
-      value={draft}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={() => {
-        const n = parseFloat(draft);
-        if (!Number.isNaN(n)) onChange(clamp(n, 0, 360));
-        else setDraft(`${rounded}`);
-      }}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          (e.currentTarget as HTMLInputElement).blur();
-        }
-      }}
-      inputMode="numeric"
-      spellCheck={false}
-      shellClassName="flex-1 min-w-0"
-      className="text-right font-mono tabular-nums"
-      trailing={
-        <>
-          <CompactInputAddon className="pl-0 pr-1 text-muted-foreground">
-            °
-          </CompactInputAddon>
-          <button
-            type="button"
-            onClick={() => onChange((angle + 45) % 360)}
-            className="mr-1 inline-flex size-6 cursor-pointer items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground focus-visible:outline-none"
-            aria-label="Повернуть градиент на 45°"
-          >
-            <RotateCwIcon className="size-3" />
-          </button>
-        </>
-      }
-    />
   );
 }
 
@@ -401,9 +355,9 @@ function StopRow({
             onRemove();
           }}
           aria-label="Удалить стоп"
-          className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:bg-destructive/10 focus-visible:text-destructive focus-visible:outline-none"
+          className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground focus-visible:outline-none"
         >
-          <Trash2Icon className="size-3.5" />
+          <MinusIcon className="size-3.5" />
         </button>
       )}
     </div>

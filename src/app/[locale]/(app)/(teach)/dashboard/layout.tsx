@@ -20,6 +20,7 @@ export default async function TeachDashboardLayout({
 
   const tabs: AppSubHeaderTab[] = [
     { key: 'overview', href: '/dashboard', label: t('tabs.overview') },
+    { key: 'sales', href: '/dashboard/sales', label: t('tabs.sales') },
   ];
 
   return (

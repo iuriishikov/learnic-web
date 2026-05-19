@@ -10,6 +10,11 @@ import { routing } from '@/shared/config/i18n/routing';
 import { SITE_NAME, SITE_URL, TITLE_TEMPLATE } from '@/shared/config/site';
 import { BannerProvider } from '@/shared/ui/banner';
 import { Toaster } from '@/shared/ui/sonner';
+import {
+  BreadcrumbConfigProvider,
+  HeaderConfigProvider,
+  SubHeaderConfigProvider,
+} from '@/widgets/app-header';
 
 const OG_LOCALES: Record<string, string> = {
   ru: 'ru_RU',
@@ -76,7 +81,24 @@ export default async function LocaleLayout({
       <AuthProvider initialUser={initialUser}>
         <QueryProvider>
           <PresenceProvider>
-            <BannerProvider>{children}</BannerProvider>
+            <BannerProvider>
+              {/*
+                Header / sub-header / breadcrumb config providers
+                live at the root locale layout so public-shell
+                routes (landing, marketplace, etc.) can contribute
+                ``HeaderConfig`` the same way ``(app)`` does. The
+                (learn) and (teach) layouts still mount their own
+                ``HeaderConfig`` children — the last mount wins,
+                matching the pre-lift behaviour.
+              */}
+              <HeaderConfigProvider>
+                <SubHeaderConfigProvider>
+                  <BreadcrumbConfigProvider>
+                    {children}
+                  </BreadcrumbConfigProvider>
+                </SubHeaderConfigProvider>
+              </HeaderConfigProvider>
+            </BannerProvider>
           </PresenceProvider>
         </QueryProvider>
       </AuthProvider>

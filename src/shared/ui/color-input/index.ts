@@ -11,6 +11,32 @@ export {
 } from './triggers';
 export { SavedColors, type SavedColor } from './saved-colors';
 export {
+  Palette,
+  PaletteSwatches,
+  type PaletteAction,
+  type PaletteOption,
+  type PaletteProps,
+} from './palette';
+export { ColorCard } from './color-card';
+export {
+  ColorValueInput,
+  EyedropperButton,
+  FormatMenu,
+  HexInput,
+  OpacityInput,
+  useEyeDropperAvailable,
+  type ColorFormat,
+} from './inputs';
+export {
+  AlphaSlider,
+  CHECKER_BG,
+  HueSlider,
+  SaturationValuePicker,
+} from './pickers';
+export { SolidPicker } from './solid-picker';
+export { GradientPicker } from './gradient-picker';
+export { ImagePicker } from './image-picker';
+export {
   colorToCss,
   emptyImage,
   gradientToCss,

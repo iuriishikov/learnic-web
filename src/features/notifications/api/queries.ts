@@ -74,13 +74,36 @@ export function useNotificationCountersQuery(enabled: boolean) {
 
 export function useMarkNotificationReadMutation() {
   const qc = useQueryClient();
-  return useMutation<void, NotificationsError, string>({
+  return useMutation<
+    void,
+    NotificationsError,
+    string,
+    { previousLists: Array<[readonly unknown[], ListData | undefined]> }
+  >({
     mutationFn: async (id) => {
       const result = await markNotificationReadAction(id);
       if (!result.ok) throw result.error;
     },
-    onSuccess: (_data, notificationId) => {
-      patchListsForRead(qc, notificationId);
+    // Optimistic update — flip ``readAt`` in the list cache the moment
+    // the mutation fires. The visibility-observer in ``NotificationItem``
+    // relies on ``isUnread`` (``readAt === null``) to disconnect after
+    // the first mark — without this, fast scrolls would re-fire the
+    // mutation for the same item until the server responded.
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ['notifications', 'list'] });
+      const previousLists = qc.getQueriesData<ListData>({
+        queryKey: ['notifications', 'list'],
+      });
+      patchListsForRead(qc, id);
+      return { previousLists };
+    },
+    onError: (_err, _id, ctx) => {
+      if (!ctx) return;
+      for (const [key, value] of ctx.previousLists) {
+        qc.setQueryData(key, value);
+      }
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: notificationsCountersKey() });
     },
   });

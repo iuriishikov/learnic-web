@@ -1,4 +1,22 @@
 export { hasDescriptionContent, looksLikeHtml } from './lib/description-html';
+export { MarketplaceView } from './components/marketplace-view';
+export { MarketplaceSkeleton } from './components/marketplace-skeleton';
+export { getPublishedProductsAction } from './api/get-published-action';
+export type { GetPublishedProductsResult } from './api/get-published';
+export { getPopularTagsAction } from './api/get-popular-tags-action';
+export type { GetPopularTagsResult } from './api/get-popular-tags';
+export {
+  usePublishedProducts,
+  publishedProductsKey,
+  type PublishedProductsPage,
+} from './api/use-published-products';
+// Pagination constants live in a non-``'use client'`` model module
+// so Server Components (page.tsx, etc.) can import the raw numeric
+// values — see ``model/pagination.ts``.
+export {
+  PUBLISHED_PRODUCTS_PAGE_SIZE,
+  PUBLISHED_PRODUCTS_PER_PAGE_OPTIONS,
+} from './model/pagination';
 export { ProductsGeneralView } from './components/products-general-view';
 export { ProductsGeneralViewSkeleton } from './components/products-general-view-skeleton';
 export { ProductCardSkeleton } from './components/product-card-skeleton';

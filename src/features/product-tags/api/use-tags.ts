@@ -23,7 +23,10 @@ export const productTagsKey = (productId: string) =>
 export const tagSearchKey = (query: string) =>
   ['tag-search', query] as const;
 
-export function useProductTags(productId: string) {
+export function useProductTags(
+  productId: string,
+  options: { enabled?: boolean } = {},
+) {
   return useQuery<Tag[], Error>({
     queryKey: productTagsKey(productId),
     queryFn: async () => {
@@ -32,6 +35,7 @@ export function useProductTags(productId: string) {
       return result.items;
     },
     staleTime: 30_000,
+    enabled: options.enabled ?? true,
   });
 }
 

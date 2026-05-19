@@ -20,7 +20,7 @@ export function SavedColors({
   activeHex,
   onPick,
   onAdd,
-  label = 'Сохранённые',
+  label,
   addLabel = 'Добавить',
 }: {
   colors: SavedColor[];
@@ -28,24 +28,28 @@ export function SavedColors({
   activeHex?: string;
   onPick: (color: SavedColor) => void;
   onAdd?: () => void;
+  /** Optional title — header is hidden when neither this nor `onAdd` is set. */
   label?: string;
   addLabel?: string;
 }) {
+  const hasHeader = Boolean(label) || Boolean(onAdd);
   return (
     <div className="flex flex-col gap-2 border-t border-border/60 pt-3">
-      <div className="flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
-        <span>{label}</span>
-        {onAdd && (
-          <button
-            type="button"
-            onClick={onAdd}
-            className="inline-flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground focus-visible:outline-none"
-          >
-            <PlusIcon className="size-3" />
-            {addLabel}
-          </button>
-        )}
-      </div>
+      {hasHeader && (
+        <div className="flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+          <span>{label}</span>
+          {onAdd && (
+            <button
+              type="button"
+              onClick={onAdd}
+              className="inline-flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground focus-visible:outline-none"
+            >
+              <PlusIcon className="size-3" />
+              {addLabel}
+            </button>
+          )}
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-1.5">
         {colors.map((c) => {
           const active =

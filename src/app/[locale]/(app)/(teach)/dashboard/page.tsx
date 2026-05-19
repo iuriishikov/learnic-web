@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 
+import { WalletDashboardView } from '@/features/wallet-dashboard';
 import { buildPageMetadata } from '@/shared/lib/page-metadata';
-import { PagePlaceholder } from '@/shared/ui/page-placeholder';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -24,13 +24,6 @@ export default async function TeachDashboardOverviewPage({
 }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('teach.overview');
 
-  return (
-    <PagePlaceholder
-      title={t('title')}
-      description={t('description')}
-      body={t('body')}
-    />
-  );
+  return <WalletDashboardView />;
 }

@@ -116,31 +116,19 @@ export function ColorInput({
               {showTabs && (
                 <>
                   <div className="flex items-center justify-between gap-2 pl-3 pr-1.5">
-                    <TabsList
-                      variant="line"
-                      className="h-9 gap-2 bg-transparent p-0"
-                    >
+                    <TabsList variant="line" size="sm">
                       {modes.includes('solid') && (
-                        <TabsTrigger
-                          value="solid"
-                          className="px-0 text-xs font-medium"
-                        >
+                        <TabsTrigger value="solid" className="px-0">
                           Цвет
                         </TabsTrigger>
                       )}
                       {modes.includes('gradient') && (
-                        <TabsTrigger
-                          value="gradient"
-                          className="px-0 text-xs font-medium"
-                        >
+                        <TabsTrigger value="gradient" className="px-0">
                           Градиент
                         </TabsTrigger>
                       )}
                       {modes.includes('image') && (
-                        <TabsTrigger
-                          value="image"
-                          className="px-0 text-xs font-medium"
-                        >
+                        <TabsTrigger value="image" className="px-0">
                           Изображение
                         </TabsTrigger>
                       )}

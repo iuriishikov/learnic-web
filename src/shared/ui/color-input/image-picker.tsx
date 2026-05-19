@@ -125,12 +125,11 @@ export function ImagePicker({
         onClick={() => inputRef.current?.click()}
         className={cn(
           'group/dropzone relative flex aspect-square w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-border transition-colors',
-          'hover:bg-muted/60 focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/20 focus-visible:outline-none',
-          dragOver && 'border-brand bg-brand/5 text-brand',
-          !value.src && !dragOver && 'bg-muted/40 text-muted-foreground',
-          value.src && 'border-solid border-input/60 hover:bg-transparent',
+          'focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/20 focus-visible:outline-none',
+          dragOver && 'border-brand',
+          value.src && 'border-solid border-input/60',
         )}
-        style={value.src ? { background: CHECKER_BG } : undefined}
+        style={{ background: CHECKER_BG }}
       >
         {value.src ? (
           // eslint-disable-next-line @next/next/no-img-element -- object-URL preview, optimization not applicable
@@ -147,15 +146,13 @@ export function ImagePicker({
           <div className="flex flex-col items-center gap-2 text-center text-sm">
             <span
               className={cn(
-                'flex size-10 items-center justify-center rounded-lg border border-border bg-background text-foreground transition-colors',
+                'inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-xs transition-colors',
                 dragOver && 'border-brand text-brand',
               )}
             >
-              <UploadCloudIcon className="size-5" aria-hidden />
-            </span>
-            <p className="font-medium text-foreground">
+              <UploadCloudIcon className="size-3.5" aria-hidden />
               Нажмите чтобы загрузить
-            </p>
+            </span>
             <p className="text-xs text-muted-foreground">
               или перетащите файл
             </p>
@@ -171,26 +168,26 @@ export function ImagePicker({
       </div>
 
       {/* Fit + reset + remove */}
-      <div className="flex items-stretch gap-2">
+      <div className="flex items-center gap-2">
         <FitMenu value={value.fit} onChange={(fit) => onChange({ ...value, fit })} />
         <button
           type="button"
           onClick={() =>
             onChange({ ...value, adjustments: { ...DEFAULT_IMAGE_ADJUSTMENTS } })
           }
-          className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-md border border-input bg-transparent px-2 text-xs font-medium text-foreground shadow-xs transition-colors hover:bg-muted/50 focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/25 focus-visible:outline-none"
+          aria-label="Сбросить корректировки"
+          className="ml-auto inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground focus-visible:outline-none"
         >
-          <RotateCwIcon className="size-3.5 text-muted-foreground" />
-          Сброс
+          <RotateCwIcon className="size-3.5" />
         </button>
         {value.src && (
           <button
             type="button"
             onClick={onClearImage}
-            className="ml-auto inline-flex h-8 cursor-pointer items-center gap-1 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:bg-destructive/10 focus-visible:text-destructive focus-visible:outline-none"
+            aria-label="Убрать изображение"
+            className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:bg-destructive/10 focus-visible:text-destructive focus-visible:outline-none"
           >
             <Trash2Icon className="size-3.5" />
-            Убрать
           </button>
         )}
       </div>
@@ -200,7 +197,7 @@ export function ImagePicker({
         {ADJUSTMENTS.map(({ key, label }) => (
           <div
             key={key}
-            className="grid grid-cols-[92px_minmax(0,1fr)_36px] items-center gap-2 text-xs"
+            className="grid grid-cols-[92px_minmax(0,1fr)] items-center gap-2 text-xs"
           >
             <span className="text-muted-foreground">{label}</span>
             <Slider
@@ -218,9 +215,6 @@ export function ImagePicker({
                 });
               }}
             />
-            <span className="text-right font-mono tabular-nums text-foreground/70">
-              {Math.round(value.adjustments[key])}
-            </span>
           </div>
         ))}
       </div>

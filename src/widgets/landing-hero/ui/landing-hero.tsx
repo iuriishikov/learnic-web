@@ -6,6 +6,7 @@ import { GridBackdrop } from '@/shared/ui/grid-backdrop';
 import { Separator } from '@/shared/ui/separator';
 
 import { DeviceShowcase } from './device-showcase';
+import { TypewriterTitle } from './typewriter-title';
 
 export async function LandingHero() {
   const t = await getTranslations('home.hero');
@@ -24,9 +25,10 @@ export async function LandingHero() {
           />
 
           <div className="relative mt-14 flex flex-col items-center text-center md:mt-16">
-            <h1 className="max-w-[860px] text-pretty text-[40px] font-semibold leading-[1.08] tracking-[-0.02em] text-foreground md:text-6xl lg:text-[72px]">
-              {t('title')}
-            </h1>
+            <TypewriterTitle
+              text={t('title')}
+              className="max-w-[860px] text-pretty text-[40px] font-semibold leading-[1.08] tracking-[-0.02em] text-foreground md:text-6xl lg:text-[72px]"
+            />
 
             <p className="mt-5 max-w-[640px] text-pretty text-base leading-[1.55] text-muted-foreground md:mt-6 md:text-lg">
               {t('description')}

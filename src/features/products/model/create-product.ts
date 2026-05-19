@@ -11,12 +11,6 @@ export const createProductSchema = z.object({
     .max(500, 'descriptionMax')
     .optional()
     .or(z.literal('')),
-  hours: z
-    .number()
-    .int('hoursInt')
-    .min(1, 'hoursPositive')
-    .max(1000, 'hoursMax')
-    .optional(),
 });
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;

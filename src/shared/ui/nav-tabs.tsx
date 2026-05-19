@@ -46,27 +46,27 @@ export type NavTabsProps = {
 
 const INDICATOR_SPRING = {
   type: 'spring',
-  stiffness: 380,
-  damping: 32,
-  mass: 0.85,
+  stiffness: 700,
+  damping: 40,
+  mass: 0.55,
 } as const;
 
 const MICRO_SPRING = {
   type: 'spring',
-  stiffness: 500,
-  damping: 32,
+  stiffness: 600,
+  damping: 34,
 } as const;
 
 const TAB_FLIP_SPRING = {
   type: 'spring',
-  stiffness: 320,
-  damping: 28,
-  mass: 0.85,
+  stiffness: 460,
+  damping: 32,
+  mass: 0.65,
 } as const;
 
 const SOFT_OUT = [0.22, 0.61, 0.36, 1] as const;
 
-const TAB_STAGGER = 0.045;
+const TAB_STAGGER = 0.025;
 
 type IndicatorRect = { x: number; width: number };
 
@@ -231,7 +231,7 @@ function NavTabItem({
       }
       transition={{
         rotateX: { ...TAB_FLIP_SPRING, delay: stagger },
-        opacity: { duration: 0.32, delay: stagger, ease: SOFT_OUT },
+        opacity: { duration: 0.18, delay: stagger, ease: SOFT_OUT },
         y: { ...TAB_FLIP_SPRING, delay: stagger },
         scale: MICRO_SPRING,
       }}
@@ -250,10 +250,10 @@ function NavTabItem({
           initial={{ opacity: 0, scale: 1 }}
           animate={{ opacity: [0, 0.4, 0], scale: [1, 1.05, 1.4] }}
           transition={{
-            duration: 0.7,
+            duration: 0.38,
             times: [0, 0.12, 1],
             ease: SOFT_OUT,
-            delay: 0.28,
+            delay: 0.12,
           }}
           className="pointer-events-none absolute inset-0 rounded-lg ring-2 ring-brand/35"
         />
@@ -266,7 +266,7 @@ function NavTabItem({
             aria-hidden
             initial={{ x: '-100%', opacity: 0 }}
             animate={{ x: '100%', opacity: [0, 1, 1, 0] }}
-            transition={{ duration: 0.85, ease: SOFT_OUT, delay: 0.3 }}
+            transition={{ duration: 0.45, ease: SOFT_OUT, delay: 0.12 }}
             className="absolute inset-y-0 left-0 w-full bg-gradient-to-r from-transparent via-brand/25 to-transparent"
           />
         </span>
@@ -283,10 +283,10 @@ function NavTabItem({
             scaleY: [1, 1.5, 5],
           }}
           transition={{
-            duration: 0.7,
+            duration: 0.38,
             times: [0, 0.12, 1],
             ease: SOFT_OUT,
-            delay: 0.28,
+            delay: 0.12,
           }}
           className="pointer-events-none absolute right-0 -bottom-px left-0 h-[3px] origin-center rounded-full bg-brand blur-[3px]"
         />

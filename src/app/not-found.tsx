@@ -8,6 +8,10 @@ import { getCurrentUser } from '@/features/auth/server';
 import { QueryProvider } from '@/shared/api/query-provider';
 import { routing } from '@/shared/config/i18n/routing';
 import { buildPageMetadata } from '@/shared/lib/page-metadata';
+import {
+  DefaultHeaderConfig,
+  HeaderConfigProvider,
+} from '@/widgets/app-header';
 import { NotFoundContent } from '@/widgets/not-found-content';
 import { PageHeader } from '@/widgets/page-header';
 import { SiteFooter } from '@/widgets/site-footer';
@@ -36,13 +40,23 @@ export default async function NotFound() {
     <NextIntlClientProvider locale={locale} messages={messages}>
       <AuthProvider initialUser={initialUser}>
         <QueryProvider>
-          <div className="flex min-h-screen flex-col bg-background">
-            <PageHeader />
-            <main className="flex-1">
-              <NotFoundContent />
-            </main>
-            <SiteFooter />
-          </div>
+          {/*
+            Global not-found is outside ``[locale]/layout.tsx``, so
+            it doesn't inherit that layout's
+            ``HeaderConfigProvider``. Mount a local one here +
+            ``DefaultHeaderConfig`` so ``PageHeader`` still shows
+            the three mode-entry tabs instead of an empty nav.
+          */}
+          <HeaderConfigProvider>
+            <DefaultHeaderConfig />
+            <div className="flex min-h-screen flex-col bg-background">
+              <PageHeader />
+              <main className="flex-1">
+                <NotFoundContent />
+              </main>
+              <SiteFooter />
+            </div>
+          </HeaderConfigProvider>
         </QueryProvider>
       </AuthProvider>
     </NextIntlClientProvider>

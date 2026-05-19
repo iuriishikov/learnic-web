@@ -1,9 +1,27 @@
 'use client';
 
+import {
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { GripVerticalIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { type CSSProperties, useEffect, useMemo, useState } from 'react';
 
+import { cn } from '@/shared/lib/utils';
 import { useNotify } from '@/shared/lib/notify';
 import { Button } from '@/shared/ui/button';
 import { HttpsUrlInput } from '@/shared/ui/https-url-input';
@@ -177,6 +195,24 @@ export function SocialLinksEditor({ userId }: SocialLinksEditorProps) {
     );
   }
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  function onDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setDraft((prev) => {
+      const fromIdx = prev.findIndex((row) => row.clientKey === active.id);
+      const toIdx = prev.findIndex((row) => row.clientKey === over.id);
+      if (fromIdx < 0 || toIdx < 0) return prev;
+      return arrayMove(prev, fromIdx, toIdx);
+    });
+  }
+
   const loading = query.isPending;
 
   return (
@@ -198,46 +234,38 @@ export function SocialLinksEditor({ userId }: SocialLinksEditorProps) {
         ) : draft.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('empty')}</p>
         ) : (
-          draft.map((row) => (
-            <div
-              key={row.clientKey}
-              className="flex flex-col gap-2 rounded-md border border-border bg-card p-3 sm:flex-row sm:items-start"
+          <DndContext
+            id="social-links-dnd"
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={onDragEnd}
+          >
+            <SortableContext
+              items={draft.map((row) => row.clientKey)}
+              strategy={verticalListSortingStrategy}
             >
-              <span
-                className="hidden self-center pt-1 text-muted-foreground sm:inline-flex"
-                aria-hidden
-              >
-                <GripVerticalIcon className="size-4" />
-              </span>
-              <div className="flex flex-1 flex-col gap-1">
-                <HttpsUrlInput
-                  placeholder={t('fields.url.placeholder')}
-                  maxLength={SOCIAL_LINK_URL_MAX}
-                  aria-invalid={Boolean(errors[row.clientKey])}
-                  aria-label={t('fields.url.label')}
-                  groupClassName="h-11 rounded-md"
-                  className="text-[15px]"
-                  value={row.url}
-                  onValueChange={(next) => updateRow(row.clientKey, next)}
-                />
-                {errors[row.clientKey] ? (
-                  <p className="text-xs text-destructive">
-                    {tErrors(errors[row.clientKey])}
-                  </p>
-                ) : null}
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="self-end text-destructive hover:bg-destructive/10 hover:text-destructive sm:mt-1.5 sm:self-start"
-                onClick={() => removeRow(row.clientKey)}
-                aria-label={t('actions.remove')}
-              >
-                <Trash2Icon />
-              </Button>
-            </div>
-          ))
+              <ul className="flex flex-col gap-3">
+                {draft.map((row) => (
+                  <SortableSocialLinkRow
+                    key={row.clientKey}
+                    row={row}
+                    error={errors[row.clientKey]}
+                    onUpdate={(next) => updateRow(row.clientKey, next)}
+                    onRemove={() => removeRow(row.clientKey)}
+                    placeholder={t('fields.url.placeholder')}
+                    urlLabel={t('fields.url.label')}
+                    removeLabel={t('actions.remove')}
+                    dragLabel={t('actions.reorder')}
+                    errorMessage={
+                      errors[row.clientKey]
+                        ? tErrors(errors[row.clientKey])
+                        : undefined
+                    }
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
         )}
         {!loading ? (
           <Button
@@ -254,6 +282,94 @@ export function SocialLinksEditor({ userId }: SocialLinksEditorProps) {
         ) : null}
       </div>
     </SettingsSection>
+  );
+}
+
+type SortableSocialLinkRowProps = {
+  row: Row;
+  error: string | undefined;
+  onUpdate: (next: string) => void;
+  onRemove: () => void;
+  placeholder: string;
+  urlLabel: string;
+  removeLabel: string;
+  dragLabel: string;
+  errorMessage: string | undefined;
+};
+
+function SortableSocialLinkRow({
+  row,
+  error,
+  onUpdate,
+  onRemove,
+  placeholder,
+  urlLabel,
+  removeLabel,
+  dragLabel,
+  errorMessage,
+}: SortableSocialLinkRowProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: row.clientKey });
+
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'flex flex-col gap-2 rounded-md border border-border bg-card p-3 transition-shadow sm:flex-row sm:items-start',
+        isDragging && 'opacity-80 shadow-md ring-1 ring-brand/40',
+      )}
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label={dragLabel}
+        className={cn(
+          'hidden size-7 shrink-0 cursor-grab touch-none items-center justify-center self-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing sm:inline-flex',
+          isDragging && 'cursor-grabbing',
+        )}
+      >
+        <GripVerticalIcon className="size-4" aria-hidden />
+      </button>
+      <div className="flex flex-1 flex-col gap-1">
+        <HttpsUrlInput
+          placeholder={placeholder}
+          maxLength={SOCIAL_LINK_URL_MAX}
+          aria-invalid={Boolean(error)}
+          aria-label={urlLabel}
+          groupClassName="h-11 rounded-md"
+          className="text-[15px]"
+          value={row.url}
+          onValueChange={onUpdate}
+        />
+        {errorMessage ? (
+          <p className="text-xs text-destructive">{errorMessage}</p>
+        ) : null}
+      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="self-end text-destructive hover:bg-destructive/10 hover:text-destructive sm:mt-1.5 sm:self-start"
+        onClick={onRemove}
+        aria-label={removeLabel}
+      >
+        <Trash2Icon />
+      </Button>
+    </li>
   );
 }
 

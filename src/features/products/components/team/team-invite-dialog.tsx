@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import {
   AnimatePresence,
-  LayoutGroup,
   motion,
   useReducedMotion,
 } from 'motion/react';
@@ -392,87 +391,76 @@ const RoleChips = memo(function RoleChips({
 }) {
   const tRoles = useTranslations('teach-products.editor.team.roles');
   const reduceMotion = useReducedMotion();
-  const transition = reduceMotion
-    ? { duration: 0 }
-    : ({ type: 'spring', stiffness: 420, damping: 32, mass: 0.6 } as const);
 
   return (
-    <LayoutGroup id="invite-role-chips">
-      <div
-        role="radiogroup"
-        aria-label={tRoles('rolePickerAria')}
-        className="flex flex-wrap gap-1.5"
-      >
-        {roles.map((role) => {
-          const tone = roleColorClasses(colorForRole(role));
-          const checked = role.id === value;
-          return (
-            <motion.button
-              key={role.id}
-              type="button"
-              role="radio"
-              aria-checked={checked}
-              onClick={() => onChange(role.id)}
-              layout
-              transition={transition}
-              className={cn(
-                'inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium transition-colors duration-200',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30',
-                checked
-                  ? cn(
-                      'text-foreground shadow-xs ring-1',
-                      tone.bgSoft,
-                      tone.ring,
-                    )
-                  : cn(
-                      'border border-border bg-background text-muted-foreground',
-                      'hover:border-foreground/20 hover:bg-background hover:text-foreground',
-                    ),
-              )}
-            >
-              <motion.span
-                aria-hidden
-                layout="position"
-                className={cn('size-1.5 shrink-0 rounded-full', tone.dot)}
-              />
-              <motion.span layout="position" className="truncate">
-                {role.name}
-              </motion.span>
-              <AnimatePresence initial={false}>
-                {checked ? (
-                  <motion.span
-                    key="check"
-                    layout="position"
-                    initial={
-                      reduceMotion
-                        ? { opacity: 0 }
-                        : { width: 0, opacity: 0 }
-                    }
-                    animate={
-                      reduceMotion
-                        ? { opacity: 1 }
-                        : { width: 'auto', opacity: 1 }
-                    }
-                    exit={
-                      reduceMotion
-                        ? { opacity: 0 }
-                        : { width: 0, opacity: 0 }
-                    }
-                    transition={transition}
-                    className="inline-flex shrink-0 items-center overflow-hidden"
-                  >
-                    <CheckIcon
-                      className={cn('size-3', tone.text)}
-                      aria-hidden
-                    />
-                  </motion.span>
-                ) : null}
-              </AnimatePresence>
-            </motion.button>
-          );
-        })}
-      </div>
-    </LayoutGroup>
+    <div
+      role="radiogroup"
+      aria-label={tRoles('rolePickerAria')}
+      className="flex flex-wrap gap-1.5"
+    >
+      {roles.map((role) => {
+        const tone = roleColorClasses(colorForRole(role));
+        const checked = role.id === value;
+        return (
+          <button
+            key={role.id}
+            type="button"
+            role="radio"
+            aria-checked={checked}
+            onClick={() => onChange(role.id)}
+            className={cn(
+              'inline-flex h-7 items-center rounded-full px-2.5 text-xs font-medium transition-colors duration-200',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30',
+              checked
+                ? cn(
+                    'text-foreground shadow-xs ring-1',
+                    tone.bgSoft,
+                    tone.ring,
+                  )
+                : cn(
+                    'border border-border bg-background text-muted-foreground',
+                    'hover:border-foreground/20 hover:bg-background hover:text-foreground',
+                  ),
+            )}
+          >
+            <span
+              aria-hidden
+              className={cn('size-1.5 shrink-0 rounded-full', tone.dot)}
+            />
+            <span className="ml-1.5 truncate">{role.name}</span>
+            <AnimatePresence initial={false}>
+              {checked ? (
+                <motion.span
+                  key="check"
+                  initial={
+                    reduceMotion
+                      ? { opacity: 0 }
+                      : { width: 0, marginLeft: 0, opacity: 0 }
+                  }
+                  animate={
+                    reduceMotion
+                      ? { opacity: 1 }
+                      : { width: 'auto', marginLeft: 6, opacity: 1 }
+                  }
+                  exit={
+                    reduceMotion
+                      ? { opacity: 0 }
+                      : { width: 0, marginLeft: 0, opacity: 0 }
+                  }
+                  transition={{ duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
+                  className="inline-flex shrink-0 items-center overflow-hidden"
+                >
+                  <CheckIcon
+                    className={cn('size-3', tone.text)}
+                    aria-hidden
+                  />
+                </motion.span>
+              ) : null}
+            </AnimatePresence>
+          </button>
+        );
+      })}
+    </div>
   );
 });
 

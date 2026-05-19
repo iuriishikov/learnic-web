@@ -47,7 +47,7 @@ function Swatch({
   return (
     <span
       aria-hidden
-      className="relative inline-block shrink-0 overflow-hidden rounded-full border border-foreground/10"
+      className="relative inline-block shrink-0 overflow-hidden rounded-full after:absolute after:inset-0 after:rounded-full after:border after:border-border after:mix-blend-darken dark:after:mix-blend-lighten"
       style={{ width: size, height: size, background: CHECKER_BG }}
     >
       <span

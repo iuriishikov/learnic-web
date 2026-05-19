@@ -112,35 +112,41 @@ export function ProductShowcaseCard({
           {title}
         </h3>
 
-        {tags && tags.length > 0 ? (
-          <ul className="flex flex-wrap gap-1.5">
-            {tags.map((tag) => (
-              <li key={tag.id}>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+        <div className="mt-auto flex flex-col gap-2.5">
+          <dl className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+            <Stat icon={<ClockIcon />} label={durationLabel} />
+            {dueLabel ? (
+              <>
+                <span
+                  aria-hidden
+                  className="size-1 rounded-full bg-muted-foreground/40"
+                />
+                <Stat icon={<CalendarIcon />} label={dueLabel} />
+              </>
+            ) : null}
+          </dl>
+          {tags && tags.length > 0 ? (
+            // Tags always wrap on their own row(s) below the stats —
+            // never share a line with duration/due. Even when there
+            // are few short tags the visual rhythm stays consistent
+            // across cards.
+            <ul className="flex flex-wrap gap-1.5">
+              {tags.map((tag) => (
+                <li
+                  key={tag.id}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground"
+                >
                   <span
                     aria-hidden
                     className="size-2.5 shrink-0 rounded-full"
                     style={{ backgroundColor: tag.color }}
                   />
                   <span className="max-w-[10rem] truncate">{tag.name}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-
-        <dl className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
-          <Stat icon={<ClockIcon />} label={durationLabel} />
-          {dueLabel ? (
-            <>
-              <span
-                aria-hidden
-                className="size-1 rounded-full bg-muted-foreground/40"
-              />
-              <Stat icon={<CalendarIcon />} label={dueLabel} />
-            </>
+                </li>
+              ))}
+            </ul>
           ) : null}
-        </dl>
+        </div>
       </div>
     </motion.article>
   );

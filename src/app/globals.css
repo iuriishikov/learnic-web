@@ -274,7 +274,7 @@
 
   --warning-foreground: oklch(0.18 0.04 70);
 
-  --surface-subtle: oklch(0.13 0.022 277);
+  --surface-subtle: color-mix(in oklch, var(--brand) 22%, var(--background));
 
   --selection: color-mix(in oklch, var(--brand) 30%, var(--background));
   --selection-foreground: var(--foreground);

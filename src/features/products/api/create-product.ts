@@ -18,15 +18,15 @@ const WEBINAR_DEFAULT_DURATION_MINUTES = 60;
 const WEBINAR_DEFAULT_ALLOW_RECORDING = true;
 
 export async function createProductAction(
-  values: CreateProductInput,
+  values: CreateProductInput & { cover?: File | null },
 ): Promise<CreateProductResult> {
   const formData = new FormData();
   formData.append('name', values.title);
   if (values.description && values.description.trim().length > 0) {
     formData.append('description_html', toDescriptionHtml(values.description));
   }
-  if (typeof values.hours === 'number' && Number.isFinite(values.hours)) {
-    formData.append('total_duration_in_hours', String(values.hours));
+  if (values.cover) {
+    formData.append('cover', values.cover);
   }
 
   let path: string;

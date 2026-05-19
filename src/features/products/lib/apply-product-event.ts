@@ -26,6 +26,7 @@ export type ProductEventKind =
   | 'name_changed'
   | 'description_changed'
   | 'duration_changed'
+  | 'price_changed'
   | 'cover_changed'
   | 'cover_removed'
   | 'published'
@@ -85,6 +86,13 @@ export function applyProductEvent(
         numField(payload, 'duration_hours');
       if (hours !== undefined) {
         patchProduct(qc, productId, (p) => ({ ...p, durationHours: hours }));
+      }
+      return;
+    }
+    case 'price_changed': {
+      const amount = numField(payload, 'amount');
+      if (amount !== undefined) {
+        patchProduct(qc, productId, (p) => ({ ...p, priceAmount: amount }));
       }
       return;
     }

@@ -3,46 +3,49 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  ClockIcon,
+  CloudUploadIcon,
   GraduationCapIcon,
   RadioIcon,
+  Trash2Icon,
   XIcon,
 } from 'lucide-react';
-import {
-  AnimatePresence,
-  motion,
-  useReducedMotion,
-  type Variants,
-} from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { useState, type ReactElement, type ReactNode } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent as ReactChangeEvent,
+  type ReactElement,
+  type ReactNode,
+} from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
+import {
+  PRODUCT_TAGS_MAX,
+  TagsField,
+  productTagsKey,
+  updateProductTagsAction,
+  type Tag,
+} from '@/features/product-tags';
 import { useRouter } from '@/shared/config/i18n/navigation';
+import { useObjectUrl } from '@/shared/hooks/use-object-url';
 import { useNotify } from '@/shared/lib/notify';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  DialogTrigger,
-} from '@/shared/ui/dialog';
 import { TextInput } from '@/shared/ui/input-extended';
-import {
-  NumberField,
-  NumberFieldAddon,
-  NumberFieldDecrement,
-  NumberFieldGroup,
-  NumberFieldIncrement,
-  NumberFieldInput,
-} from '@/shared/ui/number-field';
 import { Label } from '@/shared/ui/label';
 import { RequiredMark } from '@/shared/ui/required-mark';
+import {
+  ResponsiveSheet,
+  ResponsiveSheetBody,
+  ResponsiveSheetClose,
+  ResponsiveSheetContent,
+  ResponsiveSheetDescription,
+  ResponsiveSheetFooter,
+  ResponsiveSheetHeader,
+  ResponsiveSheetTitle,
+  ResponsiveSheetTrigger,
+} from '@/shared/ui/responsive-sheet';
 import { DescriptionTextarea } from '@/shared/ui/textarea-extended';
 
 import { createProductAction } from '../api/create-product';
@@ -53,376 +56,381 @@ import {
 } from '../model/create-product';
 import type { ProductType } from '../model/types';
 
-import { CreateProductAurora } from './create-product-aurora';
-
 type CreateProductDialogProps = {
   trigger: ReactElement;
 };
 
-type Step = 'choose' | 'details';
-
-const STEP_VARIANTS: Variants = {
-  enter: (direction: number) => ({
-    opacity: 0,
-    x: direction * 24,
-  }),
-  center: { opacity: 1, x: 0 },
-  exit: (direction: number) => ({
-    opacity: 0,
-    x: direction * -24,
-  }),
+const EMPTY_FORM: CreateProductInput = {
+  type: 'course',
+  title: '',
+  description: '',
 };
 
+const COVER_MAX_BYTES = 4 * 1024 * 1024;
+
 export function CreateProductDialog({ trigger }: CreateProductDialogProps) {
+  const t = useTranslations('teach-products.create');
   const router = useRouter();
   const queryClient = useQueryClient();
+  const notify = useNotify();
 
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<Step>('choose');
-  const [direction, setDirection] = useState(1);
-  const [productType, setProductType] = useState<ProductType | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverError, setCoverError] = useState<string | null>(null);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
-  function handleOpenChange(next: boolean) {
-    setOpen(next);
-    if (!next) {
-      // reset after the close animation finishes so users don't see the flicker.
-      window.setTimeout(() => {
-        setStep('choose');
-        setProductType(null);
-        setDirection(1);
-      }, 200);
+  const form = useForm<CreateProductInput>({
+    resolver: zodResolver(createProductSchema),
+    defaultValues: EMPTY_FORM,
+    mode: 'onTouched',
+  });
+
+  const productType: ProductType = form.watch('type') ?? 'course';
+  const titleError = form.formState.errors.title?.message;
+  const descriptionError = form.formState.errors.description?.message;
+  const submitting = form.formState.isSubmitting;
+
+  useEffect(() => {
+    if (open) return;
+    const id = window.setTimeout(() => {
+      form.reset(EMPTY_FORM);
+      setCoverFile(null);
+      setCoverError(null);
+      setTags([]);
+    }, 220);
+    return () => window.clearTimeout(id);
+  }, [open, form]);
+
+  function handleCoverPick(event: ReactChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setCoverError(t('errors.coverInvalid'));
+      return;
     }
+    if (file.size > COVER_MAX_BYTES) {
+      setCoverError(t('errors.coverTooLarge'));
+      return;
+    }
+    setCoverError(null);
+    setCoverFile(file);
   }
 
-  function handlePickType(type: ProductType) {
-    setProductType(type);
-    setDirection(1);
-    setStep('details');
+  function handleCoverRemove() {
+    setCoverFile(null);
+    setCoverError(null);
   }
 
-  function handleBack() {
-    setDirection(-1);
-    setStep('choose');
-  }
+  async function onSubmit(values: CreateProductInput) {
+    const result = await createProductAction({ ...values, cover: coverFile });
+    if (!result.ok) {
+      notify.apiError(result.reason);
+      return;
+    }
 
-  function handleCreated(productId: string) {
+    if (tags.length > 0) {
+      const items = tags.map((tag) =>
+        tag.id.startsWith('__pending-')
+          ? ({ kind: 'new' as const, name: tag.name, color: tag.color })
+          : ({ kind: 'existing' as const, tagId: tag.id }),
+      );
+      const tagResult = await updateProductTagsAction({
+        productId: result.productId,
+        items,
+      });
+      if (tagResult.ok) {
+        queryClient.setQueryData(
+          productTagsKey(result.productId),
+          tagResult.items,
+        );
+      } else {
+        notify.error(t('errors.tagsFailed'));
+      }
+    }
+
     queryClient.invalidateQueries({ queryKey: myProductsKey });
-    handleOpenChange(false);
-    router.push(`/products/${productId}/editor`);
+    setOpen(false);
+    router.push(`/products/${result.productId}/editor`);
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={trigger} />
-      <DialogContent
-        className="overflow-hidden gap-0 p-0 sm:max-w-[760px] md:max-w-[820px]"
-        showCloseButton={false}
-      >
-        <AnimatePresence mode="wait" custom={direction} initial={false}>
-          {step === 'choose' ? (
-            <motion.div
-              key="choose"
-              custom={direction}
-              variants={STEP_VARIANTS}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
-            >
-              <ChooseStep onPick={handlePickType} />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="details"
-              custom={direction}
-              variants={STEP_VARIANTS}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
-            >
-              <DetailsStep
-                productType={productType ?? 'course'}
-                onBack={handleBack}
-                onCreated={handleCreated}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <DialogClose
-          aria-label="Close"
-          className={cn(
-            'absolute top-3 right-3 z-30 inline-flex size-8 items-center justify-center rounded-md transition-colors',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40',
-            step === 'details'
-              ? 'text-white/80 hover:bg-white/15 hover:text-white'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-          )}
+    <ResponsiveSheet open={open} onOpenChange={setOpen}>
+      <ResponsiveSheetTrigger render={trigger} />
+      <ResponsiveSheetContent>
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          noValidate
+          className="flex h-full min-h-0 flex-col"
         >
-          <XIcon className="size-4" />
-        </DialogClose>
-      </DialogContent>
-    </Dialog>
-  );
-}
+          <ResponsiveSheetHeader>
+            <div className="flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand [&>svg]:size-5">
+                {productType === 'course' ? (
+                  <GraduationCapIcon />
+                ) : (
+                  <RadioIcon />
+                )}
+              </span>
+              <div className="flex flex-col gap-1">
+                <ResponsiveSheetTitle>
+                  {t(`details.title.${productType}`)}
+                </ResponsiveSheetTitle>
+                <ResponsiveSheetDescription>
+                  {t('details.description')}
+                </ResponsiveSheetDescription>
+              </div>
+            </div>
+            <ResponsiveSheetClose
+              aria-label={t('actions.cancel')}
+              className={cn(
+                'inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              )}
+            >
+              <XIcon className="size-4" />
+            </ResponsiveSheetClose>
+          </ResponsiveSheetHeader>
 
-function ChooseStep({ onPick }: { onPick: (type: ProductType) => void }) {
-  const t = useTranslations('teach-products.create');
+          <ResponsiveSheetBody>
+            <FormSection label={t('fields.typeLabel')} required>
+              <Controller
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <div className="grid grid-cols-2 gap-2">
+                    <TypeOption
+                      label={t('options.course.label')}
+                      icon={<GraduationCapIcon />}
+                      selected={field.value === 'course'}
+                      onSelect={() => field.onChange('course')}
+                    />
+                    <TypeOption
+                      label={t('options.webinar.label')}
+                      icon={<RadioIcon />}
+                      selected={field.value === 'webinar'}
+                      onSelect={() => field.onChange('webinar')}
+                    />
+                  </div>
+                )}
+              />
+            </FormSection>
 
-  return (
-    <div className="flex flex-col">
-      <div className="flex flex-col gap-1.5 px-6 pt-6 pb-5 md:px-8 md:pt-8">
-        <DialogTitle className="font-heading text-xl font-semibold tracking-tight md:text-2xl">
-          {t('chooseTitle')}
-        </DialogTitle>
-        <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
-          {t('chooseDescription')}
-        </DialogDescription>
-      </div>
+            <FormSection
+              label={t('fields.cover.label')}
+              hint={t('fields.optional')}
+              error={coverError}
+            >
+              <CoverDropzone
+                file={coverFile}
+                onPick={() => coverInputRef.current?.click()}
+                onRemove={handleCoverRemove}
+                uploadTitle={t('fields.cover.uploadTitle')}
+                uploadHint={t('fields.cover.uploadHint')}
+                removeLabel={t('fields.cover.remove')}
+                replaceLabel={t('fields.cover.replace')}
+                alt={t('fields.cover.alt')}
+              />
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleCoverPick}
+              />
+            </FormSection>
 
-      <div className="grid gap-3 px-4 pb-4 sm:grid-cols-2 md:px-6 md:pb-6">
-        <TypeOption
-          type="course"
-          label={t('options.course.label')}
-          description={t('options.course.description')}
-          icon={<GraduationCapIcon />}
-          onPick={onPick}
-        />
-        <TypeOption
-          type="webinar"
-          label={t('options.webinar.label')}
-          description={t('options.webinar.description')}
-          icon={<RadioIcon />}
-          onPick={onPick}
-        />
-      </div>
+            <FormSection
+              id="cp-title"
+              label={t('fields.title.label')}
+              required
+              error={titleError ? t(`errors.${titleError}`) : null}
+            >
+              <TextInput
+                id="cp-title"
+                autoComplete="off"
+                placeholder={t('fields.title.placeholder')}
+                aria-invalid={Boolean(titleError)}
+                className="h-10 text-[15px]"
+                {...form.register('title')}
+              />
+            </FormSection>
 
-      <div className="flex items-center justify-between gap-3 border-t border-border bg-muted/40 px-5 py-3 md:px-6">
-        <p className="text-xs text-muted-foreground">{t('footerHint')}</p>
-        <DialogClose className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
-          {t('actions.cancel')}
-        </DialogClose>
-      </div>
-    </div>
+            <FormSection
+              id="cp-description"
+              label={t('fields.description.label')}
+              hint={t('fields.optional')}
+              error={descriptionError ? t(`errors.${descriptionError}`) : null}
+            >
+              <DescriptionTextarea
+                id="cp-description"
+                placeholder={t(`fields.description.placeholder.${productType}`)}
+                aria-invalid={Boolean(descriptionError)}
+                className="min-h-24 max-h-64 text-[15px]"
+                {...form.register('description')}
+              />
+            </FormSection>
+
+            <FormSection
+              label={t('fields.tags.label')}
+              hint={t('fields.tags.hint', { max: PRODUCT_TAGS_MAX })}
+            >
+              <TagsField value={tags} onChange={setTags} />
+            </FormSection>
+          </ResponsiveSheetBody>
+
+          <ResponsiveSheetFooter className="justify-between">
+            <p className="hidden text-xs text-muted-foreground sm:block">
+              {t('footerHint')}
+            </p>
+            <div className="ml-auto flex items-center gap-2">
+              <ResponsiveSheetClose
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="lg"
+                    className="h-9"
+                  >
+                    {t('actions.cancel')}
+                  </Button>
+                }
+              />
+              <Button
+                type="submit"
+                size="lg"
+                disabled={submitting}
+                className="h-9 px-4"
+              >
+                {submitting ? t('actions.submitting') : t('actions.submit')}
+              </Button>
+            </div>
+          </ResponsiveSheetFooter>
+        </form>
+      </ResponsiveSheetContent>
+    </ResponsiveSheet>
   );
 }
 
 type TypeOptionProps = {
-  type: ProductType;
   label: string;
-  description: string;
   icon: ReactNode;
-  onPick: (type: ProductType) => void;
+  selected: boolean;
+  onSelect: () => void;
 };
 
-function TypeOption({
-  type,
-  label,
-  description,
-  icon,
-  onPick,
-}: TypeOptionProps) {
-  const reduceMotion = useReducedMotion();
-
+function TypeOption({ label, icon, selected, onSelect }: TypeOptionProps) {
   return (
-    <motion.button
+    <button
       type="button"
-      onClick={() => onPick(type)}
-      whileHover={reduceMotion ? undefined : { y: -2 }}
-      whileTap={reduceMotion ? undefined : { y: 0, scale: 0.99 }}
-      transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+      onClick={onSelect}
+      aria-pressed={selected}
+      data-state={selected ? 'on' : 'off'}
       className={cn(
-        'group relative flex flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card p-4 text-left',
-        'hover:border-brand/40 hover:shadow-sm focus-visible:border-brand focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-brand/30',
+        'group relative flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2.5 text-left transition-colors',
+        'hover:border-brand/40 hover:bg-brand/[0.04]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30',
+        selected &&
+          'border-brand bg-brand/[0.06] ring-2 ring-brand/15 hover:border-brand hover:bg-brand/[0.08]',
       )}
     >
       <span
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-brand/8 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-      />
-      <span className="flex size-10 items-center justify-center rounded-lg bg-brand/10 text-brand transition-colors group-hover:bg-brand/15 [&>svg]:size-5">
+        className={cn(
+          'flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors [&>svg]:size-4',
+          selected && 'bg-brand/12 text-brand',
+        )}
+      >
         {icon}
       </span>
-      <div className="space-y-1">
-        <p className="font-heading text-sm font-medium text-foreground">
-          {label}
-        </p>
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          {description}
-        </p>
-      </div>
-      <span className="mt-auto inline-flex items-center gap-1 text-xs font-medium text-brand opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+      <span className="font-heading text-sm font-medium text-foreground">
         {label}
-        <ArrowRightIcon className="size-3.5" />
       </span>
-    </motion.button>
+    </button>
   );
 }
 
-type DetailsStepProps = {
-  productType: ProductType;
-  onBack: () => void;
-  onCreated: (productId: string) => void;
+type CoverDropzoneProps = {
+  file: File | null;
+  onPick: () => void;
+  onRemove: () => void;
+  uploadTitle: string;
+  uploadHint: string;
+  removeLabel: string;
+  replaceLabel: string;
+  alt: string;
 };
 
-function DetailsStep({ productType, onBack, onCreated }: DetailsStepProps) {
-  const t = useTranslations('teach-products.create');
-  const notify = useNotify();
+function CoverDropzone({
+  file,
+  onPick,
+  onRemove,
+  uploadTitle,
+  uploadHint,
+  removeLabel,
+  replaceLabel,
+  alt,
+}: CoverDropzoneProps) {
+  const previewUrl = useObjectUrl(file);
 
-  const form = useForm<CreateProductInput>({
-    resolver: zodResolver(createProductSchema),
-    defaultValues: {
-      type: productType,
-      title: '',
-      description: '',
-      hours: undefined,
-    },
-    mode: 'onTouched',
-  });
-
-  const titleError = form.formState.errors.title?.message;
-  const descriptionError = form.formState.errors.description?.message;
-  const hoursError = form.formState.errors.hours?.message;
-  const submitting = form.formState.isSubmitting;
-
-  async function onSubmit(values: CreateProductInput) {
-    const result = await createProductAction(values);
-    if (result.ok) {
-      onCreated(result.productId);
-      return;
-    }
-    notify.apiError(result.reason);
+  if (file && previewUrl) {
+    return (
+      <div className="group relative overflow-hidden rounded-lg ring-1 ring-foreground/10">
+        <div className="aspect-[16/9] w-full overflow-hidden">
+          <img
+            src={previewUrl}
+            alt={alt}
+            className="h-full w-full object-cover"
+          />
+        </div>
+        <div className="absolute right-2 top-2 flex gap-1.5">
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon-sm"
+            onClick={onPick}
+            aria-label={replaceLabel}
+            className="bg-background/85 text-foreground shadow-sm backdrop-blur-md hover:bg-background"
+          >
+            <CloudUploadIcon />
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon-sm"
+            onClick={onRemove}
+            aria-label={removeLabel}
+            className="bg-background/85 text-foreground shadow-sm backdrop-blur-md hover:bg-background"
+          >
+            <Trash2Icon />
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <form
-      onSubmit={form.handleSubmit(onSubmit)}
-      noValidate
-      className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_280px]"
+    <button
+      type="button"
+      onClick={onPick}
+      className={cn(
+        'flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 py-6 text-center transition-colors',
+        'hover:border-brand/40 hover:bg-muted/50',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30',
+      )}
     >
-      <div className="flex flex-col gap-5 px-6 pt-6 pb-4 md:px-8 md:pt-8">
-        <header className="flex items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand [&>svg]:size-5">
-            {productType === 'course' ? <GraduationCapIcon /> : <RadioIcon />}
-          </span>
-          <div className="flex flex-col gap-1">
-            <DialogTitle className="font-heading text-lg font-semibold tracking-tight md:text-xl">
-              {t(`details.title.${productType}`)}
-            </DialogTitle>
-            <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
-              {t('details.description')}
-            </DialogDescription>
-          </div>
-        </header>
-
-        <div className="flex flex-col gap-4">
-          <FormRow
-            id="cp-title"
-            label={t('fields.title.label')}
-            required
-            error={titleError ? t(`errors.${titleError}`) : null}
-          >
-            <TextInput
-              id="cp-title"
-              autoComplete="off"
-              autoFocus
-              placeholder={t('fields.title.placeholder')}
-              aria-invalid={Boolean(titleError)}
-              className="h-10 text-[15px]"
-              {...form.register('title')}
-            />
-          </FormRow>
-
-          <FormRow
-            id="cp-description"
-            label={t('fields.description.label')}
-            hint={t('fields.optional')}
-            error={descriptionError ? t(`errors.${descriptionError}`) : null}
-          >
-            <DescriptionTextarea
-              id="cp-description"
-              placeholder={t(`fields.description.placeholder.${productType}`)}
-              aria-invalid={Boolean(descriptionError)}
-              className="min-h-24 max-h-64 text-[15px]"
-              {...form.register('description')}
-            />
-          </FormRow>
-
-          <FormRow
-            id="cp-hours"
-            label={t('fields.hours.label')}
-            hint={t('fields.optional')}
-            error={hoursError ? t(`errors.${hoursError}`) : null}
-          >
-            <Controller
-              control={form.control}
-              name="hours"
-              render={({ field }) => (
-                <NumberField
-                  id="cp-hours"
-                  value={field.value ?? null}
-                  onValueChange={(next) => field.onChange(next ?? undefined)}
-                  onBlur={field.onBlur}
-                  min={1}
-                  max={1000}
-                  step={1}
-                  largeStep={10}
-                  smallStep={1}
-                  required={false}
-                >
-                  <NumberFieldGroup
-                    aria-invalid={Boolean(hoursError)}
-                    className="h-10"
-                  >
-                    <NumberFieldAddon align="inline-start">
-                      <ClockIcon className="size-4" />
-                    </NumberFieldAddon>
-                    <NumberFieldInput
-                      placeholder={t('fields.hours.placeholder')}
-                      aria-invalid={Boolean(hoursError)}
-                      className="text-[15px]"
-                    />
-                    <NumberFieldAddon align="inline-end">
-                      {t('fields.hours.suffix')}
-                    </NumberFieldAddon>
-                    <NumberFieldDecrement aria-label={t('fields.hours.decrement')} />
-                    <NumberFieldIncrement aria-label={t('fields.hours.increment')} />
-                  </NumberFieldGroup>
-                </NumberField>
-              )}
-            />
-          </FormRow>
-        </div>
-      </div>
-
-      <CreateProductAurora productType={productType} />
-
-      <div className="flex items-center justify-between gap-3 border-t border-border bg-muted/30 px-6 py-3 md:col-span-2 md:px-8">
-        <Button
-          type="button"
-          variant="ghost"
-          size="lg"
-          onClick={onBack}
-          className="h-9 gap-1"
-        >
-          <ArrowLeftIcon />
-          {t('actions.back')}
-        </Button>
-        <Button
-          type="submit"
-          size="lg"
-          disabled={submitting}
-          className="h-9 px-4"
-        >
-          {submitting ? t('actions.submitting') : t('actions.submit')}
-        </Button>
-      </div>
-    </form>
+      <span className="flex size-10 items-center justify-center rounded-full bg-background text-muted-foreground ring-1 ring-foreground/10 [&>svg]:size-5">
+        <CloudUploadIcon />
+      </span>
+      <span className="text-sm font-medium text-foreground">
+        {uploadTitle}
+      </span>
+      <span className="text-xs text-muted-foreground">{uploadHint}</span>
+    </button>
   );
 }
 
-function FormRow({
+function FormSection({
   id,
   label,
   hint,
@@ -430,10 +438,10 @@ function FormRow({
   required,
   children,
 }: {
-  id: string;
+  id?: string;
   label: string;
   hint?: string;
-  error: string | null;
+  error?: string | null;
   required?: boolean;
   children: ReactNode;
 }) {

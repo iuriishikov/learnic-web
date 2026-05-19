@@ -38,9 +38,11 @@ export function DateTimeInput({
         placeholder={placeholder}
         {...props}
       />
-      <TrailingSlot>
-        <SwapIndicator invalid={invalid} helpTooltip={helpTooltip} />
-      </TrailingSlot>
+      {invalid || helpTooltip != null ? (
+        <TrailingSlot>
+          <SwapIndicator invalid={invalid} helpTooltip={helpTooltip} />
+        </TrailingSlot>
+      ) : null}
     </InputShell>
   );
 }

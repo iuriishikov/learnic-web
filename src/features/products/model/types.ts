@@ -3,10 +3,10 @@ export type ProductType = 'course' | 'webinar';
 export type ProductStatus = 'draft' | 'published' | 'archived' | 'banned';
 
 // `Currency` lives in `@/shared/types/money` — cross-cutting; wallet
-// and order UI will consume the same union when they land. Re-exported
-// here for backwards compatibility with feature-internal consumers.
+// and order UI consume the same union. Products themselves no longer
+// store currency (denominated in the owner's account currency, RUB-only
+// at this phase) — re-exported here only for legacy consumers.
 export type { Currency } from '@/shared/types/money';
-import type { Currency } from '@/shared/types/money';
 
 export type ProductAuthor = {
   id: string;
@@ -36,8 +36,13 @@ export type Product = {
   title: string;
   description: string;
   durationHours: number;
-  priceAmount: string;
-  priceCurrency: Currency;
+  /**
+   * Current price in minor units (kopecks for RUB), or `null` for
+   * products that have never had a price set (DRAFT products start
+   * without one). Currency is implicit — products are denominated
+   * in the owner's account currency (RUB-only at this phase).
+   */
+  priceAmount: number | null;
   author: ProductAuthor;
   webinarDetails: WebinarDetails | null;
   /**

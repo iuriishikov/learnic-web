@@ -4,10 +4,10 @@ import { MailIcon } from 'lucide-react';
 
 import type { InputVariantProps } from './common';
 import {
+  ErrorIndicator,
   InputShell,
   LeadingIcon,
   ShellInput,
-  SwapIndicator,
   TrailingSlot,
 } from './shell';
 
@@ -15,7 +15,6 @@ export function EmailInput({
   invalid,
   disabled,
   previewFocused,
-  helpTooltip,
   className,
   ...props
 }: InputVariantProps) {
@@ -38,9 +37,11 @@ export function EmailInput({
         className="pl-2"
         {...props}
       />
-      <TrailingSlot>
-        <SwapIndicator invalid={invalid} helpTooltip={helpTooltip} />
-      </TrailingSlot>
+      {invalid ? (
+        <TrailingSlot>
+          <ErrorIndicator />
+        </TrailingSlot>
+      ) : null}
     </InputShell>
   );
 }

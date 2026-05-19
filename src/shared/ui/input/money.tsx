@@ -65,9 +65,11 @@ export function MoneyInput({
         className="text-foreground tabular-nums"
         {...props}
       />
-      <TrailingSlot className="pr-1">
-        <SwapIndicator invalid={invalid} helpTooltip={helpTooltip} />
-      </TrailingSlot>
+      {invalid || helpTooltip != null ? (
+        <TrailingSlot className="pr-1">
+          <SwapIndicator invalid={invalid} helpTooltip={helpTooltip} />
+        </TrailingSlot>
+      ) : null}
       <SideAddon>
         <EmbeddedPicker
           ariaLabel="Currency"

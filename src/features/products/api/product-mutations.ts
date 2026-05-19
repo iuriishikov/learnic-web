@@ -65,6 +65,22 @@ export async function changeProductDurationAction(args: {
   return mapMutationStatus(res.status) ?? { ok: false, reason: 'unknown' };
 }
 
+export async function changeProductPriceAction(args: {
+  productId: string;
+  amount: number;
+}): Promise<MutationResult> {
+  let res: Response;
+  try {
+    res = await apiFetch(
+      `/products/${encodeURIComponent(args.productId)}/price`,
+      { method: 'PATCH', body: { amount: args.amount } },
+    );
+  } catch {
+    return { ok: false, reason: 'network' };
+  }
+  return mapMutationStatus(res.status) ?? { ok: false, reason: 'unknown' };
+}
+
 export async function archiveProductAction(args: {
   productId: string;
 }): Promise<MutationResult> {

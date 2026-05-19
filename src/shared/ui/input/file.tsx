@@ -81,9 +81,11 @@ export function FileInput({
       >
         <span className="truncate">{current || placeholder}</span>
       </button>
-      <TrailingSlot className="pr-2">
-        <SwapIndicator invalid={invalid} helpTooltip={helpTooltip} />
-      </TrailingSlot>
+      {invalid || helpTooltip != null ? (
+        <TrailingSlot className="pr-2">
+          <SwapIndicator invalid={invalid} helpTooltip={helpTooltip} />
+        </TrailingSlot>
+      ) : null}
       <Divider />
       <SideAddon>
         <button

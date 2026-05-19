@@ -16,7 +16,8 @@
   "dashboard": {
     "ariaLabel": "Разделы дашборда",
     "tabs": {
-      "overview": "Обзор"
+      "overview": "Баланс",
+      "sales": "Преподавание"
     }
   },
   "settings": {

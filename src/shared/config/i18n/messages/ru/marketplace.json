@@ -1,7 +1,32 @@
 {
   "page": {
-    "title": "Маркетплейс",
-    "subtitle": "Все курсы, уроки и подборки на одной странице.",
+    "title": "Найдите свой следующий курс",
+    "subtitle": "Каталог курсов и вебинаров от практикующих авторов. Выберите тему — и начните учиться сегодня.",
     "body": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+  },
+  "search": {
+    "label": "Поиск по названию",
+    "placeholder": "Найти курс или вебинар…"
+  },
+  "tags": {
+    "sectionLabel": "Темы",
+    "clearLabel": "{count, plural, one {Сбросить (#)} few {Сбросить (#)} other {Сбросить (#)}}"
+  },
+  "card": {
+    "typeCourse": "Курс",
+    "typeWebinar": "Вебинар",
+    "durationHours": "{hours} ч",
+    "durationUnset": "—"
+  },
+  "empty": {
+    "title": "Здесь пока пусто",
+    "description": "Скоро тут появятся курсы и вебинары — загляните позже.",
+    "filteredTitle": "Ничего не нашли",
+    "filteredDescription": "Попробуйте изменить запрос или выбрать другие теги.",
+    "clearAction": "Сбросить фильтры"
+  },
+  "pagination": {
+    "previous": "Назад",
+    "next": "Вперёд"
   }
 }

@@ -1,5 +1,4 @@
 import type {
-  Currency,
   Product,
   ProductAuthor,
   ProductStatus,
@@ -29,8 +28,7 @@ export type ProductSchemaResponse = {
   name: string;
   description: string | null;
   total_duration_in_hours: number | null;
-  price_amount: string | null;
-  price_currency: Currency;
+  price_amount: number | null;
   author: AuthorSchemaResponse;
   webinar_details: WebinarDetailsSchemaResponse | null;
   cover_url: string | null;
@@ -47,8 +45,7 @@ export function fromProductSchema(raw: ProductSchemaResponse): Product {
     title: raw.name,
     description: raw.description ?? '',
     durationHours: raw.total_duration_in_hours ?? 0,
-    priceAmount: raw.price_amount ?? '0',
-    priceCurrency: raw.price_currency,
+    priceAmount: raw.price_amount,
     author: fromAuthorSchema(raw.author),
     webinarDetails: raw.webinar_details
       ? fromWebinarDetails(raw.webinar_details)

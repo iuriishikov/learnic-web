@@ -1,4 +1,5 @@
 export { TagsInput } from './components/tags-input';
+export { TagsField } from './components/tags-field';
 export { TagChip } from './components/tag-chip';
 export {
   useProductTags,

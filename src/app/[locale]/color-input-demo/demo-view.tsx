@@ -5,6 +5,8 @@ import { motion } from 'motion/react';
 
 import { cn } from '@/shared/lib/utils';
 import {
+  AlphaSlider,
+  ColorCard,
   ColorFieldTrigger,
   ColorInput,
   ColorLabelTrigger,
@@ -12,10 +14,23 @@ import {
   ColorSwatchTrigger,
   colorToCss,
   emptyImage,
+  EyedropperButton,
+  HexInput,
+  HueSlider,
+  hexToHsv,
+  hsvToHex,
   linearGradient,
+  OpacityInput,
+  Palette,
+  PaletteSwatches,
+  SaturationValuePicker,
+  SolidPicker,
   type ColorValue,
+  type HSV,
   type SavedColor,
+  type SolidValue,
   solid,
+  useEyeDropperAvailable,
 } from '@/shared/ui/color-input';
 
 const DEFAULT_SAVED: SavedColor[] = [
@@ -27,6 +42,51 @@ const DEFAULT_SAVED: SavedColor[] = [
   { id: 's6', hex: '#C7475C' },
   { id: 's7', hex: '#E25E36' },
   { id: 's8', hex: '#7F56D9' },
+];
+
+// Tailwind v4.2 palette — used for the "Brand" / "Gray" demo cards.
+const TAILWIND_BRAND: SavedColor[] = [
+  { id: 'tw-emerald', hex: '#10B981' },
+  { id: 'tw-teal', hex: '#14B8A6' },
+  { id: 'tw-sky', hex: '#0EA5E9' },
+  { id: 'tw-blue', hex: '#3B82F6' },
+  { id: 'tw-indigo', hex: '#6366F1' },
+  { id: 'tw-violet', hex: '#8B5CF6' },
+  { id: 'tw-fuchsia', hex: '#D946EF' },
+  { id: 'tw-pink', hex: '#EC4899' },
+  { id: 'tw-rose', hex: '#F43F5E' },
+  { id: 'tw-red', hex: '#EF4444' },
+  { id: 'tw-orange', hex: '#F97316' },
+  { id: 'tw-amber', hex: '#F59E0B' },
+  { id: 'tw-yellow', hex: '#EAB308' },
+  { id: 'tw-lime', hex: '#84CC16' },
+];
+
+const TAILWIND_GRAY: SavedColor[] = [
+  { id: 'tw-gray-900', hex: '#111827' },
+  { id: 'tw-gray-800', hex: '#1F2937' },
+  { id: 'tw-gray-700', hex: '#374151' },
+  { id: 'tw-gray-600', hex: '#4B5563' },
+  { id: 'tw-gray-500', hex: '#6B7280' },
+  { id: 'tw-gray-400', hex: '#9CA3AF' },
+  { id: 'tw-gray-300', hex: '#D1D5DB' },
+  { id: 'tw-gray-200', hex: '#E5E7EB' },
+];
+
+// Mono swatches for the "Custom" palette (matches the dark row in the
+// reference). 14 entries — 7 per row.
+const CUSTOM_MONO: SavedColor[] = [
+  { id: 'c-black', hex: '#000000' },
+  { id: 'c-171717', hex: '#171717' },
+  { id: 'c-262626', hex: '#262626' },
+  { id: 'c-404040', hex: '#404040' },
+  { id: 'c-525252', hex: '#525252' },
+  { id: 'c-737373', hex: '#737373' },
+  { id: 'c-a3a3a3', hex: '#A3A3A3' },
+  { id: 'c-d4d4d4', hex: '#D4D4D4' },
+  { id: 'c-e5e5e5', hex: '#E5E5E5' },
+  { id: 'c-f5f5f5', hex: '#F5F5F5' },
+  { id: 'c-white', hex: '#FFFFFF' },
 ];
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -418,6 +478,242 @@ function ConnectedSwatches() {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
+// SECTION: New compositions — match the reference's right column
+
+function ColorCardWithPaletteDemo() {
+  const ctl = useColor(solid('#7F56D9'));
+  const v = ctl.value;
+  if (v.kind !== 'solid') return null;
+  return (
+    <div className="flex w-full max-w-[280px] flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-xs">
+      <ColorCard value={v} height={104} />
+      <PaletteSwatches
+        colors={DEFAULT_SAVED}
+        activeHex={v.hex}
+        onPick={(c) =>
+          ctl.setValue({ ...v, hex: c.hex, opacity: c.opacity ?? v.opacity })
+        }
+      />
+      <div className="flex items-stretch gap-2">
+        <HexInput
+          hex={v.hex}
+          opacity={v.opacity}
+          onCommit={(hex) => ctl.setValue({ ...v, hex })}
+        />
+        <OpacityInput
+          opacity={v.opacity}
+          onCommit={(opacity) => ctl.setValue({ ...v, opacity })}
+        />
+      </div>
+    </div>
+  );
+}
+
+function CustomPaletteDemo() {
+  const ctl = useColor(solid('#171717'));
+  const v = ctl.value;
+  if (v.kind !== 'solid') return null;
+  return (
+    <div className="flex w-full max-w-[280px] flex-col gap-3">
+      <Palette
+        colors={CUSTOM_MONO}
+        activeHex={v.hex}
+        onPick={(c) => ctl.setValue({ ...v, hex: c.hex })}
+      />
+      <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-xs">
+        <span className="text-sm font-medium text-foreground">Custom</span>
+        <HexInput
+          hex={v.hex}
+          opacity={v.opacity}
+          onCommit={(hex) => ctl.setValue({ ...v, hex })}
+        />
+      </div>
+    </div>
+  );
+}
+
+function SavedPaletteDropdownDemo() {
+  type Set = 'recent' | 'saved' | 'imported';
+  const [set, setSet] = React.useState<Set>('saved');
+  const ctl = useColor(solid('#171717'));
+  const v = ctl.value;
+  if (v.kind !== 'solid') return null;
+  return (
+    <div className="flex w-full max-w-[280px] flex-col gap-2">
+      <Palette
+        titleDropdown={{
+          value: set,
+          onChange: (next) => setSet(next as Set),
+          options: [
+            { value: 'saved', label: 'Saved' },
+            { value: 'recent', label: 'Недавние' },
+            { value: 'imported', label: 'Импорт' },
+          ],
+        }}
+        onAdd={() => undefined}
+        addLabel="Add"
+        colors={set === 'saved' ? CUSTOM_MONO : DEFAULT_SAVED}
+        activeHex={v.hex}
+        onPick={(c) => ctl.setValue({ ...v, hex: c.hex })}
+      />
+      <div className="flex items-stretch gap-2">
+        <HexInput
+          hex={v.hex}
+          opacity={v.opacity}
+          onCommit={(hex) => ctl.setValue({ ...v, hex })}
+        />
+        <OpacityInput
+          opacity={v.opacity}
+          onCommit={(opacity) => ctl.setValue({ ...v, opacity })}
+        />
+      </div>
+    </div>
+  );
+}
+
+function BrandPaletteDemo() {
+  const ctl = useColor(solid('#8B5CF6'));
+  const v = ctl.value;
+  if (v.kind !== 'solid') return null;
+  return (
+    <Palette
+      className="w-full max-w-[280px]"
+      title="Brand"
+      subtitle="Tailwind CSS v4.2"
+      colors={TAILWIND_BRAND}
+      activeHex={v.hex}
+      onPick={(c) => ctl.setValue({ ...v, hex: c.hex })}
+      primaryAction={{ label: 'Docs', href: 'https://tailwindcss.com/docs/colors' }}
+      secondaryAction={{
+        label: 'Reset',
+        onClick: () => ctl.setValue(solid('#8B5CF6')),
+      }}
+    />
+  );
+}
+
+function GrayPaletteDemo() {
+  const ctl = useColor(solid('#374151'));
+  const v = ctl.value;
+  if (v.kind !== 'solid') return null;
+  return (
+    <Palette
+      className="w-full max-w-[280px]"
+      title="Gray"
+      subtitle="Tailwind CSS v4.2"
+      colors={TAILWIND_GRAY}
+      activeHex={v.hex}
+      onPick={(c) => ctl.setValue({ ...v, hex: c.hex })}
+      primaryAction={{ label: 'Docs', href: 'https://tailwindcss.com/docs/colors' }}
+      secondaryAction={{
+        label: 'Reset',
+        onClick: () => ctl.setValue(solid('#374151')),
+      }}
+    />
+  );
+}
+
+function EyedropperHueRowDemo() {
+  const ctl = useColor(solid('#7F56D9'));
+  const v = ctl.value;
+  const [hsv, setHsv] = React.useState<HSV>(() =>
+    hexToHsv(v.kind === 'solid' ? v.hex : '#7F56D9'),
+  );
+  const hasEyeDropper = useEyeDropperAvailable();
+  if (v.kind !== 'solid') return null;
+
+  const setHue = (h: number) => {
+    const next = { ...hsv, h };
+    setHsv(next);
+    ctl.setValue({ ...v, hex: hsvToHex(next) });
+  };
+
+  return (
+    <div className="flex w-full max-w-[320px] flex-col gap-2 rounded-xl border border-border bg-card p-3 shadow-xs">
+      <div className="flex items-center gap-2">
+        {hasEyeDropper && (
+          <EyedropperButton onPick={(hex) => ctl.setValue({ ...v, hex })} />
+        )}
+        <div className="flex-1">
+          <HueSlider hue={hsv.h} onChange={setHue} />
+        </div>
+        <OpacityInput
+          opacity={v.opacity}
+          onCommit={(opacity) => ctl.setValue({ ...v, opacity })}
+        />
+      </div>
+      <div className="flex items-stretch gap-2">
+        <HexInput
+          hex={v.hex}
+          opacity={v.opacity}
+          onCommit={(hex) => ctl.setValue({ ...v, hex })}
+        />
+        <OpacityInput
+          opacity={v.opacity}
+          onCommit={(opacity) => ctl.setValue({ ...v, opacity })}
+        />
+      </div>
+    </div>
+  );
+}
+
+function StandaloneHueDemo() {
+  const [hue, setHue] = React.useState(220);
+  const [opacity, setOpacity] = React.useState(100);
+  return (
+    <div className="flex w-full max-w-[320px] items-center gap-2 rounded-xl border border-border bg-card p-3 shadow-xs">
+      <div className="flex-1">
+        <HueSlider hue={hue} onChange={setHue} />
+      </div>
+      <OpacityInput opacity={opacity} onCommit={setOpacity} />
+    </div>
+  );
+}
+
+function StandaloneAlphaDemo() {
+  const [opacity, setOpacity] = React.useState(100);
+  return (
+    <div className="flex w-full max-w-[320px] items-center gap-2 rounded-xl border border-border bg-card p-3 shadow-xs">
+      <div className="flex-1">
+        <AlphaSlider hex="#7F56D9" opacity={opacity} onChange={setOpacity} />
+      </div>
+      <OpacityInput opacity={opacity} onCommit={setOpacity} />
+    </div>
+  );
+}
+
+function CompactSolidPickerDemo() {
+  const ctl = useColor(solid('#4F46E5'));
+  if (ctl.value.kind !== 'solid') return null;
+  const v: SolidValue = ctl.value;
+  return (
+    <div className="w-full max-w-[320px] rounded-xl border border-border bg-card p-3 shadow-xs">
+      <SolidPicker
+        value={v}
+        onChange={(next) => ctl.setValue(next)}
+        savedColors={DEFAULT_SAVED}
+        onAddSaved={() => undefined}
+      />
+    </div>
+  );
+}
+
+function SaturationValueOnlyDemo() {
+  const ctl = useColor(solid('#9333EA'));
+  const v = ctl.value;
+  if (v.kind !== 'solid') return null;
+  const hsv = hexToHsv(v.hex);
+  return (
+    <div className="w-full max-w-[260px] rounded-xl border border-border bg-card p-3 shadow-xs">
+      <SaturationValuePicker
+        hsv={hsv}
+        onChange={(next) => ctl.setValue({ ...v, hex: hsvToHex(next) })}
+      />
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────────
 // View
 
 export function ColorInputDemoView() {
@@ -519,6 +815,76 @@ export function ColorInputDemoView() {
             <ConnectedSwatches />
           </DemoCard>
         </motion.div>
+
+        <DemoCard
+          title="ColorCard + Palette"
+          description="Большая карточка-превью с hex поверх цвета, ниже — сетка сохранённых свотчей и поле hex + прозрачность."
+        >
+          <ColorCardWithPaletteDemo />
+        </DemoCard>
+
+        <DemoCard
+          title="Custom palette"
+          description="Свотч-сетка без заголовка плюс «Custom» строка с активным цветом и hex-инпутом."
+        >
+          <CustomPaletteDemo />
+        </DemoCard>
+
+        <DemoCard
+          title="Saved palette с дропдауном"
+          description="Заголовок палитры превращается в селектор — можно переключаться между сохранёнными наборами. Действие «+ Add» справа, hex + opacity снизу."
+        >
+          <SavedPaletteDropdownDemo />
+        </DemoCard>
+
+        <DemoCard
+          title="Brand palette"
+          description="Заголовок + подзаголовок («Tailwind CSS v4.2»), сетка свотчей и футер с действиями (Docs / Reset)."
+        >
+          <BrandPaletteDemo />
+        </DemoCard>
+
+        <DemoCard
+          title="Gray palette"
+          description="То же самое, что Brand, но монохромная палитра в одну строку."
+        >
+          <GrayPaletteDemo />
+        </DemoCard>
+
+        <DemoCard
+          title="Eyedropper · Hue · Hex"
+          description="Композиция из существующих примитивов: пипетка + ползунок Hue + поле прозрачности; ниже отдельная строка hex."
+        >
+          <EyedropperHueRowDemo />
+        </DemoCard>
+
+        <DemoCard
+          title="Hue · standalone"
+          description="Ползунок Hue без обвязки + поле прозрачности справа."
+        >
+          <StandaloneHueDemo />
+        </DemoCard>
+
+        <DemoCard
+          title="Alpha · standalone"
+          description="Ползунок альфы с поверхностью-шахматкой + поле прозрачности справа."
+        >
+          <StandaloneAlphaDemo />
+        </DemoCard>
+
+        <DemoCard
+          title="Saturation × Value"
+          description="2D-пикер яркости/насыщенности — основной примитив SolidPicker'а, доступный отдельно."
+        >
+          <SaturationValueOnlyDemo />
+        </DemoCard>
+
+        <DemoCard
+          title="Solid picker без табов"
+          description="Полноценный SolidPicker используется как самостоятельный инлайн-компонент — нижняя правая карточка на референсе."
+        >
+          <CompactSolidPickerDemo />
+        </DemoCard>
       </div>
     </main>
   );

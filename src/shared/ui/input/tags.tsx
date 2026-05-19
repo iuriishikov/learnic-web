@@ -109,9 +109,11 @@ export function TagsInput({
           className="h-7 min-w-[6ch] flex-1 bg-transparent px-1 text-sm text-foreground outline-none placeholder:text-muted-foreground/80 disabled:cursor-not-allowed"
         />
       </div>
-      <TrailingSlot className="self-start py-1">
-        <SwapIndicator invalid={invalid} helpTooltip={helpTooltip} />
-      </TrailingSlot>
+      {invalid || helpTooltip != null ? (
+        <TrailingSlot className="self-start py-1">
+          <SwapIndicator invalid={invalid} helpTooltip={helpTooltip} />
+        </TrailingSlot>
+      ) : null}
     </InputShell>
   );
 }

@@ -12,6 +12,7 @@ import {
   changeProductDescriptionAction,
   changeProductDurationAction,
   changeProductNameAction,
+  changeProductPriceAction,
   deleteProductAction,
   publishProductAction,
   removeProductCoverAction,
@@ -132,6 +133,43 @@ export function useChangeProductDurationMutation(productId: string) {
         qc.setQueryData(productKey(productId), ctx.previous);
       }
       fail('updateDurationFailed');
+    },
+    // 204 — no server-derived state to fetch. Skip invalidation.
+  });
+}
+
+export function useChangeProductPriceMutation(productId: string) {
+  const qc = useQueryClient();
+  const fail = useFailureToast();
+  return useMutation<
+    void,
+    Error,
+    { amount: number },
+    { previous?: Product }
+  >({
+    mutationFn: async ({ amount }) => {
+      const result = await changeProductPriceAction({
+        productId,
+        amount,
+      });
+      if (!result.ok) throw new Error(result.reason);
+    },
+    onMutate: async ({ amount }) => {
+      await qc.cancelQueries({ queryKey: productKey(productId) });
+      const previous = qc.getQueryData<Product>(productKey(productId));
+      if (previous) {
+        qc.setQueryData<Product>(productKey(productId), {
+          ...previous,
+          priceAmount: amount,
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) {
+        qc.setQueryData(productKey(productId), ctx.previous);
+      }
+      fail('updatePriceFailed');
     },
     // 204 — no server-derived state to fetch. Skip invalidation.
   });

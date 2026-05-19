@@ -2,6 +2,7 @@
 
 import { motion } from 'motion/react';
 import { useFormatter, useNow, useTranslations } from 'next-intl';
+import { useEffect, useRef } from 'react';
 
 import { cn } from '@/shared/lib/utils';
 import { buildUserDisplayName, UserAvatar } from '@/shared/ui/user-avatar';
@@ -44,8 +45,37 @@ export function NotificationItem({
     onMarkRead(notification.oid);
   }
 
+  // Mark as read once the item scrolls into view inside the notifications
+  // panel. The observer's ``root`` is the scroll-area viewport (looked up via
+  // a stable ``data-slot`` selector) so items clipped by overflow aren't
+  // counted as visible just because they sit within the document viewport.
+  const itemRef = useRef<HTMLLIElement>(null);
+  useEffect(() => {
+    if (!isUnread) return;
+    const el = itemRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const root =
+      (el.closest('[data-slot="scroll-area-viewport"]') as HTMLElement | null) ??
+      null;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            onMarkRead(notification.oid);
+            observer.disconnect();
+            break;
+          }
+        }
+      },
+      { root, threshold: 0.6 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isUnread, onMarkRead, notification.oid]);
+
   return (
     <motion.li
+      ref={itemRef}
       layout
       initial={{ opacity: 0, y: -4 }}
       animate={{ opacity: 1, y: 0 }}
