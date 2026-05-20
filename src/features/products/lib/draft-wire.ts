@@ -105,6 +105,7 @@ export type VideoFileBlockResponse = {
 };
 
 export type CollageItemResponse = {
+  oid: string;
   file: FileResponse | null;
   caption: string | null;
 };
@@ -259,6 +260,7 @@ export function fromBlockResponse(raw: LessonBlockResponse): LessonBlock {
       id: raw.oid,
       position: raw.position,
       items: raw.items.map((it) => ({
+        oid: it.oid,
         file: it.file !== null ? toApiFile(it.file) : null,
         caption: it.caption,
       })),

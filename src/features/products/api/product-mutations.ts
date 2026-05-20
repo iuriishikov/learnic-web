@@ -2,10 +2,16 @@
 
 import { apiFetch } from '@/shared/api/client';
 
+import type { Product } from '../model/types';
+
 import {
+  fromProductSchema,
   mapMutationStatus,
   safeJson,
+  type MutationFailureReason,
   type MutationResult,
+  type ProductMutationResult,
+  type ProductSchemaResponse,
 } from './_shared';
 
 export async function changeProductNameAction(args: {
@@ -81,9 +87,35 @@ export async function changeProductPriceAction(args: {
   return mapMutationStatus(res.status) ?? { ok: false, reason: 'unknown' };
 }
 
+// 4xx → ProductMutationResult failure. Reuses the same status → reason
+// table as `mapMutationStatus`, dropping its 2xx branch (the caller
+// handles 200/201 separately because it needs to parse the body).
+function _mapProductMutationFailure(
+  status: number,
+): Extract<ProductMutationResult, { ok: false }> {
+  const reason = _statusToReason(status);
+  return { ok: false, reason };
+}
+
+function _statusToReason(status: number): MutationFailureReason {
+  if (status === 401) return 'unauthorized';
+  if (status === 403) return 'forbidden';
+  if (status === 404) return 'not-found';
+  if (status === 409) return 'conflict';
+  if (status === 422) return 'validation';
+  return 'unknown';
+}
+
+async function _parseProductSuccess(
+  res: Response,
+): Promise<Extract<ProductMutationResult, { ok: true }>> {
+  const raw = (await res.json()) as ProductSchemaResponse;
+  return { ok: true, product: fromProductSchema(raw) };
+}
+
 export async function archiveProductAction(args: {
   productId: string;
-}): Promise<MutationResult> {
+}): Promise<ProductMutationResult> {
   let res: Response;
   try {
     res = await apiFetch(
@@ -93,12 +125,13 @@ export async function archiveProductAction(args: {
   } catch {
     return { ok: false, reason: 'network' };
   }
-  return mapMutationStatus(res.status) ?? { ok: false, reason: 'unknown' };
+  if (res.status >= 200 && res.status < 300) return _parseProductSuccess(res);
+  return _mapProductMutationFailure(res.status);
 }
 
 export async function unarchiveProductAction(args: {
   productId: string;
-}): Promise<MutationResult> {
+}): Promise<ProductMutationResult> {
   let res: Response;
   try {
     res = await apiFetch(
@@ -108,12 +141,13 @@ export async function unarchiveProductAction(args: {
   } catch {
     return { ok: false, reason: 'network' };
   }
-  return mapMutationStatus(res.status) ?? { ok: false, reason: 'unknown' };
+  if (res.status >= 200 && res.status < 300) return _parseProductSuccess(res);
+  return _mapProductMutationFailure(res.status);
 }
 
 export async function publishProductAction(args: {
   productId: string;
-}): Promise<MutationResult> {
+}): Promise<ProductMutationResult> {
   let res: Response;
   try {
     res = await apiFetch(
@@ -123,11 +157,12 @@ export async function publishProductAction(args: {
   } catch {
     return { ok: false, reason: 'network' };
   }
-  return mapMutationStatus(res.status) ?? { ok: false, reason: 'unknown' };
+  if (res.status >= 200 && res.status < 300) return _parseProductSuccess(res);
+  return _mapProductMutationFailure(res.status);
 }
 
 export type SetProductCoverResult =
-  | { ok: true; fileId: string }
+  | { ok: true; product: Product }
   | {
       ok: false;
       reason:
@@ -155,9 +190,9 @@ export async function setProductCoverAction(
     return { ok: false, reason: 'network' };
   }
 
-  if (res.status === 201) {
-    const body = (await res.json()) as { oid: string };
-    return { ok: true, fileId: body.oid };
+  if (res.status >= 200 && res.status < 300) {
+    const raw = (await res.json()) as ProductSchemaResponse;
+    return { ok: true, product: fromProductSchema(raw) };
   }
   if (res.status === 401) return { ok: false, reason: 'unauthorized' };
   if (res.status === 403) return { ok: false, reason: 'forbidden' };
@@ -175,7 +210,7 @@ export async function setProductCoverAction(
 
 export async function removeProductCoverAction(args: {
   productId: string;
-}): Promise<MutationResult> {
+}): Promise<ProductMutationResult> {
   let res: Response;
   try {
     res = await apiFetch(
@@ -185,7 +220,8 @@ export async function removeProductCoverAction(args: {
   } catch {
     return { ok: false, reason: 'network' };
   }
-  return mapMutationStatus(res.status) ?? { ok: false, reason: 'unknown' };
+  if (res.status >= 200 && res.status < 300) return _parseProductSuccess(res);
+  return _mapProductMutationFailure(res.status);
 }
 
 export async function deleteProductAction(args: {

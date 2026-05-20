@@ -25,6 +25,7 @@ import type {
 import {
   type ChoiceOptionDraftInput,
   addCodeBlockAction,
+  addCollageItemAction,
   addFileBlockAction,
   addHtmlBlockAction,
   addKatexBlockAction,
@@ -34,18 +35,21 @@ import {
   addTextInputBlockAction,
   addVideoFileBlockAction,
   deleteLessonBlockAction,
+  removeCollageItemAction,
+  reorderCollageItemsAction,
   reorderLessonBlocksAction,
   updateCodeBlockAction,
+  updateCollageItemCaptionAction,
+  updateCollageTitleAction,
   updateFileBlockAction,
   updateHtmlBlockAction,
   updateKatexBlockAction,
   updateMultiChoiceBlockAction,
-  updatePhotoCollageBlockAction,
   updateSingleChoiceBlockAction,
   updateTextInputBlockAction,
   updateVideoFileBlockAction,
 } from './blocks';
-import type { CreatedResult, MutationResult } from './_shared';
+import type { BlockMutationResult } from './_shared';
 import {
   addCourseLessonAction,
   deleteCourseLessonAction,
@@ -991,10 +995,67 @@ export function useReorderBlocksMutation(courseId: string) {
 // File-backed mutations skip the optimistic dance: the block can't
 // exist client-side before the server has minted both a `File` row
 // and a `LessonBlock` row from the multipart body. The mutation
-// returns the discriminated result verbatim so the calling editor
-// can surface quota / wrong-content-type errors with the precise
-// metadata the backend carried back; the draft query is invalidated
-// on success so the new block streams in via the standard refetch.
+// returns the discriminated `BlockMutationResult` verbatim so the
+// calling editor can surface quota / wrong-content-type errors with
+// the precise metadata the backend carried back. On success we splice
+// the server-built block straight into the draft cache (`setDraft`),
+// skipping the follow-up GET that `invalidateQueries` would trigger.
+
+// Replace an existing block by id. Used by the update mutations
+// (file/video-file/photo-collage) — the response carries the new
+// block exactly the way the next GET would render it, so we drop in
+// the entity verbatim and re-sort siblings by `position` to be safe.
+function replaceBlock(
+  draft: CourseDraft,
+  blockId: string,
+  newBlock: LessonBlock,
+): CourseDraft {
+  return {
+    ...draft,
+    modules: draft.modules.map((m) => ({
+      ...m,
+      lessons: m.lessons.map((l) => {
+        if (!l.blocks.some((b) => b.id === blockId)) return l;
+        return {
+          ...l,
+          blocks: l.blocks.map((b) => (b.id === blockId ? newBlock : b)),
+        };
+      }),
+    })),
+  };
+}
+
+// Append a server-built block to the target lesson. We trust the
+// `position` the backend assigned and don't re-position siblings —
+// the backend appends, so the new block sits at the end already.
+function appendBlock(
+  draft: CourseDraft,
+  lessonId: string,
+  newBlock: LessonBlock,
+): CourseDraft {
+  return mapLesson(draft, lessonId, (l) => ({
+    ...l,
+    blocks: [...l.blocks, newBlock],
+  }));
+}
+
+// File / video-file / photo-collage mutations parse the full block out
+// of the 2xx response so we can splice it into the draft cache without
+// a follow-up GET. When the response body is missing or unparseable
+// (legacy 204 endpoint, transient body issue) we fall back to a draft
+// invalidation so the editor still converges on the server state.
+function mergeBlockOrInvalidate(
+  qc: QueryClient,
+  courseId: string,
+  block: LessonBlock | undefined,
+  mutate: (draft: CourseDraft, block: LessonBlock) => CourseDraft,
+): void {
+  if (block) {
+    setDraft(qc, courseId, (draft) => mutate(draft, block));
+    return;
+  }
+  void qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
+}
 
 export type AddFileBlockVars = {
   lessonId: string;
@@ -1004,16 +1065,18 @@ export type AddFileBlockVars = {
 
 export function useAddFileBlockMutation(courseId: string) {
   const qc = useQueryClient();
-  return useMutation<CreatedResult, never, AddFileBlockVars>({
+  return useMutation<BlockMutationResult, never, AddFileBlockVars>({
     mutationFn: async ({ lessonId, file, title }) => {
       const fd = new FormData();
       fd.append('file', file);
       if (title) fd.append('title', title);
       return addFileBlockAction(courseId, lessonId, fd);
     },
-    onSuccess: (result) => {
+    onSuccess: (result, vars) => {
       if (result.ok) {
-        void qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
+        mergeBlockOrInvalidate(qc, courseId, result.block, (draft, block) =>
+          appendBlock(draft, vars.lessonId, block),
+        );
       }
     },
   });
@@ -1027,16 +1090,18 @@ export type UpdateFileBlockVars = {
 
 export function useUpdateFileBlockMutation(courseId: string) {
   const qc = useQueryClient();
-  return useMutation<MutationResult, never, UpdateFileBlockVars>({
+  return useMutation<BlockMutationResult, never, UpdateFileBlockVars>({
     mutationFn: async ({ blockId, file, title }) => {
       const fd = new FormData();
       if (file) fd.append('file', file);
       if (title) fd.append('title', title);
       return updateFileBlockAction(courseId, blockId, fd);
     },
-    onSuccess: (result) => {
+    onSuccess: (result, vars) => {
       if (result.ok) {
-        void qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
+        mergeBlockOrInvalidate(qc, courseId, result.block, (draft, block) =>
+          replaceBlock(draft, vars.blockId, block),
+        );
       }
     },
   });
@@ -1046,16 +1111,18 @@ export type AddVideoFileBlockVars = AddFileBlockVars;
 
 export function useAddVideoFileBlockMutation(courseId: string) {
   const qc = useQueryClient();
-  return useMutation<CreatedResult, never, AddVideoFileBlockVars>({
+  return useMutation<BlockMutationResult, never, AddVideoFileBlockVars>({
     mutationFn: async ({ lessonId, file, title }) => {
       const fd = new FormData();
       fd.append('file', file);
       if (title) fd.append('title', title);
       return addVideoFileBlockAction(courseId, lessonId, fd);
     },
-    onSuccess: (result) => {
+    onSuccess: (result, vars) => {
       if (result.ok) {
-        void qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
+        mergeBlockOrInvalidate(qc, courseId, result.block, (draft, block) =>
+          appendBlock(draft, vars.lessonId, block),
+        );
       }
     },
   });
@@ -1065,16 +1132,18 @@ export type UpdateVideoFileBlockVars = UpdateFileBlockVars;
 
 export function useUpdateVideoFileBlockMutation(courseId: string) {
   const qc = useQueryClient();
-  return useMutation<MutationResult, never, UpdateVideoFileBlockVars>({
+  return useMutation<BlockMutationResult, never, UpdateVideoFileBlockVars>({
     mutationFn: async ({ blockId, file, title }) => {
       const fd = new FormData();
       if (file) fd.append('file', file);
       if (title) fd.append('title', title);
       return updateVideoFileBlockAction(courseId, blockId, fd);
     },
-    onSuccess: (result) => {
+    onSuccess: (result, vars) => {
       if (result.ok) {
-        void qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
+        mergeBlockOrInvalidate(qc, courseId, result.block, (draft, block) =>
+          replaceBlock(draft, vars.blockId, block),
+        );
       }
     },
   });
@@ -1105,39 +1174,133 @@ function _appendCollageItems(fd: FormData, items: CollageItemDraft[]) {
 
 export function useAddPhotoCollageBlockMutation(courseId: string) {
   const qc = useQueryClient();
-  return useMutation<CreatedResult, never, AddPhotoCollageBlockVars>({
+  return useMutation<BlockMutationResult, never, AddPhotoCollageBlockVars>({
     mutationFn: async ({ lessonId, items, title }) => {
       const fd = new FormData();
       _appendCollageItems(fd, items);
       if (title) fd.append('title', title);
       return addPhotoCollageBlockAction(courseId, lessonId, fd);
     },
-    onSuccess: (result) => {
+    onSuccess: (result, vars) => {
       if (result.ok) {
-        void qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
+        mergeBlockOrInvalidate(qc, courseId, result.block, (draft, block) =>
+          appendBlock(draft, vars.lessonId, block),
+        );
       }
     },
   });
 }
 
-export type UpdatePhotoCollageBlockVars = {
+// Granular per-item collage mutations. Each one targets a single
+// endpoint on the backend and returns the full updated block in the
+// response body so the SPA can splice the new state into the cache
+// without a follow-up GET. Optimistic UI is handled inside the
+// editor's local state (the mutations themselves are not optimistic);
+// on success the cache is reconciled from the server response, on
+// failure the editor's `useEffect(setItems(...), [block])` brings
+// local state back in sync with the unchanged cache.
+
+export type AddCollageItemVars = {
   blockId: string;
-  items: CollageItemDraft[];
-  title?: string | null;
+  file: File;
+  caption: string | null;
 };
 
-export function useUpdatePhotoCollageBlockMutation(courseId: string) {
+export function useAddCollageItemMutation(courseId: string) {
   const qc = useQueryClient();
-  return useMutation<MutationResult, never, UpdatePhotoCollageBlockVars>({
-    mutationFn: async ({ blockId, items, title }) => {
+  return useMutation<BlockMutationResult, never, AddCollageItemVars>({
+    mutationFn: async ({ blockId, file, caption }) => {
       const fd = new FormData();
-      _appendCollageItems(fd, items);
-      if (title) fd.append('title', title);
-      return updatePhotoCollageBlockAction(courseId, blockId, fd);
+      fd.append('file', file);
+      if (caption !== null && caption !== '') fd.append('caption', caption);
+      return addCollageItemAction(courseId, blockId, fd);
     },
-    onSuccess: (result) => {
+    onSuccess: (result, vars) => {
       if (result.ok) {
-        void qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
+        mergeBlockOrInvalidate(qc, courseId, result.block, (draft, block) =>
+          replaceBlock(draft, vars.blockId, block),
+        );
+      }
+    },
+  });
+}
+
+export type RemoveCollageItemVars = {
+  blockId: string;
+  itemId: string;
+};
+
+export function useRemoveCollageItemMutation(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation<BlockMutationResult, never, RemoveCollageItemVars>({
+    mutationFn: async ({ blockId, itemId }) =>
+      removeCollageItemAction(courseId, blockId, itemId),
+    onSuccess: (result, vars) => {
+      if (result.ok) {
+        mergeBlockOrInvalidate(qc, courseId, result.block, (draft, block) =>
+          replaceBlock(draft, vars.blockId, block),
+        );
+      }
+    },
+  });
+}
+
+export type ReorderCollageItemsVars = {
+  blockId: string;
+  orderedIds: string[];
+};
+
+export function useReorderCollageItemsMutation(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation<BlockMutationResult, never, ReorderCollageItemsVars>({
+    mutationFn: async ({ blockId, orderedIds }) =>
+      reorderCollageItemsAction(courseId, blockId, orderedIds),
+    onSuccess: (result, vars) => {
+      if (result.ok) {
+        mergeBlockOrInvalidate(qc, courseId, result.block, (draft, block) =>
+          replaceBlock(draft, vars.blockId, block),
+        );
+      }
+    },
+  });
+}
+
+export type UpdateCollageItemCaptionVars = {
+  blockId: string;
+  itemId: string;
+  caption: string | null;
+};
+
+export function useUpdateCollageItemCaptionMutation(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation<BlockMutationResult, never, UpdateCollageItemCaptionVars>({
+    mutationFn: async ({ blockId, itemId, caption }) =>
+      updateCollageItemCaptionAction(courseId, blockId, itemId, caption),
+    onSuccess: (result, vars) => {
+      if (result.ok) {
+        mergeBlockOrInvalidate(qc, courseId, result.block, (draft, block) =>
+          replaceBlock(draft, vars.blockId, block),
+        );
+      }
+    },
+  });
+}
+
+export type UpdateCollageTitleVars = {
+  blockId: string;
+  title: string | null;
+};
+
+export function useUpdateCollageTitleMutation(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation<BlockMutationResult, never, UpdateCollageTitleVars>({
+    mutationFn: async ({ blockId, title }) =>
+      updateCollageTitleAction(courseId, blockId, title),
+    onSuccess: (result, vars) => {
+      if (result.ok) {
+        mergeBlockOrInvalidate(qc, courseId, result.block, (draft, block) =>
+          replaceBlock(draft, vars.blockId, block),
+        );
       }
     },
   });

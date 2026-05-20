@@ -251,6 +251,7 @@ function InviteSearchPanel({
           autoFocus
           inputMode="search"
           autoComplete="off"
+          data-cursor-target="product.team.invite.search"
           leadingIcon={<SearchIcon />}
           trailingIcon={
             search.isFetching && showSearch ? (

@@ -2,9 +2,14 @@
 
 import { apiFetch } from '@/shared/api/client';
 
-import type { CodeTab } from '../model/draft';
+import type { CodeTab, LessonBlock } from '../model/draft';
+import {
+  fromBlockResponse,
+  type LessonBlockResponse,
+} from '../lib/draft-wire';
 
 import {
+  type BlockMutationResult,
   type CreatedResult,
   type MutationResult,
   mapErrorResponse,
@@ -276,8 +281,9 @@ export async function deleteLessonBlockAction(args: {
 // Client → server actions for these block types take the `FormData`
 // the browser composes (so `File` instances survive RSC's serialisation
 // boundary) and forward it to the backend's `multipart/form-data`
-// endpoint. The mapping back into the camelCase `CreatedResult` /
-// `MutationResult` shape is shared via `mapErrorResponse`.
+// endpoint. The mapping back into the camelCase `BlockMutationResult`
+// shape is shared via `mapErrorResponse` on the failure side and
+// `fromBlockResponse` on the success side.
 
 // Lesson uploads can reach 1 GB (video) and ~960 MB (12-photo
 // collage). The default `apiFetch` timeout (15s) caps out around
@@ -285,10 +291,31 @@ export async function deleteLessonBlockAction(args: {
 // uploads actually complete instead of aborting mid-transfer.
 const _MULTIPART_TIMEOUT_MS = 10 * 60 * 1000;
 
-async function _postMultipart(
+// Both helpers parse the full block-schema body the backend returns on
+// success so the caller can splice the new entity straight into the
+// course-draft cache, skipping a follow-up GET. Error responses still
+// flow through `mapErrorResponse` so quota / wrong-content-type
+// metadata is preserved.
+//
+// 204 (legacy backend that hasn't been redeployed yet) or any 2xx with
+// an unparseable body returns `{ ok: true }` without a block — the
+// hook then falls back to invalidating the draft cache, so the editor
+// still sees the new state and never trips the failure toast just
+// because the response shape changed.
+async function _readBlockBody(res: Response): Promise<LessonBlock | undefined> {
+  if (res.status === 204) return undefined;
+  try {
+    const raw = (await res.json()) as LessonBlockResponse;
+    return fromBlockResponse(raw);
+  } catch {
+    return undefined;
+  }
+}
+
+async function _postMultipartBlock(
   path: string,
   formData: FormData,
-): Promise<CreatedResult> {
+): Promise<BlockMutationResult> {
   let res: Response;
   try {
     res = await apiFetch(path, {
@@ -299,18 +326,17 @@ async function _postMultipart(
   } catch {
     return { ok: false, reason: 'network' };
   }
-  if (res.status === 201) {
-    const json = (await res.json()) as { oid: string };
-    return { ok: true, id: json.oid };
+  if (res.status >= 200 && res.status < 300) {
+    const block = await _readBlockBody(res);
+    return block ? { ok: true, block } : { ok: true };
   }
-  const err = await mapErrorResponse(res);
-  return err;
+  return mapErrorResponse(res);
 }
 
-async function _patchMultipart(
+async function _patchMultipartBlock(
   path: string,
   formData: FormData,
-): Promise<MutationResult> {
+): Promise<BlockMutationResult> {
   let res: Response;
   try {
     res = await apiFetch(path, {
@@ -321,19 +347,19 @@ async function _patchMultipart(
   } catch {
     return { ok: false, reason: 'network' };
   }
-  if (res.status === 204 || (res.status >= 200 && res.status < 300)) {
-    return { ok: true };
+  if (res.status >= 200 && res.status < 300) {
+    const block = await _readBlockBody(res);
+    return block ? { ok: true, block } : { ok: true };
   }
-  const err = await mapErrorResponse(res);
-  return err;
+  return mapErrorResponse(res);
 }
 
 export async function addFileBlockAction(
   courseId: string,
   lessonId: string,
   formData: FormData,
-): Promise<CreatedResult> {
-  return _postMultipart(
+): Promise<BlockMutationResult> {
+  return _postMultipartBlock(
     `/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(lessonId)}/blocks/file`,
     formData,
   );
@@ -343,8 +369,8 @@ export async function updateFileBlockAction(
   courseId: string,
   blockId: string,
   formData: FormData,
-): Promise<MutationResult> {
-  return _patchMultipart(
+): Promise<BlockMutationResult> {
+  return _patchMultipartBlock(
     `/courses/${encodeURIComponent(courseId)}/blocks/${encodeURIComponent(blockId)}/file`,
     formData,
   );
@@ -354,8 +380,8 @@ export async function addVideoFileBlockAction(
   courseId: string,
   lessonId: string,
   formData: FormData,
-): Promise<CreatedResult> {
-  return _postMultipart(
+): Promise<BlockMutationResult> {
+  return _postMultipartBlock(
     `/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(lessonId)}/blocks/video-file`,
     formData,
   );
@@ -365,8 +391,8 @@ export async function updateVideoFileBlockAction(
   courseId: string,
   blockId: string,
   formData: FormData,
-): Promise<MutationResult> {
-  return _patchMultipart(
+): Promise<BlockMutationResult> {
+  return _patchMultipartBlock(
     `/courses/${encodeURIComponent(courseId)}/blocks/${encodeURIComponent(blockId)}/video-file`,
     formData,
   );
@@ -376,20 +402,118 @@ export async function addPhotoCollageBlockAction(
   courseId: string,
   lessonId: string,
   formData: FormData,
-): Promise<CreatedResult> {
-  return _postMultipart(
+): Promise<BlockMutationResult> {
+  return _postMultipartBlock(
     `/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(lessonId)}/blocks/photo-collage`,
     formData,
   );
 }
 
-export async function updatePhotoCollageBlockAction(
+// Per-item collage operations live below. After the JSONB → child-
+// table migration on the backend, the editor edits items one at a
+// time: add one photo / remove one photo / reorder / re-caption.
+// Each endpoint returns the full updated block so the SPA splices
+// the new state into the cache without a follow-up GET.
+
+async function _deleteBlock(path: string): Promise<BlockMutationResult> {
+  let res: Response;
+  try {
+    res = await apiFetch(path, { method: 'DELETE' });
+  } catch {
+    return { ok: false, reason: 'network' };
+  }
+  if (res.status >= 200 && res.status < 300) {
+    const block = await _readBlockBody(res);
+    return block ? { ok: true, block } : { ok: true };
+  }
+  return mapErrorResponse(res);
+}
+
+async function _putJsonBlock(
+  path: string,
+  body: Record<string, unknown>,
+): Promise<BlockMutationResult> {
+  let res: Response;
+  try {
+    res = await apiFetch(path, { method: 'PUT', body });
+  } catch {
+    return { ok: false, reason: 'network' };
+  }
+  if (res.status >= 200 && res.status < 300) {
+    const block = await _readBlockBody(res);
+    return block ? { ok: true, block } : { ok: true };
+  }
+  return mapErrorResponse(res);
+}
+
+async function _patchJsonBlock(
+  path: string,
+  body: Record<string, unknown>,
+): Promise<BlockMutationResult> {
+  let res: Response;
+  try {
+    res = await apiFetch(path, { method: 'PATCH', body });
+  } catch {
+    return { ok: false, reason: 'network' };
+  }
+  if (res.status >= 200 && res.status < 300) {
+    const block = await _readBlockBody(res);
+    return block ? { ok: true, block } : { ok: true };
+  }
+  return mapErrorResponse(res);
+}
+
+export async function addCollageItemAction(
   courseId: string,
   blockId: string,
   formData: FormData,
-): Promise<MutationResult> {
-  return _patchMultipart(
-    `/courses/${encodeURIComponent(courseId)}/blocks/${encodeURIComponent(blockId)}/photo-collage`,
+): Promise<BlockMutationResult> {
+  return _postMultipartBlock(
+    `/courses/${encodeURIComponent(courseId)}/blocks/${encodeURIComponent(blockId)}/photo-collage/items`,
     formData,
+  );
+}
+
+export async function removeCollageItemAction(
+  courseId: string,
+  blockId: string,
+  itemId: string,
+): Promise<BlockMutationResult> {
+  return _deleteBlock(
+    `/courses/${encodeURIComponent(courseId)}/blocks/${encodeURIComponent(blockId)}/photo-collage/items/${encodeURIComponent(itemId)}`,
+  );
+}
+
+export async function reorderCollageItemsAction(
+  courseId: string,
+  blockId: string,
+  orderedIds: string[],
+): Promise<BlockMutationResult> {
+  return _putJsonBlock(
+    `/courses/${encodeURIComponent(courseId)}/blocks/${encodeURIComponent(blockId)}/photo-collage/items/order`,
+    { ordered_ids: orderedIds },
+  );
+}
+
+export async function updateCollageItemCaptionAction(
+  courseId: string,
+  blockId: string,
+  itemId: string,
+  caption: string | null,
+): Promise<BlockMutationResult> {
+  return _patchJsonBlock(
+    `/courses/${encodeURIComponent(courseId)}/blocks/${encodeURIComponent(blockId)}/photo-collage/items/${encodeURIComponent(itemId)}/caption`,
+    { caption },
+  );
+}
+
+export async function updateCollageTitleAction(
+  courseId: string,
+  blockId: string,
+  title: string | null,
+): Promise<BlockMutationResult> {
+  return _patchJsonBlock(
+    `/courses/${encodeURIComponent(courseId)}/blocks/${encodeURIComponent(blockId)}/photo-collage/title`,
+    { title },
   );
 }

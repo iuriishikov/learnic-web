@@ -214,6 +214,12 @@ export type VideoFileBlock = {
 };
 
 export type CollageItem = {
+  // Stable identity minted by the backend. Used as the React key and
+  // as the `itemId` path parameter on the per-item mutation endpoints
+  // (remove / caption update). Items added optimistically before the
+  // server response carry a temp string id; the cache replace from
+  // the POST response swaps it for the real UUID.
+  oid: string;
   file: ApiFile | null;
   caption: string | null;
 };

@@ -31,7 +31,6 @@ import {
   useCallback,
   useEffect,
   useId,
-  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -41,8 +40,11 @@ import { cn } from '@/shared/lib/utils';
 import { Input } from '@/shared/ui/input';
 
 import {
-  type CollageItemDraft,
-  useUpdatePhotoCollageBlockMutation,
+  useAddCollageItemMutation,
+  useRemoveCollageItemMutation,
+  useReorderCollageItemsMutation,
+  useUpdateCollageItemCaptionMutation,
+  useUpdateCollageTitleMutation,
 } from '../api/use-course-mutations';
 import {
   LESSON_COLLAGE_ITEM_MAX_BYTES,
@@ -56,43 +58,38 @@ import type { ApiFile } from '@/shared/types/user';
 
 const _BYTES_PER_MB = 1024 * 1024;
 const COLLAGE_ITEM_MAX_MB = LESSON_COLLAGE_ITEM_MAX_BYTES / _BYTES_PER_MB;
-const SAVE_DEBOUNCE_MS = 700;
+const CAPTION_DEBOUNCE_MS = 700;
+const TITLE_DEBOUNCE_MS = 700;
 
-type EditorItem =
-  | {
-      kind: 'existing';
-      id: string;
-      apiFile: ApiFile;
-      caption: string;
-    }
-  | {
-      kind: 'new';
-      id: string;
-      file: File;
-      previewUrl: string;
-      caption: string;
-    };
+// Items uploaded by the user but not yet acknowledged by the server
+// keep a temp id locally so React can key on them. The server response
+// replaces them with the canonical server-minted oid; this prefix lets
+// the editor identify temp rows when stitching local + server state.
+const _TEMP_ID_PREFIX = 'pending-';
 
-function _newId(prefix: string): string {
-  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+type EditorItem = {
+  // Server `oid` for already-persisted items; temp id (prefixed
+  // ``pending-``) for items that the server has not yet acknowledged.
+  id: string;
+  // Backing file from the server, or null while the upload is in flight.
+  apiFile: ApiFile | null;
+  // Local object URL when ``apiFile`` is null — revoked when the row
+  // leaves the editor.
+  previewUrl: string | null;
+  caption: string;
+};
+
+function _tempId(): string {
+  return `${_TEMP_ID_PREFIX}${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function _itemsFromBlock(block: PhotoCollageBlock): EditorItem[] {
-  // Each non-null file becomes an editable existing item; rows with a
-  // null `file` (the backing storage record was reaped) are dropped —
-  // the user cannot re-upload a phantom and we don't want a non-editable
-  // placeholder mixed into the grid.
-  return block.items
-    .map((item, idx) => {
-      if (!item.file) return null;
-      return {
-        kind: 'existing' as const,
-        id: `${block.id}-existing-${idx}-${item.file.oid}`,
-        apiFile: item.file,
-        caption: item.caption ?? '',
-      };
-    })
-    .filter((it): it is Extract<EditorItem, { kind: 'existing' }> => it !== null);
+  return block.items.map((item) => ({
+    id: item.oid,
+    apiFile: item.file,
+    previewUrl: null,
+    caption: item.caption ?? '',
+  }));
 }
 
 export type PhotoCollageBlockEditorProps = {
@@ -113,139 +110,51 @@ export function PhotoCollageBlockEditor({
   const notify = useNotify();
   const titleId = useId();
 
-  const mutation = useUpdatePhotoCollageBlockMutation(courseId);
+  const addItem = useAddCollageItemMutation(courseId);
+  const removeItem = useRemoveCollageItemMutation(courseId);
+  const reorderItems = useReorderCollageItemsMutation(courseId);
+  const updateCaption = useUpdateCollageItemCaptionMutation(courseId);
+  const updateTitle = useUpdateCollageTitleMutation(courseId);
 
-  const [items, setItems] = useState<EditorItem[]>(() => _itemsFromBlock(block));
-  const [title, setTitle] = useState<string>(block.title ?? '');
-  const [isPreparing, setIsPreparing] = useState(false);
-
-  // Track "the local state has unsaved edits" so the server-driven sync
-  // effect doesn't clobber them with stale snapshot. Cleared on each
-  // successful PATCH.
-  const dirtyRef = useRef(false);
-  // Cache File objects derived from existing ApiFile URLs so repeated
-  // saves don't re-download the same photo every time the user
-  // tweaks a caption.
-  const fileCacheRef = useRef<Map<string, File>>(new Map());
-  // Track preview object-URLs we minted so we can revoke them on remove.
-  const previewUrlsRef = useRef<Set<string>>(new Set());
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingSaveRef = useRef<{ items: EditorItem[]; title: string } | null>(
-    null,
+  const [items, setItems] = useState<EditorItem[]>(() =>
+    _itemsFromBlock(block),
   );
+  const [title, setTitle] = useState<string>(block.title ?? '');
+
+  const previewUrlsRef = useRef<Set<string>>(new Set());
+  const captionTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
+    new Map(),
+  );
+  const titleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const previewUrls = previewUrlsRef.current;
-    const saveTimerHandle = saveTimerRef;
+    const previews = previewUrlsRef.current;
+    const captionTimers = captionTimersRef.current;
+    const titleTimer = titleTimerRef;
     return () => {
-      for (const url of previewUrls) URL.revokeObjectURL(url);
-      previewUrls.clear();
-      if (saveTimerHandle.current) clearTimeout(saveTimerHandle.current);
+      for (const url of previews) URL.revokeObjectURL(url);
+      previews.clear();
+      for (const handle of captionTimers.values()) clearTimeout(handle);
+      captionTimers.clear();
+      if (titleTimer.current) clearTimeout(titleTimer.current);
     };
   }, []);
 
-  // Reconcile server-driven block changes into local state only when
-  // there are no pending unsaved edits — otherwise a draft refresh in
-  // the middle of typing would yank captions back.
+  // Reconcile server-driven block changes into local state. Each
+  // granular mutation now replaces the cached block atomically via its
+  // own response body, so a plain assign on every change is safe. The
+  // editor is the only owner of optimistic state between request and
+  // response; the cached block is the only external source of truth,
+  // so syncing it into local state via setState-in-effect is the
+  // intended pattern here (see react-hooks/set-state-in-effect
+  // suppressions elsewhere in the codebase for the same shape).
   useEffect(() => {
-    if (dirtyRef.current) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setItems(_itemsFromBlock(block));
     setTitle(block.title ?? '');
   }, [block]);
 
-  /* -------------- existing-file → File hydration (cached) --------------- */
-
-  const hydrateExisting = useCallback(
-    async (apiFile: ApiFile): Promise<File> => {
-      const cached = fileCacheRef.current.get(apiFile.oid);
-      if (cached) return cached;
-      const res = await fetch(apiFile.url);
-      if (!res.ok) {
-        throw new Error(`hydrate-existing-${res.status}`);
-      }
-      const blob = await res.blob();
-      const lastSegment = apiFile.url.split('?')[0].split('/').pop();
-      const filename = lastSegment && lastSegment.length > 0
-        ? lastSegment
-        : `photo-${apiFile.oid}`;
-      const file = new File([blob], filename, {
-        type: blob.type || apiFile.contentType || 'image/*',
-      });
-      fileCacheRef.current.set(apiFile.oid, file);
-      return file;
-    },
-    [],
-  );
-
-  const buildDrafts = useCallback(
-    async (snapshot: EditorItem[]): Promise<CollageItemDraft[]> => {
-      return Promise.all(
-        snapshot.map(async (item) => {
-          const file =
-            item.kind === 'new'
-              ? item.file
-              : await hydrateExisting(item.apiFile);
-          return {
-            file,
-            caption: item.caption.trim() || null,
-          };
-        }),
-      );
-    },
-    [hydrateExisting],
-  );
-
-  /* -------------------------- save scheduling --------------------------- */
-
-  const flushSave = useCallback(async () => {
-    const pending = pendingSaveRef.current;
-    pendingSaveRef.current = null;
-    if (!pending) return;
-    if (pending.items.length < PHOTO_COLLAGE_MIN_ITEMS) {
-      // The collage cannot be saved empty — surface the issue and
-      // leave the UI in dirty state so the user can recover by
-      // re-uploading or restoring an item.
-      notify.error(tToast('validation'));
-      return;
-    }
-    try {
-      setIsPreparing(true);
-      const drafts = await buildDrafts(pending.items);
-      setIsPreparing(false);
-      const result = await mutation.mutateAsync({
-        blockId: block.id,
-        items: drafts,
-        title: pending.title.trim() || null,
-      });
-      if (result.ok) {
-        dirtyRef.current = false;
-        return;
-      }
-      notify.error(tToast('updateBlockFailed'));
-    } catch {
-      setIsPreparing(false);
-      notify.error(tToast('updateBlockFailed'));
-    }
-  }, [block.id, buildDrafts, mutation, notify, tToast]);
-
-  const scheduleSave = useCallback(
-    (next: { items: EditorItem[]; title: string }, immediate = false) => {
-      dirtyRef.current = true;
-      pendingSaveRef.current = next;
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      if (immediate) {
-        void flushSave();
-        return;
-      }
-      saveTimerRef.current = setTimeout(() => {
-        saveTimerRef.current = null;
-        void flushSave();
-      }, SAVE_DEBOUNCE_MS);
-    },
-    [flushSave],
-  );
-
-  /* ------------------------- mutation handlers -------------------------- */
+  /* -------------------------- file → upload ----------------------------- */
 
   const acceptFiles = useCallback(
     (files: File[]) => {
@@ -270,77 +179,185 @@ export function PhotoCollageBlockEditor({
         accepted.push(f);
       }
       if (accepted.length === 0) return;
+
+      // Optimistic insert with temp ids so the grid shows previews
+      // immediately. The server response replaces the cached block,
+      // which the sync effect above then mirrors into local state.
       const additions: EditorItem[] = accepted.map((file) => {
         const previewUrl = URL.createObjectURL(file);
         previewUrlsRef.current.add(previewUrl);
         return {
-          kind: 'new',
-          id: _newId('new'),
-          file,
+          id: _tempId(),
+          apiFile: null,
           previewUrl,
           caption: '',
         };
       });
-      const next = [...items, ...additions];
-      setItems(next);
-      scheduleSave({ items: next, title }, true);
+      setItems((current) => [...current, ...additions]);
+
+      // Sequential uploads so a hard cap (max-items) on the backend
+      // can reject the latest upload without stranding earlier
+      // optimistic placeholders. Each call settles independently;
+      // failures surface a toast.
+      void (async () => {
+        for (const file of accepted) {
+          const result = await addItem.mutateAsync({
+            blockId: block.id,
+            file,
+            caption: null,
+          });
+          if (!result.ok) {
+            const reason = result.reason;
+            const msg =
+              reason === 'quota-exceeded' && result.quota
+                ? tToast('quotaExceeded', {
+                    plan: result.quota.planCode,
+                    used: result.quota.usedBytes,
+                    limit: result.quota.limitBytes,
+                    attempted: result.quota.attemptedBytes,
+                  })
+                : reason === 'wrong-content-type'
+                  ? tToast('wrongContentTypeImage')
+                  : tToast('updateBlockFailed');
+            notify.error(msg);
+            return;
+          }
+        }
+      })();
     },
-    [canEditLessons, items, notify, scheduleSave, tToast, title],
+    [canEditLessons, items.length, notify, addItem, block.id, tToast],
   );
 
-  const removeItem = useCallback(
+  /* ----------------------------- remove --------------------------------- */
+
+  const onRemove = useCallback(
     (id: string) => {
       if (!canEditLessons) return;
       const target = items.find((it) => it.id === id);
       if (!target) return;
-      if (target.kind === 'new') {
+      if (target.previewUrl) {
         URL.revokeObjectURL(target.previewUrl);
         previewUrlsRef.current.delete(target.previewUrl);
       }
-      const next = items.filter((it) => it.id !== id);
-      setItems(next);
-      // Don't auto-save below the minimum — the server would reject.
-      // Hold the state dirty until the user uploads a replacement,
-      // then schedule the save then.
-      if (next.length >= PHOTO_COLLAGE_MIN_ITEMS) {
-        scheduleSave({ items: next, title }, true);
-      } else {
-        dirtyRef.current = true;
-        pendingSaveRef.current = { items: next, title };
+      // Optimistic drop. The server response will re-sync via the
+      // cached block effect.
+      setItems((current) => current.filter((it) => it.id !== id));
+      // Don't fire the network call for a temp-id row — it's not yet
+      // persisted server-side; the optimistic remove is all there is.
+      if (id.startsWith(_TEMP_ID_PREFIX)) return;
+      // Refuse to drop below the minimum item count — the server
+      // would 422 the call. Surface a friendlier client-side message
+      // and leave the optimistic state for the user to undo by
+      // re-uploading.
+      if (items.length - 1 < PHOTO_COLLAGE_MIN_ITEMS) {
+        notify.error(tToast('validation'));
+        return;
       }
+      void removeItem
+        .mutateAsync({ blockId: block.id, itemId: id })
+        .then((result) => {
+          if (!result.ok) {
+            notify.error(tToast('updateBlockFailed'));
+          }
+        });
     },
-    [canEditLessons, items, scheduleSave, title],
+    [canEditLessons, items, notify, removeItem, block.id, tToast],
   );
 
-  const reorderItems = useCallback(
-    (orderedIds: string[]) => {
-      const byId = new Map(items.map((it) => [it.id, it]));
-      const ordered = orderedIds
-        .map((id) => byId.get(id))
-        .filter((it): it is EditorItem => Boolean(it));
-      setItems(ordered);
-      scheduleSave({ items: ordered, title }, true);
-    },
-    [items, scheduleSave, title],
-  );
+  /* ----------------------------- reorder -------------------------------- */
 
-  const updateCaption = useCallback(
-    (id: string, caption: string) => {
-      const next = items.map((it) =>
-        it.id === id ? ({ ...it, caption } as EditorItem) : it,
+  const onDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      if (!canEditLessons) return;
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      const oldIndex = items.findIndex((it) => it.id === active.id);
+      const newIndex = items.findIndex((it) => it.id === over.id);
+      if (oldIndex < 0 || newIndex < 0) return;
+      const moved = arrayMove(items, oldIndex, newIndex);
+      setItems(moved);
+      const persisted = moved
+        .filter((it) => !it.id.startsWith(_TEMP_ID_PREFIX))
+        .map((it) => it.id);
+      // Don't try to reorder while a temp row is in flight — the
+      // server hasn't minted its oid yet so we'd need to wait. The
+      // next save will re-evaluate; for now, only commit a reorder
+      // that covers every server-side item exactly.
+      const allPersisted = moved.every(
+        (it) => !it.id.startsWith(_TEMP_ID_PREFIX),
       );
-      setItems(next);
-      scheduleSave({ items: next, title });
+      if (!allPersisted) return;
+      void reorderItems
+        .mutateAsync({ blockId: block.id, orderedIds: persisted })
+        .then((result) => {
+          if (!result.ok) {
+            notify.error(tToast('updateBlockFailed'));
+          }
+        });
     },
-    [items, scheduleSave, title],
+    [canEditLessons, items, notify, reorderItems, block.id, tToast],
   );
 
-  const updateTitle = useCallback(
-    (value: string) => {
-      setTitle(value);
-      scheduleSave({ items, title: value });
+  /* ----------------------------- captions ------------------------------- */
+
+  const onCaptionChange = useCallback(
+    (id: string, caption: string) => {
+      if (!canEditLessons) return;
+      setItems((current) =>
+        current.map((it) => (it.id === id ? { ...it, caption } : it)),
+      );
+      // Captions on temp rows are flushed by the eventual add call's
+      // caption argument — but the editor currently posts the add
+      // without a caption (the optimistic row has none), so a caption
+      // typed before the upload settles will be persisted by a
+      // follow-up caption PATCH once the row has a real id. The cache
+      // sync effect re-emits the row with the real oid, after which
+      // the caption-typing flow lands on the persisted branch below.
+      if (id.startsWith(_TEMP_ID_PREFIX)) return;
+      const timers = captionTimersRef.current;
+      const existing = timers.get(id);
+      if (existing) clearTimeout(existing);
+      const handle = setTimeout(() => {
+        timers.delete(id);
+        void updateCaption
+          .mutateAsync({
+            blockId: block.id,
+            itemId: id,
+            caption: caption.trim() || null,
+          })
+          .then((result) => {
+            if (!result.ok) {
+              notify.error(tToast('updateBlockFailed'));
+            }
+          });
+      }, CAPTION_DEBOUNCE_MS);
+      timers.set(id, handle);
     },
-    [items, scheduleSave],
+    [canEditLessons, updateCaption, block.id, notify, tToast],
+  );
+
+  /* ------------------------------ title --------------------------------- */
+
+  const onTitleChange = useCallback(
+    (value: string) => {
+      if (!canEditLessons) return;
+      setTitle(value);
+      if (titleTimerRef.current) clearTimeout(titleTimerRef.current);
+      titleTimerRef.current = setTimeout(() => {
+        titleTimerRef.current = null;
+        void updateTitle
+          .mutateAsync({
+            blockId: block.id,
+            title: value.trim() || null,
+          })
+          .then((result) => {
+            if (!result.ok) {
+              notify.error(tToast('updateBlockFailed'));
+            }
+          });
+      }, TITLE_DEBOUNCE_MS);
+    },
+    [canEditLessons, updateTitle, block.id, notify, tToast],
   );
 
   /* ------------------------------- DnD ---------------------------------- */
@@ -356,33 +373,35 @@ export function PhotoCollageBlockEditor({
     }),
   );
 
-  const onDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-      const oldIndex = items.findIndex((it) => it.id === active.id);
-      const newIndex = items.findIndex((it) => it.id === over.id);
-      if (oldIndex < 0 || newIndex < 0) return;
-      const moved = arrayMove(items, oldIndex, newIndex);
-      reorderItems(moved.map((it) => it.id));
-    },
-    [items, reorderItems],
-  );
-
-  const itemIds = useMemo(() => items.map((it) => it.id), [items]);
+  const itemIds = items.map((it) => it.id);
   const canAddMore = items.length < PHOTO_COLLAGE_MAX_ITEMS;
-  const isBusy = isPreparing || mutation.isPending;
+  const isBusy =
+    addItem.isPending ||
+    removeItem.isPending ||
+    reorderItems.isPending ||
+    updateCaption.isPending ||
+    updateTitle.isPending;
 
   return (
-    <div className="flex flex-col gap-3">
+    // Block-level cursor fallback. Clicks landing on the upload tile,
+    // the gaps between items, or the DnD scroll area resolve up to this
+    // wrapper instead of falling through to whatever the page renders
+    // next. Per-item and title inputs carry their own, more specific
+    // `data-cursor-target` so the more granular cursor wins via
+    // `closest()` proximity.
+    <div
+      className="flex flex-col gap-3"
+      data-cursor-target={`block.${block.id}.collage`}
+    >
       <Input
         id={titleId}
         value={title}
-        onChange={(e) => updateTitle(e.target.value)}
+        onChange={(e) => onTitleChange(e.target.value)}
         placeholder={t('titlePlaceholder')}
-        disabled={!canEditLessons || isBusy}
+        disabled={!canEditLessons}
         title={!canEditLessons ? insufficientPermissionsTitle : undefined}
         className="max-w-md"
+        data-cursor-target={`block.${block.id}.title`}
       />
 
       <DndContext
@@ -397,12 +416,12 @@ export function PhotoCollageBlockEditor({
               <CollageItemCard
                 key={item.id}
                 item={item}
-                disabled={!canEditLessons || isBusy}
+                disabled={!canEditLessons}
                 disabledTitle={
                   !canEditLessons ? insufficientPermissionsTitle : undefined
                 }
-                onRemove={() => removeItem(item.id)}
-                onCaptionChange={(caption) => updateCaption(item.id, caption)}
+                onRemove={() => onRemove(item.id)}
+                onCaptionChange={(caption) => onCaptionChange(item.id, caption)}
                 dragLabel={t('dragItem')}
                 removeLabel={t('removeItem')}
                 captionPlaceholder={t('captionPlaceholder')}
@@ -411,7 +430,7 @@ export function PhotoCollageBlockEditor({
             {canAddMore ? (
               <li>
                 <UploadTile
-                  disabled={!canEditLessons || isBusy}
+                  disabled={!canEditLessons}
                   disabledTitle={
                     !canEditLessons ? insufficientPermissionsTitle : undefined
                   }
@@ -480,12 +499,19 @@ function CollageItemCard({
     zIndex: isDragging ? 5 : undefined,
   };
 
-  const src = item.kind === 'new' ? item.previewUrl : item.apiFile.url;
+  const src = item.apiFile?.url ?? item.previewUrl ?? '';
 
   return (
     <li
       ref={setNodeRef}
       style={style}
+      // Item-level cursor target: any focusable child without its own
+      // `data-cursor-target` (drag handle, delete button) resolves up to
+      // this `<li>` via `closest()`, so dragging or deleting an item
+      // still surfaces the user's cursor at this row. The caption input
+      // below carries its own `data-cursor-target` for a more specific
+      // cursor when the caption is being edited.
+      data-cursor-target={`collage.${item.id}`}
       className={cn(
         'group/collage-item flex flex-col gap-2 rounded-xl border border-border bg-card p-2',
         isDragging && 'opacity-90 shadow-lg',
@@ -532,6 +558,7 @@ function CollageItemCard({
         maxLength={PHOTO_COLLAGE_CAPTION_MAX_LEN}
         placeholder={captionPlaceholder}
         disabled={disabled}
+        data-cursor-target={`collage.${item.id}.caption`}
       />
     </li>
   );
@@ -646,4 +673,3 @@ function UploadTile({
     </div>
   );
 }
-

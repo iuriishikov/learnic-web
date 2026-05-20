@@ -4,6 +4,7 @@
   "settings": "Настройки",
   "notifications": "Уведомления",
   "openMenu": "Открыть меню",
+  "closeMenu": "Закрыть меню",
   "userAvatar": "Открыть профиль",
   "breadcrumbs": {
     "ariaLabel": "Хлебные крошки",

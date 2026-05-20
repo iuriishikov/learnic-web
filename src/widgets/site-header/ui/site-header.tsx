@@ -5,10 +5,8 @@ import {
   BookOpenIcon,
   ChevronDownIcon,
   FileTextIcon,
-  MenuIcon,
   PlayCircleIcon,
   SparklesIcon,
-  XIcon,
 } from 'lucide-react';
 import {
   AnimatePresence,
@@ -25,6 +23,14 @@ import { cn } from '@/shared/lib/utils';
 import { BrandMark, type BrandMarkTone } from '@/shared/ui/brand-mark';
 import { Button } from '@/shared/ui/button';
 import {
+  MobileMenu,
+  MobileMenuBody,
+  MobileMenuContent,
+  MobileMenuFooter,
+  MobileMenuHeader,
+  MobileMenuTrigger,
+} from '@/shared/ui/mobile-menu';
+import {
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
@@ -33,13 +39,6 @@ import {
   NavigationMenuTrigger,
 } from '@/shared/ui/navigation-menu';
 import { Separator } from '@/shared/ui/separator';
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetTitle,
-  SheetTrigger,
-} from '@/shared/ui/sheet';
 
 type NavKey = 'products' | 'services' | 'pricing' | 'resources' | 'about';
 
@@ -90,10 +89,6 @@ export function SiteHeader({
 
   const logInToneClasses = isLight
     ? 'border-brand-foreground/40 bg-transparent text-brand-foreground hover:bg-brand-foreground/10 hover:text-brand-foreground'
-    : '';
-
-  const mobileTriggerToneClasses = isLight
-    ? 'text-brand-foreground hover:bg-brand-foreground/10 hover:text-brand-foreground'
     : '';
 
   const closeMobile = () => setMobileOpen(false);
@@ -179,26 +174,14 @@ export function SiteHeader({
           </Button>
         </div>
 
-        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn('size-10 md:hidden', mobileTriggerToneClasses)}
-                aria-label={t('openMenu')}
-              />
-            }
-          >
-            <MenuIcon className="size-6" />
-          </SheetTrigger>
-          <SheetContent
-            side="right"
-            showCloseButton={false}
-            className="flex flex-col gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-md"
-          >
-            <SheetTitle className="sr-only">{t('openMenu')}</SheetTitle>
-            <MobileMenu
+        <MobileMenu open={mobileOpen} onOpenChange={setMobileOpen}>
+          <MobileMenuTrigger
+            aria-label={t('openMenu')}
+            tone={isLight ? 'light' : 'default'}
+            hideFrom="md"
+          />
+          <MobileMenuContent srTitle={t('openMenu')}>
+            <SiteMobileMenuContent
               brand={t('brand')}
               megaMenuItems={megaMenuItems}
               mobileFooterColumns={mobileFooterColumns}
@@ -207,14 +190,14 @@ export function SiteHeader({
               logInLabel={t('logIn')}
               signUpLabel={t('signUp')}
             />
-          </SheetContent>
-        </Sheet>
+          </MobileMenuContent>
+        </MobileMenu>
       </div>
     </header>
   );
 }
 
-type MobileMenuProps = {
+type SiteMobileMenuContentProps = {
   brand: string;
   megaMenuItems: MegaMenuItem[];
   mobileFooterColumns: MobileFooterColumn[];
@@ -227,7 +210,7 @@ type MobileMenuProps = {
 const EASE_OUT_EXPO = [0.22, 1, 0.36, 1] as const;
 const EASE_IN_QUAD = [0.4, 0, 1, 1] as const;
 
-function MobileMenu({
+function SiteMobileMenuContent({
   brand,
   megaMenuItems,
   mobileFooterColumns,
@@ -235,7 +218,7 @@ function MobileMenu({
   closeLabel,
   logInLabel,
   signUpLabel,
-}: MobileMenuProps) {
+}: SiteMobileMenuContentProps) {
   const t = useTranslations('home.header');
   const reduceMotion = useReducedMotion();
   const [openKey, setOpenKey] = useState<NavKey | null>(null);
@@ -276,8 +259,8 @@ function MobileMenu({
   };
 
   return (
-    <div className="flex h-full flex-col bg-background">
-      <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-4">
+    <>
+      <MobileMenuHeader closeAriaLabel={closeLabel}>
         <Link
           href="/"
           onClick={onNavigate}
@@ -286,21 +269,9 @@ function MobileMenu({
         >
           <BrandMark label={brand} size="md" />
         </Link>
-        <SheetClose
-          render={
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-10 -mr-2 text-muted-foreground hover:text-foreground"
-              aria-label={closeLabel}
-            />
-          }
-        >
-          <XIcon className="size-5" />
-        </SheetClose>
-      </div>
+      </MobileMenuHeader>
 
-      <div className="flex-1 overflow-y-auto overscroll-contain">
+      <MobileMenuBody>
         <nav className="flex flex-col px-2 py-3">
           {NAV_ITEMS.map((item) =>
             item.hasMenu ? (
@@ -353,14 +324,9 @@ function MobileMenu({
             </ul>
           ))}
         </div>
-      </div>
+      </MobileMenuBody>
 
-      <div
-        className={cn(
-          'flex shrink-0 flex-col gap-2 border-t border-border bg-background px-5 pt-4',
-          'pb-[max(env(safe-area-inset-bottom),1rem)]',
-        )}
-      >
+      <MobileMenuFooter>
         <Button
           className="h-11 w-full rounded-lg bg-brand text-[15px] font-medium text-brand-foreground hover:bg-brand/90"
           render={<Link href="/register" onClick={onNavigate} />}
@@ -376,8 +342,8 @@ function MobileMenu({
         >
           {logInLabel}
         </Button>
-      </div>
-    </div>
+      </MobileMenuFooter>
+    </>
   );
 }
 

@@ -89,6 +89,12 @@ export function FloatingBubbleMenu({ editor }: { editor: Editor }) {
         return true;
       }}
     >
+      {/* The bubble menu renders in a portal at <body>, so focus moving
+          here would otherwise leave the data-cursor-target ancestor
+          chain and trip the cursors-presence "leave" handler. Marking
+          the wrapper as keepalive tells the provider to treat this as
+          still being on the parent field. */}
+      <div data-cursor-keepalive="rich-editor.bubble-menu" className="contents">
       <AnimatePresence mode="wait" initial={false}>
         {linkMode ? (
           <motion.div
@@ -202,6 +208,7 @@ export function FloatingBubbleMenu({ editor }: { editor: Editor }) {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </BubbleMenu>
   );
 }

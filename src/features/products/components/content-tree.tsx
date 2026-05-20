@@ -410,6 +410,8 @@ function SortableModule({
             }
           />
         }
+        navCursorKey={`module.${module.id}.nav`}
+        editCursorKey={`module.${module.id}.title`}
         emphasized
       />
 
@@ -572,6 +574,8 @@ function SortableLesson({
             canDelete={canEditLessons}
           />
         }
+        navCursorKey={`lesson.${lesson.id}.nav`}
+        editCursorKey={`lesson.${lesson.id}.title`}
       />
     </li>
   );
@@ -596,6 +600,10 @@ type RowProps = {
   onCommitRename: (title: string) => void;
   onCancelRename: () => void;
   actions: React.ReactNode;
+  /** Stable key for the activation button (sent on focus as "viewing"). */
+  navCursorKey?: string;
+  /** Stable key for the inline-rename input (sent on focus as "editing"). */
+  editCursorKey?: string;
 };
 
 function Row({
@@ -612,6 +620,8 @@ function Row({
   onCommitRename,
   onCancelRename,
   actions,
+  navCursorKey,
+  editCursorKey,
 }: RowProps) {
   return (
     <div
@@ -633,12 +643,15 @@ function Row({
           initial={title}
           onCommit={onCommitRename}
           onCancel={onCancelRename}
+          cursorTargetKey={editCursorKey}
         />
       ) : (
         <button
           type="button"
           onClick={onActivate}
           onDoubleClick={canStartRename ? onStartRename : undefined}
+          data-cursor-target={navCursorKey}
+          data-cursor-action={navCursorKey ? 'viewing' : undefined}
           className={cn(
             'flex-1 truncate px-1 py-1 text-left text-sm',
             !onActivate && 'cursor-default',
@@ -658,10 +671,12 @@ function RowRename({
   initial,
   onCommit,
   onCancel,
+  cursorTargetKey,
 }: {
   initial: string;
   onCommit: (value: string) => void;
   onCancel: () => void;
+  cursorTargetKey?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState(initial);
@@ -696,6 +711,7 @@ function RowRename({
         else onCancel();
       }}
       onKeyDown={onKeyDown}
+      data-cursor-target={cursorTargetKey}
       className="h-7 min-w-0 flex-1 rounded border border-ring bg-background px-1.5 text-sm text-foreground outline-none ring-2 ring-ring/30"
     />
   );

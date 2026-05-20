@@ -151,6 +151,7 @@ export function SingleChoiceBlockEditor({
             placeholder={t('option.placeholder')}
             removeLabel={t('option.remove')}
             correctLabel={t('option.markCorrect')}
+            cursorTargetKey={`block.${blockId}.option.${row._localId}`}
           />
         ))}
       </ul>
@@ -251,6 +252,7 @@ export function MultiChoiceBlockEditor({
             placeholder={t('option.placeholder')}
             removeLabel={t('option.remove')}
             correctLabel={t('option.markCorrect')}
+            cursorTargetKey={`block.${blockId}.option.${row._localId}`}
           />
         ))}
       </ul>
@@ -294,8 +296,6 @@ export function TextInputBlockEditor({
   );
   const [caseSens, setCaseSens] = useState(caseSensitive);
   const [trim, setTrim] = useState(trimWhitespace);
-  void blockId;
-
   const commit = useCallback(
     (
       nextRows: TextInputRow[],
@@ -349,6 +349,7 @@ export function TextInputBlockEditor({
               onChange={(e) => updateRow(idx, e.target.value)}
               onBlur={() => commit(rows, caseSens, trim)}
               className="h-9 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
+              data-cursor-target={`block.${blockId}.row.${row._localId}.answer`}
             />
             {rows.length > 1 ? (
               <Button
@@ -429,6 +430,8 @@ type OptionRowProps = {
   placeholder: string;
   removeLabel: string;
   correctLabel: string;
+  /** Optional data-cursor-target for the label input. */
+  cursorTargetKey?: string;
 };
 
 function OptionRow({
@@ -443,6 +446,7 @@ function OptionRow({
   placeholder,
   removeLabel,
   correctLabel,
+  cursorTargetKey,
 }: OptionRowProps) {
   return (
     <li
@@ -481,6 +485,7 @@ function OptionRow({
         onChange={(e) => onLabelChange(e.target.value)}
         onBlur={onLabelCommit}
         className="h-9 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
+        data-cursor-target={cursorTargetKey}
       />
       {canRemove ? (
         <Button

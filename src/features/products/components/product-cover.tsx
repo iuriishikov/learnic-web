@@ -9,6 +9,7 @@ import type { HTMLAttributes, ReactNode } from 'react';
 import { useObjectUrl } from '@/shared/hooks/use-object-url';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
+import { Image } from '@/shared/ui/image';
 import { Placeholder } from '@/shared/ui/placeholder';
 import { Skeleton } from '@/shared/ui/skeleton';
 
@@ -142,11 +143,20 @@ export function ProductCover({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={FADE}
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${query.data.cover?.url})` }}
-        role="img"
-        aria-label={t('alt')}
-      />
+        className="absolute inset-0"
+      >
+        <Image
+          src={query.data.cover.url}
+          alt={t('alt')}
+          fill
+          sizes="(max-width: 768px) 100vw, 50vw"
+          // Cover URLs come from signed storage hosts (S3-style) that aren't
+          // listed in next.config's remotePatterns. The previous CSS
+          // background-image approach didn't go through the image optimizer
+          // either — preserve that.
+          unoptimized
+        />
+      </motion.div>
     );
   } else {
     body = (

@@ -1,6 +1,7 @@
 import type { Tag } from '@/features/product-tags';
 import { toApiFile, type FileResponse } from '@/shared/types/user';
 
+import type { LessonBlock } from '../model/draft';
 import type {
   Product,
   ProductAuthor,
@@ -106,6 +107,38 @@ export type MutationResult =
 
 export type CreatedResult =
   | { ok: true; id: string }
+  | {
+      ok: false;
+      reason: MutationFailureReason;
+      message?: string;
+      quota?: QuotaExceededDetails;
+      wrongContentType?: WrongContentTypeDetails;
+    };
+
+// Returned by mutating endpoints that now echo the full `ProductSchema`
+// in their 2xx body — cover set/remove, publish, archive, unarchive.
+// On success the caller can splice the entity straight into the
+// `productKey(id)` cache, skipping a follow-up GET.
+export type ProductMutationResult =
+  | { ok: true; product: Product }
+  | {
+      ok: false;
+      reason: MutationFailureReason;
+      message?: string;
+    };
+
+// Returned by mutating endpoints that now echo the full block schema
+// (`FileBlockSchema`, `VideoFileBlockSchema`, `PhotoCollageBlockSchema`)
+// in their 2xx body — file/video-file/photo-collage add + update.
+// On success the caller can merge the entity straight into the
+// `courseDraftKey(id)` cache, skipping a follow-up GET.
+//
+// `block` is optional so legacy 204-only responses (e.g. an older
+// backend that hasn't been redeployed with the schema-returning routes)
+// still surface as `ok: true` — the caller falls back to invalidating
+// `courseDraftKey` instead of breaking the editor with a toast.
+export type BlockMutationResult =
+  | { ok: true; block?: LessonBlock }
   | {
       ok: false;
       reason: MutationFailureReason;

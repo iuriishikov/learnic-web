@@ -524,7 +524,6 @@ export function AddFileBlockDialog({
       title: title.trim() || null,
     });
     if (result.ok) {
-      notify.success(tToast('addBlockSucceeded'));
       handleOpenChange(false);
       return;
     }
@@ -640,7 +639,6 @@ export function AddVideoFileBlockDialog({
       title: title.trim() || null,
     });
     if (result.ok) {
-      notify.success(tToast('addBlockSucceeded'));
       handleOpenChange(false);
       return;
     }
@@ -842,7 +840,6 @@ export function AddPhotoCollageBlockDialog({
       title: title.trim() || null,
     });
     if (result.ok) {
-      notify.success(tToast('addBlockSucceeded'));
       handleOpenChange(false);
       return;
     }

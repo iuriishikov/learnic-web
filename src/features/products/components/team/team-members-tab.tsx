@@ -373,6 +373,7 @@ export function TeamMembersTab({
                 placeholder={t('search.placeholder')}
                 aria-label={t('search.ariaLabel')}
                 className="h-9 bg-background pl-9 text-sm"
+                data-cursor-target="product.team.members.search"
               />
             </div>
             <NavTabs

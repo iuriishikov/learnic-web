@@ -199,6 +199,7 @@ function CreateRoleForm({
           required
           maxLength={100}
           className="h-10 text-sm"
+          data-cursor-target="product.team.role.name"
         />
       </div>
 

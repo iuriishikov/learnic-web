@@ -1,6 +1,6 @@
 'use client';
 
-import { MenuIcon, SettingsIcon } from 'lucide-react';
+import { SettingsIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
@@ -11,8 +11,15 @@ import { Link, usePathname } from '@/shared/config/i18n/navigation';
 import { cn } from '@/shared/lib/utils';
 import { BrandMark } from '@/shared/ui/brand-mark';
 import { Button } from '@/shared/ui/button';
+import {
+  MobileMenu,
+  MobileMenuBody,
+  MobileMenuContent,
+  MobileMenuFooter,
+  MobileMenuHeader,
+  MobileMenuTrigger,
+} from '@/shared/ui/mobile-menu';
 import { NavTabsRouter, type NavTabRoute } from '@/shared/ui/nav-tabs-router';
-import { Sheet, SheetContent, SheetTrigger } from '@/shared/ui/sheet';
 import { UserAvatar } from '@/shared/ui/user-avatar';
 
 import { BrandSuffix } from './brand-suffix';
@@ -114,82 +121,72 @@ export function AppHeader({
             <UserAvatar user={null} size="lg" />
           )}
 
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-10 lg:hidden"
-                  aria-label={t('openMenu')}
-                />
-              }
+          <MobileMenu open={mobileOpen} onOpenChange={setMobileOpen}>
+            <MobileMenuTrigger
+              aria-label={t('openMenu')}
+              hideFrom="lg"
+            />
+            <MobileMenuContent
+              srTitle={t('openMenu')}
+              className="data-[side=right]:sm:max-w-sm"
             >
-              <MenuIcon className="size-5" />
-            </SheetTrigger>
-            <SheetContent
-              side="right"
-              className="flex w-[85vw] max-w-sm flex-col gap-0 p-6"
-            >
-              <div className="mb-2 flex items-center gap-2">
+              <MobileMenuHeader closeAriaLabel={t('closeMenu')}>
                 <BrandMark label={t('brand')} size="md" />
-              </div>
-              <div className="mb-6">
+              </MobileMenuHeader>
+              <MobileMenuBody className="flex flex-col gap-6 px-5 py-6">
                 <BrandSuffix variant="block">{brandSuffix}</BrandSuffix>
-              </div>
-              {actions ? (
-                <div className="mb-6 flex flex-col gap-2">{actions}</div>
-              ) : null}
-              {navItems.length > 0 ? (
-                <nav className="flex flex-col">
-                  {navItems.map((item) => {
-                    const active = isActive(item);
-                    return (
+                {actions ? (
+                  <div className="flex flex-col gap-2">{actions}</div>
+                ) : null}
+                {navItems.length > 0 ? (
+                  <nav className="flex flex-col">
+                    {navItems.map((item) => {
+                      const active = isActive(item);
+                      return (
+                        <Link
+                          key={item.key}
+                          href={item.href}
+                          onClick={() => setMobileOpen(false)}
+                          className={cn(
+                            'rounded-lg px-2 py-3 text-base font-medium transition-colors',
+                            active
+                              ? 'bg-muted text-foreground'
+                              : 'text-foreground hover:bg-muted',
+                          )}
+                        >
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </nav>
+                ) : null}
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      'h-11 w-full justify-center gap-2 rounded-lg text-[15px] font-medium',
+                      isSettingsActive &&
+                        'bg-muted text-foreground dark:bg-input/50',
+                    )}
+                    aria-current={isSettingsActive ? 'page' : undefined}
+                    render={
                       <Link
-                        key={item.key}
-                        href={item.href}
+                        href="/settings"
                         onClick={() => setMobileOpen(false)}
-                        className={cn(
-                          'rounded-lg px-2 py-3 text-base font-medium transition-colors',
-                          active
-                            ? 'bg-muted text-foreground'
-                            : 'text-foreground hover:bg-muted',
-                        )}
-                      >
-                        {item.label}
-                      </Link>
-                    );
-                  })}
-                </nav>
-              ) : null}
-              <div className="mt-6 flex flex-col gap-2">
-                <Button
-                  variant="outline"
-                  className={cn(
-                    'h-11 w-full justify-center gap-2 rounded-lg text-[15px] font-medium',
-                    isSettingsActive &&
-                      'bg-muted text-foreground dark:bg-input/50',
-                  )}
-                  aria-current={isSettingsActive ? 'page' : undefined}
-                  render={
-                    <Link
-                      href="/settings"
-                      onClick={() => setMobileOpen(false)}
-                    />
-                  }
-                  nativeButton={false}
-                >
-                  <SettingsIcon className="size-4" />
-                  {t('settings')}
-                </Button>
-              </div>
-              {mobileActions ? (
-                <div className="mt-auto border-t border-border pt-6">
-                  {mobileActions}
+                      />
+                    }
+                    nativeButton={false}
+                  >
+                    <SettingsIcon className="size-4" />
+                    {t('settings')}
+                  </Button>
                 </div>
+              </MobileMenuBody>
+              {mobileActions ? (
+                <MobileMenuFooter>{mobileActions}</MobileMenuFooter>
               ) : null}
-            </SheetContent>
-          </Sheet>
+            </MobileMenuContent>
+          </MobileMenu>
         </div>
       </div>
     </header>
@@ -219,4 +216,3 @@ function findLongestMatchKey(
   }
   return bestKey;
 }
-

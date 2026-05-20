@@ -1,0 +1,11 @@
+{
+  "actions": {
+    "editing": "Редактирует",
+    "typing": "Печатает…",
+    "viewing": "Смотрит",
+    "commenting": "Комментирует"
+  },
+  "fallback": {
+    "unknownUser": "Гость"
+  }
+}

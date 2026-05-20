@@ -107,11 +107,13 @@ export function ProductDescriptionSection({
           label={t('tagsTitle')}
           description={t('tagsHint', { max: PRODUCT_TAGS_MAX })}
         >
-          <TagsInput
-            productId={productId}
-            readOnly={readOnly}
-            disabledTitle={insufficientTitle}
-          />
+          <div data-cursor-target="product.tags">
+            <TagsInput
+              productId={productId}
+              readOnly={readOnly}
+              disabledTitle={insufficientTitle}
+            />
+          </div>
         </EditorRow>
         <EditorRow label={t('bodyTitle')} description={t('bodyHint')}>
           <DescriptionEditor
@@ -166,6 +168,7 @@ function NameField({
       disabled={readOnly}
       title={readOnly ? disabledTitle : undefined}
       className="h-10 text-base"
+      data-cursor-target="product.title"
     />
   );
 }
@@ -192,17 +195,19 @@ function DescriptionEditor({
   });
 
   return (
-    <RichEditor
-      // The editor seeds itself from `defaultValue` on mount and owns its
-      // state from then on. Re-keying on `productId` resets if the user
-      // navigates between products without unmounting the section.
-      key={productId}
-      defaultValue={description}
-      onChange={readOnly ? undefined : flush}
-      editable={!readOnly}
-      placeholder={t('placeholder')}
-      editorClassName="min-h-[260px]"
-    />
+    <div data-cursor-target="product.description">
+      <RichEditor
+        // The editor seeds itself from `defaultValue` on mount and owns its
+        // state from then on. Re-keying on `productId` resets if the user
+        // navigates between products without unmounting the section.
+        key={productId}
+        defaultValue={description}
+        onChange={readOnly ? undefined : flush}
+        editable={!readOnly}
+        placeholder={t('placeholder')}
+        editorClassName="min-h-[260px]"
+      />
+    </div>
   );
 }
 
@@ -237,7 +242,7 @@ function HoursStepper({
   );
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2" data-cursor-target="product.duration">
       <NumberField
         // Keying on the server value re-seeds the field after an external
         // change (rollback, WS event, etc.) without us having to wire a

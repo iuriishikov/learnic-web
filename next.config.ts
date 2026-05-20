@@ -33,6 +33,10 @@ const nextConfig: NextConfig = {
         destination: `${API_URL}/products/:productId/events`,
       },
       {
+        source: '/api/products/:productId/cursors',
+        destination: `${API_URL}/products/:productId/cursors`,
+      },
+      {
         source: '/api/users/me/confirm-events',
         destination: `${API_URL}/users/me/confirm-events`,
       },

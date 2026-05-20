@@ -175,19 +175,26 @@ export function useChangeProductPriceMutation(productId: string) {
   });
 }
 
+// The five product-state mutations below all consume the full
+// `ProductSchema` body the backend echoes on success. We splice that
+// entity straight into the `productKey(id)` cache — no follow-up GET,
+// no `invalidateQueries` for the detail view. `myProducts` is a
+// separate paginated list whose sort key (`status`) shifts on
+// archive/unarchive, so we keep `invalidateQueries(myProductsKey)`
+// there to drive a list refetch.
 export function useSetProductCoverMutation(productId: string) {
   const qc = useQueryClient();
   const fail = useFailureToast();
-  return useMutation<{ fileId: string }, Error, { file: File }>({
+  return useMutation<Product, Error, { file: File }>({
     mutationFn: async ({ file }) => {
       const formData = new FormData();
       formData.append('file', file);
       const result = await setProductCoverAction(productId, formData);
       if (!result.ok) throw new Error(result.reason);
-      return { fileId: result.fileId };
+      return result.product;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: productKey(productId) });
+    onSuccess: (product) => {
+      qc.setQueryData<Product>(productKey(productId), product);
     },
     onError: () => fail('uploadCoverFailed'),
   });
@@ -196,13 +203,14 @@ export function useSetProductCoverMutation(productId: string) {
 export function useRemoveProductCoverMutation(productId: string) {
   const qc = useQueryClient();
   const fail = useFailureToast();
-  return useMutation<void, Error, void>({
+  return useMutation<Product, Error, void>({
     mutationFn: async () => {
       const result = await removeProductCoverAction({ productId });
       if (!result.ok) throw new Error(result.reason);
+      return result.product;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: productKey(productId) });
+    onSuccess: (product) => {
+      qc.setQueryData<Product>(productKey(productId), product);
     },
     onError: () => fail('removeCoverFailed'),
   });
@@ -211,13 +219,14 @@ export function useRemoveProductCoverMutation(productId: string) {
 export function usePublishProductMutation(productId: string) {
   const qc = useQueryClient();
   const fail = useFailureToast();
-  return useMutation<void, Error, void>({
+  return useMutation<Product, Error, void>({
     mutationFn: async () => {
       const result = await publishProductAction({ productId });
       if (!result.ok) throw new Error(result.reason);
+      return result.product;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: productKey(productId) });
+    onSuccess: (product) => {
+      qc.setQueryData<Product>(productKey(productId), product);
     },
     onError: () => fail('publishFailed'),
   });
@@ -226,13 +235,14 @@ export function usePublishProductMutation(productId: string) {
 export function useArchiveProductMutation(productId: string) {
   const qc = useQueryClient();
   const fail = useFailureToast();
-  return useMutation<void, Error, void>({
+  return useMutation<Product, Error, void>({
     mutationFn: async () => {
       const result = await archiveProductAction({ productId });
       if (!result.ok) throw new Error(result.reason);
+      return result.product;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: productKey(productId) });
+    onSuccess: (product) => {
+      qc.setQueryData<Product>(productKey(productId), product);
       qc.invalidateQueries({ queryKey: myProductsKey });
     },
     onError: () => fail('archiveFailed'),
@@ -242,13 +252,14 @@ export function useArchiveProductMutation(productId: string) {
 export function useUnarchiveProductMutation(productId: string) {
   const qc = useQueryClient();
   const fail = useFailureToast();
-  return useMutation<void, Error, void>({
+  return useMutation<Product, Error, void>({
     mutationFn: async () => {
       const result = await unarchiveProductAction({ productId });
       if (!result.ok) throw new Error(result.reason);
+      return result.product;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: productKey(productId) });
+    onSuccess: (product) => {
+      qc.setQueryData<Product>(productKey(productId), product);
       qc.invalidateQueries({ queryKey: myProductsKey });
     },
     onError: () => fail('unarchiveFailed'),

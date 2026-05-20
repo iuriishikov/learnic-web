@@ -28,8 +28,14 @@ import {
   useState,
 } from 'react';
 
+import {
+  CursorsProvider,
+  EditorCursorsLayer,
+  type ResolveCursorUser,
+} from '@/features/cursors-presence';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
+import type { CollabUser } from '@/shared/ui/collaboration-cursor';
 import { SectionNav, type SectionNavItem } from '@/shared/ui/section-nav';
 import {
   Sheet,
@@ -81,7 +87,7 @@ import {
   useSetProductCoverMutation,
 } from '../api/use-product-mutations';
 import { useProductPermissions } from '../api/use-product-permissions';
-import { useProductRoles } from '../api/use-team';
+import { useProductCollaborations, useProductRoles } from '../api/use-team';
 
 import {
   ContentTree,
@@ -184,6 +190,31 @@ export function ProductEditorView({
   const removeCover = useRemoveProductCoverMutation(product.id);
 
   const rolesQuery = useProductRoles(product.id);
+  const collabsQuery = useProductCollaborations(product.id);
+
+  // Map every known user (owner + collaborators) into the shape
+  // expected by `<CollaborationCursor>`. The resolver hands back
+  // a `CollabUser` for any id the cursor channel reports — the
+  // channel layer falls back to an "anonymous" rendering for
+  // ids it can't map.
+  const resolveCursorUser = useMemo<ResolveCursorUser>(() => {
+    const lookup = new Map<string, CollabUser>();
+    lookup.set(product.author.id, {
+      id: product.author.id,
+      name: product.author.fullName,
+    });
+    for (const collab of collabsQuery.data ?? []) {
+      if (!collab.collaborator) continue;
+      // `Collaborator` doesn't carry an avatar URL today — the
+      // cursor falls back to initials + the design-system avatar
+      // palette via `UserAvatar`, which is what we want anyway.
+      lookup.set(collab.collaborator.id, {
+        id: collab.collaborator.id,
+        name: collab.collaborator.fullName,
+      });
+    }
+    return (userId) => lookup.get(userId) ?? null;
+  }, [product.author.id, product.author.fullName, collabsQuery.data]);
 
   const [activeSection, setActiveSection] = useState<SectionKey>('content');
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -515,7 +546,9 @@ export function ProductEditorView({
   const titleText = product.title.trim().length > 0 ? product.title : t('untitled');
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] px-4 py-6 md:px-8 md:py-8">
+    <CursorsProvider productId={product.id}>
+      <EditorCursorsLayer resolveUser={resolveCursorUser} />
+      <div className="mx-auto w-full max-w-[1440px] px-4 py-6 md:px-8 md:py-8">
       {/* Cover */}
       <motion.div
         initial={reduceMotion ? false : { opacity: 0, y: 6 }}
@@ -839,7 +872,8 @@ export function ProductEditorView({
           </div>
         </SheetContent>
       </Sheet>
-    </div>
+      </div>
+    </CursorsProvider>
   );
 }
 

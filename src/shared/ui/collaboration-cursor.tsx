@@ -2,7 +2,13 @@
 
 import * as React from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import {
+  AnimatePresence,
+  animate as motionAnimate,
+  motion,
+  useMotionValue,
+  useReducedMotion,
+} from 'motion/react';
 
 import { cn } from '@/shared/lib/utils';
 import type { ApiFile } from '@/shared/types/user';
@@ -160,35 +166,139 @@ export function CollaborationCursor({
 }: CollaborationCursorProps) {
   const reduced = useReducedMotion();
   const isClient = useIsClient();
-  const [rect, setRect] = React.useState<Rect | null>(null);
   // Scope layoutIds so two cursors with overlapping user ids don't fight
   // for the same FLIP target inside Framer Motion's global layout group.
   const scopeId = React.useId();
 
   const element = resolveElement(target);
+  // `active` flips opacity/AnimatePresence — the only piece that needs to be
+  // React state. Position is handled entirely through motion values below.
+  const [active, setActive] = React.useState(false);
+  // Edge-aware label flipping. When the cursor sits too close to the right
+  // edge of the viewport, render the pill to the LEFT of the pointer instead
+  // of the default rightward layout — otherwise the pill is clipped by the
+  // portal's overflow.
+  const [labelOnLeft, setLabelOnLeft] = React.useState(false);
+  const [labelOnTop, setLabelOnTop] = React.useState(false);
+
+  // Motion values for the cursor pointer's translate(x, y) and for the
+  // field-highlight box. Updates go straight through `.set()` so scroll /
+  // resize listeners drive the GPU at 60fps without any React render or
+  // spring damping in the middle. The spring is reserved for the deliberate
+  // "the user just hopped to a different field" animation, fired imperatively
+  // via `animate()` when we detect a target swap.
+  const cursorX = useMotionValue(0);
+  const cursorY = useMotionValue(0);
+  const highlightTop = useMotionValue(0);
+  const highlightLeft = useMotionValue(0);
+  const highlightWidth = useMotionValue(0);
+  const highlightHeight = useMotionValue(0);
+
+  // Tracks the previous target element so we can tell "first measurement
+  // after mount" / "scroll update on same target" / "target changed" apart.
+  // - First mount: snap (no animation) so the cursor never appears at (0,0).
+  // - Same target, scroll/resize: snap (tight 1:1 with the page).
+  // - Target changed: spring across the gap (the only place we want easing).
+  const previousElementRef = React.useRef<HTMLElement | null>(null);
+
+  // Keep the latest anchor/offset around without re-running the layout
+  // effect every time they change. The effect only cares about `element`;
+  // everything else is read inside the closure via these refs. The refs
+  // get refreshed in a post-render effect so React 19's "no ref writes
+  // during render" rule stays happy; the one-frame staleness is invisible
+  // (the next scroll / resize tick already sees the fresh value).
+  const anchorRef = React.useRef(anchor);
+  const offsetRef = React.useRef(offset);
+  const reducedRef = React.useRef<boolean>(false);
+  React.useEffect(() => {
+    anchorRef.current = anchor;
+    offsetRef.current = offset;
+    reducedRef.current = reduced ?? false;
+  });
 
   React.useLayoutEffect(() => {
     if (!element) {
-      // Clearing the rect when the target detaches is unavoidable derived-state
-      // sync; the lint rule against `setState` in effects doesn't apply.
+      previousElementRef.current = null;
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setRect(null);
+      setActive(false);
       return;
     }
 
+    const isTargetSwap =
+      previousElementRef.current !== null &&
+      previousElementRef.current !== element;
+    previousElementRef.current = element;
+
     let frame = 0;
-    const measure = () => {
+    let firstMeasureDone = false;
+
+    const measure = (allowAnimate: boolean) => {
       const b = element.getBoundingClientRect();
-      setRect({ x: b.left, y: b.top, width: b.width, height: b.height });
+      const point = anchorPoint(b, anchorRef.current);
+      const nextX = point.x + offsetRef.current.x;
+      const nextY = point.y + offsetRef.current.y;
+      const nextTop = b.top - 3;
+      const nextLeft = b.left - 3;
+      const nextWidth = b.width + 6;
+      const nextHeight = b.height + 6;
+
+      if (allowAnimate && !reducedRef.current) {
+        motionAnimate(cursorX, nextX, POSITION_SPRING);
+        motionAnimate(cursorY, nextY, POSITION_SPRING);
+        motionAnimate(highlightTop, nextTop, POSITION_SPRING);
+        motionAnimate(highlightLeft, nextLeft, POSITION_SPRING);
+        motionAnimate(highlightWidth, nextWidth, POSITION_SPRING);
+        motionAnimate(highlightHeight, nextHeight, POSITION_SPRING);
+      } else {
+        cursorX.set(nextX);
+        cursorY.set(nextY);
+        highlightTop.set(nextTop);
+        highlightLeft.set(nextLeft);
+        highlightWidth.set(nextWidth);
+        highlightHeight.set(nextHeight);
+      }
+
+      // Edge-aware pill flip. The collapsed pill is capped at 260px and the
+      // expanded card is 220px — using the wider value here keeps both modes
+      // safely inside the viewport. `setState` is a no-op when the value
+      // doesn't change, so the React tree only re-renders on actual flips.
+      const vw =
+        typeof window !== 'undefined' ? window.innerWidth : Infinity;
+      const vh =
+        typeof window !== 'undefined' ? window.innerHeight : Infinity;
+      const PILL_MAX_W = 260;
+      const PILL_MAX_H = 220;
+      const PILL_OFFSET_X = 14;
+      const PILL_OFFSET_Y = 18;
+      const flipX = nextX + PILL_OFFSET_X + PILL_MAX_W > vw - 8;
+      const flipY = nextY + PILL_OFFSET_Y + PILL_MAX_H > vh - 8;
+      setLabelOnLeft(flipX);
+      setLabelOnTop(flipY);
     };
 
-    // Defer the initial measurement to the next frame so the setState is not
-    // synchronous in the effect body — same shape as the listener path below.
-    frame = requestAnimationFrame(measure);
+    // Initial measurement: snap on first mount, spring across target swap.
+    // The spring path also smooths the gap between fields when the same
+    // <CollaborationCursor> instance is reused with a new target prop.
+    frame = requestAnimationFrame(() => {
+      measure(isTargetSwap);
+      firstMeasureDone = true;
+      setActive(true);
+    });
 
+    // Scroll / resize / target-resize: snap. The spring is reserved for the
+    // intentional jump above. Tight 1:1 follow during scroll is the whole
+    // reason we're driving motion values instead of `animate={{ x, y }}`.
     const schedule = () => {
       cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(measure);
+      frame = requestAnimationFrame(() => {
+        if (!firstMeasureDone) {
+          measure(isTargetSwap);
+          firstMeasureDone = true;
+          setActive(true);
+          return;
+        }
+        measure(false);
+      });
     };
 
     const ro = new ResizeObserver(schedule);
@@ -202,19 +312,21 @@ export function CollaborationCursor({
       window.removeEventListener('scroll', schedule, true);
       window.removeEventListener('resize', schedule);
     };
-  }, [element]);
+  }, [
+    element,
+    cursorX,
+    cursorY,
+    highlightTop,
+    highlightLeft,
+    highlightWidth,
+    highlightHeight,
+  ]);
 
   if (!isClient) return null;
 
   const primary = users[0];
-  const active = Boolean(rect && primary);
+  const visible = active && Boolean(primary);
   const accent = primary ? userColor(primary) : FALLBACK_PALETTE[0];
-
-  const point = rect ? anchorPoint(rect, anchor) : null;
-  const cursorX = (point?.x ?? 0) + offset.x;
-  const cursorY = (point?.y ?? 0) + offset.y;
-
-  const positionTransition = reduced ? { duration: 0 } : POSITION_SPRING;
 
   return createPortal(
     <div
@@ -224,39 +336,44 @@ export function CollaborationCursor({
       )}
       style={{ zIndex }}
       aria-hidden
+      // Mark the entire portal as keepalive so a click on another
+      // user's pill (or anywhere on this layer) doesn't get treated by
+      // the cursors-presence provider as "the local user navigated away
+      // from their tracked field."
+      data-cursor-keepalive="collaboration-cursor.portal"
     >
       <AnimatePresence>
-        {active && rect && showFieldHighlight ? (
+        {visible && showFieldHighlight ? (
           <motion.div
             key="cc-highlight"
             className="absolute rounded-md"
             initial={{ opacity: 0 }}
-            animate={{
-              opacity: 1,
-              top: rect.y - 3,
-              left: rect.x - 3,
-              width: rect.width + 6,
-              height: rect.height + 6,
-            }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={positionTransition}
+            transition={
+              reduced ? { duration: 0 } : { duration: 0.18 }
+            }
             style={{
+              top: highlightTop,
+              left: highlightLeft,
+              width: highlightWidth,
+              height: highlightHeight,
               boxShadow: `0 0 0 2px ${accent}, 0 0 0 6px ${accent}22`,
             }}
           />
         ) : null}
 
-        {active ? (
+        {visible ? (
           <motion.div
             key="cc-cursor"
             className="absolute top-0 left-0 origin-top-left"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1, x: cursorX, y: cursorY }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{
-              ...positionTransition,
-              opacity: reduced ? { duration: 0 } : { duration: 0.18 },
-            }}
+            transition={
+              reduced ? { duration: 0 } : { duration: 0.18 }
+            }
+            style={{ x: cursorX, y: cursorY }}
           >
             <CursorPointer color={accent} />
             <CursorLabel
@@ -264,6 +381,8 @@ export function CollaborationCursor({
               accent={accent}
               reduced={reduced ?? false}
               scopeId={scopeId}
+              flipX={labelOnLeft}
+              flipY={labelOnTop}
             />
           </motion.div>
         ) : null}
@@ -301,6 +420,10 @@ type CursorLabelProps = {
   reduced: boolean;
   /** Unique scope so layoutIds don't collide across multiple cursors on a page. */
   scopeId: string;
+  /** Render the pill to the LEFT of the cursor pointer (near viewport right edge). */
+  flipX?: boolean;
+  /** Render the pill ABOVE the cursor pointer (near viewport bottom edge). */
+  flipY?: boolean;
 };
 
 const STACK_OFFSET = 18;
@@ -335,8 +458,34 @@ function CursorAvatar({
   );
 }
 
-function CursorLabel({ users, accent, reduced, scopeId }: CursorLabelProps) {
+function useIsCoarsePointer(): boolean {
+  return React.useSyncExternalStore(
+    (notify) => {
+      if (typeof window === 'undefined' || !window.matchMedia) {
+        return () => {};
+      }
+      const mql = window.matchMedia('(pointer: coarse)');
+      mql.addEventListener('change', notify);
+      return () => mql.removeEventListener('change', notify);
+    },
+    () => {
+      if (typeof window === 'undefined' || !window.matchMedia) return false;
+      return window.matchMedia('(pointer: coarse)').matches;
+    },
+    () => false,
+  );
+}
+
+function CursorLabel({
+  users,
+  accent,
+  reduced,
+  scopeId,
+  flipX = false,
+  flipY = false,
+}: CursorLabelProps) {
   const [expanded, setExpanded] = React.useState(false);
+  const isCoarse = useIsCoarsePointer();
   const primary = users[0];
   if (!primary) return null;
 
@@ -347,15 +496,39 @@ function CursorLabel({ users, accent, reduced, scopeId }: CursorLabelProps) {
   const visibleStack = users.slice(0, COLLAPSED_VISIBLE);
   const stackWidth = STACK_OFFSET * Math.max(visibleStack.length - 1, 0) + 24;
 
+  // Hover devices: open on `mouseenter`, close on `mouseleave`.
+  // Touch devices have no hover, so use a tap toggle instead —
+  // `click` fires on tap. Both can coexist if the device reports
+  // both (e.g. Surface), but the menu-state machine is the same:
+  // a single boolean toggled by whichever event lands first.
+  const hoverHandlers = canExpand && !isCoarse
+    ? {
+        onMouseEnter: () => setExpanded(true),
+        onMouseLeave: () => setExpanded(false),
+      }
+    : undefined;
+  const tapHandler = canExpand && isCoarse
+    ? {
+        onClick: () => setExpanded((cur) => !cur),
+      }
+    : undefined;
+
   return (
     <motion.div
       layout
       transition={transition}
-      onMouseEnter={canExpand ? () => setExpanded(true) : undefined}
-      onMouseLeave={() => setExpanded(false)}
+      {...hoverHandlers}
+      {...tapHandler}
       className={cn(
-        'pointer-events-auto absolute top-[18px] left-[14px] font-medium text-white',
+        'pointer-events-auto absolute font-medium text-white',
         'shadow-[0_12px_32px_-8px_rgb(0_0_0/0.35),0_4px_8px_-2px_rgb(0_0_0/0.15)]',
+        canExpand && 'cursor-pointer select-none',
+        // Horizontal anchor — flip when the cursor sits too close to
+        // the right edge so the pill extends inward instead of off-screen.
+        flipX ? 'right-[8px]' : 'left-[14px]',
+        // Vertical anchor — flip when the cursor sits too close to the
+        // bottom edge so the pill rises above the pointer.
+        flipY ? 'bottom-[8px]' : 'top-[18px]',
         isExpanded
           ? 'flex w-[220px] flex-col gap-0.5 rounded-[18px] p-1.5'
           : 'flex max-w-[260px] items-center gap-2.5 rounded-full py-1 pr-3.5 pl-1',

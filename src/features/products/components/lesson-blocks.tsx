@@ -429,13 +429,15 @@ function DebouncedHtmlEditor({
 }: DebouncedEditorProps & { placeholder: string; emptyText: string }) {
   const flush = useDebouncedFlush(blockId, value, onChange, HTML_DEBOUNCE_MS);
   return (
-    <InlineRichEditor
-      key={blockId}
-      value={value}
-      onChange={flush}
-      placeholder={placeholder}
-      emptyText={emptyText}
-    />
+    <div data-cursor-target={`block.${blockId}.body`}>
+      <InlineRichEditor
+        key={blockId}
+        value={value}
+        onChange={flush}
+        placeholder={placeholder}
+        emptyText={emptyText}
+      />
+    </div>
   );
 }
 
@@ -447,12 +449,14 @@ function DebouncedKatexEditor({
 }: DebouncedEditorProps & { emptyText: string }) {
   const flush = useDebouncedFlush(blockId, value, onChange, KATEX_DEBOUNCE_MS);
   return (
-    <InlineLatexEditor
-      key={blockId}
-      value={value}
-      onChange={flush}
-      emptyText={emptyText}
-    />
+    <div data-cursor-target={`block.${blockId}.source`}>
+      <InlineLatexEditor
+        key={blockId}
+        value={value}
+        onChange={flush}
+        emptyText={emptyText}
+      />
+    </div>
   );
 }
 
@@ -480,13 +484,15 @@ function CodeBlockEditor({
     [onChange],
   );
   return (
-    <InlineCodeEditor
-      key={blockId}
-      tabs={tabs as InlineCodeTab[]}
-      maxTabs={CODE_BLOCK_MAX_TABS}
-      onTabsChange={handleTabsChange}
-      emptyText={emptyText}
-    />
+    <div data-cursor-target={`block.${blockId}.code`}>
+      <InlineCodeEditor
+        key={blockId}
+        tabs={tabs as InlineCodeTab[]}
+        maxTabs={CODE_BLOCK_MAX_TABS}
+        onTabsChange={handleTabsChange}
+        emptyText={emptyText}
+      />
+    </div>
   );
 }
 

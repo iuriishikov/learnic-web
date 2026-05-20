@@ -81,9 +81,7 @@ export function applyProductEvent(
       return;
     }
     case 'duration_changed': {
-      const hours =
-        numField(payload, 'duration_in_hours') ??
-        numField(payload, 'duration_hours');
+      const hours = numField(payload, 'total_duration_in_hours');
       if (hours !== undefined) {
         patchProduct(qc, productId, (p) => ({ ...p, durationHours: hours }));
       }

@@ -403,6 +403,7 @@ function QuestionField({
           }
         }}
         className="h-9 border-transparent bg-transparent px-2 text-base font-medium shadow-none focus-visible:bg-background focus-visible:border-ring md:text-base"
+        data-cursor-target={`product.qa.${rowId}.question`}
       />
       {isEmpty ? (
         <p role="alert" className="px-2 text-xs text-destructive">
@@ -452,6 +453,7 @@ function AnswerField({
           if (next.trim().length > 0) onCommit(next);
         }}
         className="min-h-[60px] border-transparent bg-transparent px-2 py-1.5 text-sm leading-relaxed shadow-none focus-visible:bg-background focus-visible:border-ring"
+        data-cursor-target={`product.qa.${rowId}.answer`}
       />
       {isEmpty ? (
         <p role="alert" className="px-2 text-xs text-destructive">
