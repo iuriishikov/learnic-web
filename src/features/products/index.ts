@@ -14,6 +14,8 @@ export {
 // so Server Components (page.tsx, etc.) can import the raw numeric
 // values — see ``model/pagination.ts``.
 export {
+  MY_PRODUCTS_PAGE_SIZE,
+  MY_PRODUCTS_PER_PAGE_OPTIONS,
   PUBLISHED_PRODUCTS_PAGE_SIZE,
   PUBLISHED_PRODUCTS_PER_PAGE_OPTIONS,
 } from './model/pagination';
@@ -50,7 +52,13 @@ export type {
   ProductAuthor,
   ProductStatus,
   ProductType,
+  ProductVisibility,
 } from './model/types';
+export type {
+  Gift,
+  GiftStatus,
+  GiftUserRef,
+} from './model/gifts';
 export type {
   CodeBlock,
   CodeBlockLanguage,

@@ -23,16 +23,6 @@ import {
 } from '@/shared/ui/empty';
 import { GridBackdrop } from '@/shared/ui/grid-backdrop';
 import { TextInput } from '@/shared/ui/input-extended';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-  paginationRange,
-} from '@/shared/ui/pagination';
 
 import {
   PUBLISHED_PRODUCTS_PAGE_SIZE,
@@ -42,6 +32,7 @@ import {
 import type { Product } from '../model/types';
 
 import { ProductCardSkeleton } from './product-card-skeleton';
+import { ProductsPagination } from './products-pagination';
 import {
   ProductShowcaseCard,
   accentFromId,
@@ -233,81 +224,20 @@ export function MarketplaceView({
           )}
 
           {total > 0 && (
-            <MarketplacePagination
+            <ProductsPagination
               activePage={activePage}
               totalPages={totalPages}
               onPageChange={goToPage}
               previousLabel={tPagination('previous')}
               nextLabel={tPagination('next')}
+              positionLabel={(current, total) =>
+                tPagination('position', { current, total })
+              }
             />
           )}
         </div>
       </section>
     </div>
-  );
-}
-
-type MarketplacePaginationProps = {
-  activePage: number;
-  totalPages: number;
-  onPageChange: (next: number) => void;
-  previousLabel: string;
-  nextLabel: string;
-};
-
-function MarketplacePagination({
-  activePage,
-  totalPages,
-  onPageChange,
-  previousLabel,
-  nextLabel,
-}: MarketplacePaginationProps) {
-  // Default ``edge=3`` from ``paginationRange`` matches the
-  // ``1 2 3 … 8 9 10`` design — first/last three pages always
-  // visible, the middle collapsed to an ellipsis until the active
-  // page sits inside it.
-  const range = useMemo(
-    () => paginationRange(activePage, totalPages),
-    [activePage, totalPages],
-  );
-  return (
-    // ``align="between"`` + three direct children = Previous pinned
-    // left, numbered cluster centred, Next pinned right. Size LG
-    // for the comfortable 36 px button rhythm in the reference.
-    <Pagination size="lg" align="between" className="mt-8 md:mt-10">
-      <PaginationPrevious
-        variant="outline"
-        disabled={activePage <= 1}
-        onClick={() => onPageChange(activePage - 1)}
-        text={previousLabel}
-      />
-
-      <PaginationContent>
-        {range.map((entry, i) =>
-          entry === 'ellipsis' ? (
-            <PaginationItem key={`ellipsis-${i}`}>
-              <PaginationEllipsis />
-            </PaginationItem>
-          ) : (
-            <PaginationItem key={entry}>
-              <PaginationLink
-                isActive={entry === activePage}
-                onClick={() => onPageChange(entry)}
-              >
-                {entry}
-              </PaginationLink>
-            </PaginationItem>
-          ),
-        )}
-      </PaginationContent>
-
-      <PaginationNext
-        variant="outline"
-        disabled={activePage >= totalPages}
-        onClick={() => onPageChange(activePage + 1)}
-        text={nextLabel}
-      />
-    </Pagination>
   );
 }
 

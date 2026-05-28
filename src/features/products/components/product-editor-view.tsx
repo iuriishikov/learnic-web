@@ -53,6 +53,10 @@ import type {
   DraftModule,
   LessonBlock,
 } from '../model/draft';
+import {
+  SECTIONS_BY_PRODUCT_TYPE,
+  type ProductSectionKey,
+} from '../model/sections';
 import type { Product } from '../model/types';
 
 import {
@@ -105,14 +109,6 @@ import { ProductSettingsSection } from './product-settings-section';
 import { ProductTeamSection } from './product-team-section';
 import { TeamInviteDialog } from './team/team-invite-dialog';
 
-const SECTION_KEYS = [
-  'content',
-  'description',
-  'team',
-  'settings',
-] as const;
-type SectionKey = (typeof SECTION_KEYS)[number];
-
 type ProductEditorViewProps = {
   product: Product;
   initialSidebarWidth?: number;
@@ -154,6 +150,9 @@ export function ProductEditorView({
   const product = productQuery.data ?? initialProduct;
 
   const isCourse = product.type === 'course';
+  // Tabs shown for this product type — order is tab order, [0] is the
+  // default-selected section. See `model/sections.ts`.
+  const sectionKeys = SECTIONS_BY_PRODUCT_TYPE[product.type];
   const perms = useProductPermissions(product.id);
   const insufficientTitle = t('insufficientPermissions');
 
@@ -216,7 +215,9 @@ export function ProductEditorView({
     return (userId) => lookup.get(userId) ?? null;
   }, [product.author.id, product.author.fullName, collabsQuery.data]);
 
-  const [activeSection, setActiveSection] = useState<SectionKey>('content');
+  const [activeSection, setActiveSection] = useState<ProductSectionKey>(
+    sectionKeys[0],
+  );
   const [inviteOpen, setInviteOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(() =>
     clampSidebarWidth(initialSidebarWidth),
@@ -260,9 +261,9 @@ export function ProductEditorView({
   }, [draftQuery.data, userSelectedLessonId]);
 
 
-  const sectionItems = useMemo<SectionNavItem<SectionKey>[]>(
-    () => SECTION_KEYS.map((key) => ({ key, label: t(`sections.${key}`) })),
-    [t],
+  const sectionItems = useMemo<SectionNavItem<ProductSectionKey>[]>(
+    () => sectionKeys.map((key) => ({ key, label: t(`sections.${key}`) })),
+    [sectionKeys, t],
   );
 
   const treeModules = useMemo<ContentTreeModule[]>(() => {
@@ -613,11 +614,12 @@ export function ProductEditorView({
           {/* Share — icon-only on mobile, with label on sm+ */}
           <Button
             variant="outline"
+            size="icon-lg"
             onClick={() => setInviteOpen(true)}
             disabled={!perms.canManageCollaborators}
             title={!perms.canManageCollaborators ? insufficientTitle : undefined}
             aria-label={t('actions.share')}
-            className="h-9 gap-1.5 px-3 md:px-4"
+            className="sm:w-auto sm:gap-1.5 sm:px-4"
           >
             <Share2Icon />
             <span className="hidden sm:inline">{t('actions.share')}</span>
@@ -643,55 +645,62 @@ export function ProductEditorView({
             className="pr-3"
           >
             <ul className="flex flex-col gap-1 text-sm">
-              <ContentNavItem
-                active={activeSection === 'content'}
-                label={t('sections.content')}
-                onActivate={() => setActiveSection('content')}
-                reduceMotion={!!reduceMotion}
-              >
-                <DraftTree
-                  isCourse={isCourse}
-                  query={draftQuery}
-                  modules={treeModules}
-                  selectedLessonId={
-                    activeSection === 'content' ? selectedLessonId : null
-                  }
-                  onSelectLesson={(_moduleId, lessonId) => {
-                    setUserSelectedLessonId(lessonId);
-                    setActiveSection('content');
-                  }}
-                  onAddModule={handleAddModule}
-                  onRenameModule={handleRenameModule}
-                  onDeleteModule={handleDeleteModule}
-                  onReorderModules={handleReorderModules}
-                  onAddLesson={handleAddLesson}
-                  onRenameLesson={handleRenameLesson}
-                  onDeleteLesson={handleDeleteLesson}
-                  onReorderLessons={handleReorderLessons}
-                  onMoveLesson={handleMoveLesson}
-                  pendingRenameId={pendingRenameId}
-                  onPendingRenameResolved={() => setPendingRenameId(null)}
-                  canEditModules={perms.canEditModules}
-                  canEditLessons={perms.canEditLessons}
-                  insufficientPermissionsTitle={insufficientTitle}
-                />
-              </ContentNavItem>
-              {SECTION_KEYS.filter((key) => key !== 'content').map((key) => (
-                <li key={key}>
-                  <button
-                    type="button"
-                    onClick={() => setActiveSection(key)}
-                    className={cn(
-                      'w-full rounded-md px-2.5 py-1.5 text-left transition-colors',
-                      activeSection === key
-                        ? 'bg-muted font-semibold text-foreground'
-                        : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
-                    )}
+              {sectionKeys.map((key) =>
+                key === 'content' ? (
+                  // Content is the only section whose sidebar entry hosts an
+                  // inline, expandable body (the course tree). Every other
+                  // section is a plain nav button.
+                  <ContentNavItem
+                    key="content"
+                    active={activeSection === 'content'}
+                    label={t('sections.content')}
+                    onActivate={() => setActiveSection('content')}
+                    reduceMotion={!!reduceMotion}
                   >
-                    {t(`sections.${key}`)}
-                  </button>
-                </li>
-              ))}
+                    <DraftTree
+                      isCourse={isCourse}
+                      query={draftQuery}
+                      modules={treeModules}
+                      selectedLessonId={
+                        activeSection === 'content' ? selectedLessonId : null
+                      }
+                      onSelectLesson={(_moduleId, lessonId) => {
+                        setUserSelectedLessonId(lessonId);
+                        setActiveSection('content');
+                      }}
+                      onAddModule={handleAddModule}
+                      onRenameModule={handleRenameModule}
+                      onDeleteModule={handleDeleteModule}
+                      onReorderModules={handleReorderModules}
+                      onAddLesson={handleAddLesson}
+                      onRenameLesson={handleRenameLesson}
+                      onDeleteLesson={handleDeleteLesson}
+                      onReorderLessons={handleReorderLessons}
+                      onMoveLesson={handleMoveLesson}
+                      pendingRenameId={pendingRenameId}
+                      onPendingRenameResolved={() => setPendingRenameId(null)}
+                      canEditModules={perms.canEditModules}
+                      canEditLessons={perms.canEditLessons}
+                      insufficientPermissionsTitle={insufficientTitle}
+                    />
+                  </ContentNavItem>
+                ) : (
+                  <li key={key}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSection(key)}
+                      className={cn(
+                        'w-full rounded-md px-2.5 py-1.5 text-left transition-colors',
+                        activeSection === key
+                          ? 'bg-muted font-semibold text-foreground'
+                          : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                      )}
+                    >
+                      {t(`sections.${key}`)}
+                    </button>
+                  </li>
+                ),
+              )}
             </ul>
           </nav>
           <div

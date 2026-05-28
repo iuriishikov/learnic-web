@@ -2,7 +2,7 @@
 
 import { apiFetch } from '@/shared/api/client';
 
-import type { Product } from '../model/types';
+import type { Product, ProductVisibility } from '../model/types';
 
 import {
   fromProductSchema,
@@ -80,6 +80,22 @@ export async function changeProductPriceAction(args: {
     res = await apiFetch(
       `/products/${encodeURIComponent(args.productId)}/price`,
       { method: 'PATCH', body: { amount: args.amount } },
+    );
+  } catch {
+    return { ok: false, reason: 'network' };
+  }
+  return mapMutationStatus(res.status) ?? { ok: false, reason: 'unknown' };
+}
+
+export async function changeProductVisibilityAction(args: {
+  productId: string;
+  visibility: ProductVisibility;
+}): Promise<MutationResult> {
+  let res: Response;
+  try {
+    res = await apiFetch(
+      `/products/${encodeURIComponent(args.productId)}/visibility`,
+      { method: 'PATCH', body: { visibility: args.visibility } },
     );
   } catch {
     return { ok: false, reason: 'network' };

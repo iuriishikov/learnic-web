@@ -37,6 +37,8 @@ import {
 
 import { useNotify } from '@/shared/lib/notify';
 import { cn } from '@/shared/lib/utils';
+import { Button } from '@/shared/ui/button';
+import { Image } from '@/shared/ui/image';
 import { Input } from '@/shared/ui/input';
 
 import {
@@ -383,16 +385,16 @@ export function PhotoCollageBlockEditor({
     updateTitle.isPending;
 
   return (
-    // Block-level cursor fallback. Clicks landing on the upload tile,
-    // the gaps between items, or the DnD scroll area resolve up to this
-    // wrapper instead of falling through to whatever the page renders
-    // next. Per-item and title inputs carry their own, more specific
-    // `data-cursor-target` so the more granular cursor wins via
-    // `closest()` proximity.
-    <div
-      className="flex flex-col gap-3"
-      data-cursor-target={`block.${block.id}.collage`}
-    >
+    // The outer column previously carried a block-level
+    // `data-cursor-target` as a fallback for clicks landing on
+    // gaps / upload tile, but anchoring the highlight ring to a
+    // multi-section wrapper made the cursor visually misalign —
+    // it stretched across the title input AND the items grid.
+    // Per-item (`collage.<itemId>`) and title (`block.<id>.title`)
+    // attributes cover the specific surfaces; the upload tile is
+    // an intentional dead zone (clicking it is a single-shot
+    // action, not a sustained edit).
+    <div className="flex flex-col gap-3">
       <Input
         id={titleId}
         value={title}
@@ -518,12 +520,16 @@ function CollageItemCard({
       )}
     >
       <div className="relative aspect-[16/10] overflow-hidden rounded-lg bg-muted/40">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={src}
           alt={item.caption || ''}
-          className="h-full w-full object-cover"
+          fill
+          // Mixed source: pending uploads use local object URLs (unoptimizable),
+          // persisted items use backend storage URLs (not in remotePatterns).
+          unoptimized
+          sizes="(max-width: 640px) 100vw, 50vw"
           draggable={false}
+          rounded="lg"
         />
         <button
           type="button"
@@ -541,16 +547,18 @@ function CollageItemCard({
         >
           <GripVerticalIcon className="size-3.5" />
         </button>
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={onRemove}
           disabled={disabled}
           title={disabled ? disabledTitle : undefined}
           aria-label={removeLabel}
-          className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-background/85 text-foreground opacity-0 shadow-sm backdrop-blur transition-colors hover:bg-destructive hover:text-destructive-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover/collage-item:opacity-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-background/85 disabled:hover:text-foreground"
+          className="absolute top-2 right-2 opacity-0 transition-opacity focus-visible:opacity-100 group-hover/collage-item:opacity-100"
         >
-          <XIcon className="size-3.5" />
-        </button>
+          <XIcon />
+          <span className="sr-only">{removeLabel}</span>
+        </Button>
       </div>
       <Input
         value={item.caption}

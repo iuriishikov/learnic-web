@@ -30,7 +30,7 @@ import {
   DialogTitle,
 } from '@/shared/ui/dialog';
 import { Label } from '@/shared/ui/label';
-import { DescriptionTextarea } from '@/shared/ui/textarea-extended';
+import { Textarea } from '@/shared/ui/textarea';
 
 const REASON_MIN = 10;
 const REASON_MAX = 600;
@@ -274,7 +274,7 @@ export function ProfileReportDialog({
                 {reason.length} / {REASON_MAX}
               </span>
             </div>
-            <DescriptionTextarea
+            <Textarea
               id="profile-report-reason"
               value={reason}
               onChange={(event) => {

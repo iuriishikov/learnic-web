@@ -24,7 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
-import { Skeleton } from '@/shared/ui/skeleton';
+import { Image } from '@/shared/ui/image';
 import { VideoPlayer } from '@/shared/ui/video-player';
 
 /* -------------------------------------------------------------------------- */
@@ -407,23 +407,19 @@ function FilePreviewBody({
   category: FileCardCategory;
   title: string;
 }) {
-  const [loaded, setLoaded] = React.useState(false);
-
   if (category === 'image') {
     return (
       <div className="relative flex h-full max-h-[70vh] w-full items-center justify-center">
-        {!loaded ? (
-          <Skeleton className="absolute inset-4 rounded-lg" />
-        ) : null}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={url}
           alt={title}
-          onLoad={() => setLoaded(true)}
-          className={cn(
-            'max-h-[70vh] max-w-full object-contain transition-opacity duration-200',
-            loaded ? 'opacity-100' : 'opacity-0',
-          )}
+          fill
+          fit="contain"
+          // Storage / signed URLs from arbitrary backends — bypass the optimizer.
+          unoptimized
+          sizes="100vw"
+          rounded="lg"
+          errorSize="text"
         />
       </div>
     );

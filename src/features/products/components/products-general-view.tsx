@@ -7,19 +7,29 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type ReadonlyURLSearchParams,
+  useSearchParams,
+} from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 
-import { useRouter } from '@/shared/config/i18n/navigation';
+import { usePathname, useRouter } from '@/shared/config/i18n/navigation';
+import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { TextInput } from '@/shared/ui/input-extended';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 
-import { useMyProducts } from '../api/use-my-products';
+import {
+  MY_PRODUCTS_PAGE_SIZE,
+  MY_PRODUCTS_PER_PAGE_OPTIONS,
+  useMyProducts,
+} from '../api/use-my-products';
 import type { Product, ProductType } from '../model/types';
 
 import { CreateProductDialog } from './create-product-dialog';
 import { ProductCardSkeleton } from './product-card-skeleton';
+import { ProductsPagination } from './products-pagination';
 import {
   ProductShowcaseCard,
   accentFromId,
@@ -29,43 +39,90 @@ type Filter = 'all' | ProductType;
 
 type ProductsGeneralViewProps = {
   initialProducts: Product[];
+  initialTotal: number;
+  initialPage: number;
+  initialPerPage: number;
+  initialQuery: string;
 };
 
 export function ProductsGeneralView({
   initialProducts,
+  initialTotal,
+  initialPage,
+  initialPerPage,
+  initialQuery,
 }: ProductsGeneralViewProps) {
   const t = useTranslations('teach-products.general');
   const tFilter = useTranslations('teach-products.filter');
+  const tPagination = useTranslations('teach-products.pagination');
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const reduceMotion = useReducedMotion();
 
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useMyProducts(initialProducts);
-
-  const products = useMemo<Product[]>(
-    () => data?.pages.flat() ?? [],
-    [data],
+  // Source of truth for page/perPage/q is the URL. Initial values
+  // mirror what page.tsx resolved server-side so the first paint
+  // matches without a hydration shift; subsequent reads come from
+  // ``useSearchParams``.
+  const urlPage = readUrlNumber(searchParams.get('page'), initialPage, 1);
+  const urlPerPage = readUrlNumber(
+    searchParams.get('perPage'),
+    initialPerPage,
+    1,
+    MY_PRODUCTS_PER_PAGE_OPTIONS[
+      MY_PRODUCTS_PER_PAGE_OPTIONS.length - 1
+    ],
   );
+  const urlQuery = searchParams.get('q') ?? initialQuery ?? '';
+
+  // ``search`` is the live input value; ``debouncedSearch`` drives
+  // the URL push (and the backend query) so we hit
+  // ``/products/mine?q=`` once per typing pause, not per keystroke.
+  const [search, setSearch] = useState(urlQuery);
+  const debouncedSearch = useDebouncedValue(search, 250);
+
+  // Push URL when the debounced search diverges from the URL —
+  // resets page to 1 since "page 5 of a different query" is
+  // meaningless.
+  useEffect(() => {
+    const trimmed = debouncedSearch.trim();
+    if (trimmed === urlQuery.trim()) return;
+    pushUrl(router, pathname, searchParams, {
+      page: 1,
+      perPage: urlPerPage,
+      q: trimmed.length >= 2 ? trimmed : null,
+    });
+    // urlPerPage is snapshot via the push; perPage changes go
+    // through their own handler.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   const [filter, setFilter] = useState<Filter>('all');
-  const [search, setSearch] = useState('');
 
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const node = sentinelRef.current;
-    if (!node || !hasNextPage || isFetchingNextPage) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) fetchNextPage();
-      },
-      { rootMargin: '200px 0px' },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  const initialData = useMemo(
+    () => ({ products: initialProducts, total: initialTotal }),
+    [initialProducts, initialTotal],
+  );
+
+  const { data, isFetching, isPlaceholderData } = useMyProducts({
+    page: urlPage,
+    perPage: urlPerPage,
+    q: urlQuery,
+    initialPage:
+      urlPage === initialPage &&
+      urlPerPage === initialPerPage &&
+      urlQuery.trim() === initialQuery.trim()
+        ? initialData
+        : undefined,
+  });
+
+  const products = useMemo(() => data?.products ?? [], [data]);
+  const total = data?.total ?? initialTotal;
+  const totalPages = Math.max(1, Math.ceil(total / urlPerPage));
+  // Clamp displayed page — if the user paginates past the end and
+  // then narrows the query, ``urlPage`` could outlive the new
+  // page count.
+  const activePage = Math.min(urlPage, totalPages);
 
   const counts = useMemo(() => {
     return products.reduce(
@@ -78,20 +135,29 @@ export function ProductsGeneralView({
     );
   }, [products]);
 
+  // Type filter still runs client-side over the current page —
+  // there's only one product type today (``course``), so this is
+  // decorative until a second type lands.
   const visible = useMemo(() => {
-    const q = search.trim().toLocaleLowerCase();
-    return products.filter((p) => {
-      if (filter !== 'all' && p.type !== filter) return false;
-      if (!q) return true;
-      return (
-        p.title.toLocaleLowerCase().includes(q) ||
-        p.description.toLocaleLowerCase().includes(q)
-      );
-    });
-  }, [products, filter, search]);
+    if (filter === 'all') return products;
+    return products.filter((p) => p.type === filter);
+  }, [products, filter]);
 
-  const showEmpty = visible.length === 0 && !isFetchingNextPage;
-  const isFiltered = search.trim().length > 0 || filter !== 'all';
+  const goToPage = (next: number) => {
+    pushUrl(router, pathname, searchParams, {
+      page: Math.min(Math.max(next, 1), totalPages),
+      perPage: urlPerPage,
+      q: urlQuery.trim().length >= 2 ? urlQuery.trim() : null,
+    });
+  };
+
+  // First-load skeleton: only when we genuinely have nothing to
+  // show. Subsequent page swaps use the ``isPlaceholderData`` dim
+  // so the previous page stays visible while the next one loads.
+  const showInitialSkeleton = isFetching && !data;
+  const showEmpty = !showInitialSkeleton && visible.length === 0;
+  const isFiltered =
+    debouncedSearch.trim().length > 0 || filter !== 'all';
 
   return (
     <div className="mx-auto w-full max-w-[1440px] px-4 py-8 md:px-8 md:py-10">
@@ -142,7 +208,25 @@ export function ProductsGeneralView({
 
       <div className="mt-6 md:mt-8">
         <AnimatePresence mode="popLayout" initial={false}>
-          {showEmpty ? (
+          {showInitialSkeleton ? (
+            <motion.ul
+              key="skeleton"
+              aria-hidden
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-[repeat(auto-fill,minmax(360px,1fr))]"
+            >
+              {Array.from({ length: Math.min(urlPerPage, 6) }).map(
+                (_, i) => (
+                  <li key={i}>
+                    <ProductCardSkeleton />
+                  </li>
+                ),
+              )}
+            </motion.ul>
+          ) : showEmpty ? (
             <motion.div
               key="empty"
               initial={{ opacity: 0, y: 8 }}
@@ -154,50 +238,80 @@ export function ProductsGeneralView({
             </motion.div>
           ) : (
             <motion.div key="grid" initial={false}>
-              <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-[repeat(auto-fill,minmax(360px,1fr))]">
+              <ul
+                className={cn(
+                  'grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-[repeat(auto-fill,minmax(360px,1fr))] transition-opacity',
+                  isPlaceholderData && 'opacity-70',
+                )}
+              >
                 <AnimatePresence mode="popLayout" initial={false}>
-                  {visible.map((product, index) => (
+                  {visible.map((product) => (
                     <motion.li
                       key={product.id}
-                      layout
-                      initial={
-                        reduceMotion
-                          ? { opacity: 0 }
-                          : { opacity: 0, y: 12, scale: 0.98 }
-                      }
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.98 }}
-                      transition={{
-                        duration: 0.22,
-                        delay: reduceMotion ? 0 : Math.min(index * 0.03, 0.15),
-                        ease: [0.32, 0.72, 0, 1],
-                      }}
+                      layout={reduceMotion ? false : true}
+                      initial={reduceMotion ? undefined : { opacity: 0 }}
+                      animate={reduceMotion ? undefined : { opacity: 1 }}
+                      exit={reduceMotion ? undefined : { opacity: 0 }}
+                      transition={{ duration: 0.18, ease: 'easeOut' }}
                     >
                       <ProductGridCard product={product} />
                     </motion.li>
                   ))}
                 </AnimatePresence>
-                {isFetchingNextPage
-                  ? Array.from({ length: 3 }).map((_, i) => (
-                      <li key={`skeleton-${i}`}>
-                        <ProductCardSkeleton />
-                      </li>
-                    ))
-                  : null}
               </ul>
-              {hasNextPage ? (
-                <div
-                  ref={sentinelRef}
-                  aria-hidden
-                  className="h-px w-full"
-                />
-              ) : null}
             </motion.div>
           )}
         </AnimatePresence>
+
+        {total > 0 && !showInitialSkeleton && (
+          <ProductsPagination
+            activePage={activePage}
+            totalPages={totalPages}
+            onPageChange={goToPage}
+            previousLabel={tPagination('previous')}
+            nextLabel={tPagination('next')}
+            positionLabel={(current, total) =>
+              tPagination('position', { current, total })
+            }
+          />
+        )}
       </div>
     </div>
   );
+}
+
+function readUrlNumber(
+  raw: string | null,
+  fallback: number,
+  min: number,
+  max?: number,
+): number {
+  if (raw === null) return fallback;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  const capped =
+    max !== undefined ? Math.min(Math.max(parsed, min), max) : Math.max(parsed, min);
+  return capped;
+}
+
+function pushUrl(
+  router: ReturnType<typeof useRouter>,
+  pathname: ReturnType<typeof usePathname>,
+  current: ReadonlyURLSearchParams,
+  next: { page: number; perPage: number; q: string | null },
+) {
+  const params = new URLSearchParams(current.toString());
+  if (next.page === 1) params.delete('page');
+  else params.set('page', String(next.page));
+  if (next.perPage === MY_PRODUCTS_PAGE_SIZE) {
+    params.delete('perPage');
+  } else {
+    params.set('perPage', String(next.perPage));
+  }
+  if (next.q) params.set('q', next.q);
+  else params.delete('q');
+  const qs = params.toString();
+  router.replace(qs ? `${pathname}?${qs}` : pathname);
 }
 
 function ProductGridCard({ product }: { product: Product }) {

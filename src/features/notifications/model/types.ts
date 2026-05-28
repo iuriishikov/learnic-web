@@ -43,6 +43,21 @@ export type CollaborationStatus =
   | 'revoked';
 
 /**
+ * Lifecycle of a `product_gift` row. Mirrors the backend `GiftStatus`
+ * enum (`docs/api/openapi.json`) exhaustively — every variant must be
+ * present so missing ones don't slip past `tsc` and break through
+ * `default:` branches. Note: a gift uses `pending_invite` as its
+ * "awaiting acceptance" state (same wording as a collaboration), but
+ * unlike a collaboration its accepted terminal is `accepted`, not
+ * `active`.
+ */
+export type GiftStatus =
+  | 'pending_invite'
+  | 'accepted'
+  | 'declined'
+  | 'revoked';
+
+/**
  * Live snapshot of the `product_collaboration` row referenced by an
  * invite-shaped notification. Hydrated server-side via a JOIN at
  * read time — used as the single source of truth for the
@@ -55,6 +70,23 @@ export type CollaborationStatus =
  */
 export type CollaborationSnapshot = {
   status: CollaborationStatus;
+  acceptedAt: string | null;
+  declinedAt: string | null;
+  revokedAt: string | null;
+  inviteExpiresAt: string | null;
+};
+
+/**
+ * Live snapshot of the `product_gift` row referenced by a gift-shaped
+ * notification. Same role as {@link CollaborationSnapshot}: hydrated
+ * server-side so the Accept / Decline UI state survives a reload
+ * without local React state remembering the outcome.
+ *
+ * `null` only when the gift row could not be hydrated; treat it as
+ * `unavailable` on the client.
+ */
+export type GiftSnapshot = {
+  status: GiftStatus;
   acceptedAt: string | null;
   declinedAt: string | null;
   revokedAt: string | null;

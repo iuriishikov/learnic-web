@@ -242,7 +242,7 @@ function HoursStepper({
   );
 
   return (
-    <div className="flex flex-col gap-2" data-cursor-target="product.duration">
+    <div className="flex flex-col gap-2">
       <NumberField
         // Keying on the server value re-seeds the field after an external
         // change (rollback, WS event, etc.) without us having to wire a
@@ -257,9 +257,14 @@ function HoursStepper({
         onValueCommitted={handleCommit}
         disabled={readOnly}
       >
+        {/* `data-cursor-target` sits on the visible widget itself, not
+            on the outer column — otherwise the cursor highlight ring
+            stretches to encompass the hint paragraph below and renders
+            way larger than the actual focus surface. */}
         <NumberFieldGroup
           className="w-full max-w-[280px]"
           title={readOnly ? disabledTitle : undefined}
+          data-cursor-target="product.duration"
         >
           <NumberFieldDecrement aria-label={t('decrement')} />
           <NumberFieldInput

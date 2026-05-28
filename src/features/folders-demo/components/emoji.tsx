@@ -21,7 +21,11 @@ export function Emoji({ char, className, alt }: EmojiProps) {
     );
   }
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- third-party Apple emoji asset
+    // Intentional <img>: 1em inline decoration. The shared `<Image>` primitive
+    // adds a wrapper div + skeleton + error UI that all read wrong at this size,
+    // and the natural fallback on load failure is the unicode glyph (handled by
+    // the `!entry` branch above), not the generic image-off icon.
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={emojiUrl(entry.image)}
       alt={alt ?? entry.name}

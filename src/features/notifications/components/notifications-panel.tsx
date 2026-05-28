@@ -178,13 +178,13 @@ export function NotificationsPanel({
         </div>
       </ScrollArea>
 
-      <footer className="flex items-center justify-between gap-2 border-t border-border bg-popover px-3 py-2">
+      <footer className="flex flex-col gap-2 border-t border-border bg-popover px-3 py-2 md:flex-row md:items-center md:justify-between">
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={onClose}
-          className="h-8 px-3 text-xs"
+          className="h-8 w-full px-3 text-xs md:w-auto"
         >
           {t('close')}
         </Button>
@@ -193,7 +193,7 @@ export function NotificationsPanel({
           size="sm"
           onClick={() => markAllRead.mutate()}
           disabled={overallUnread === 0 || markAllRead.isPending}
-          className="h-8 gap-1.5 px-3 text-xs"
+          className="h-8 w-full gap-1.5 px-3 text-xs md:w-auto"
         >
           <CheckCheckIconInline />
           {t('markAllRead')}

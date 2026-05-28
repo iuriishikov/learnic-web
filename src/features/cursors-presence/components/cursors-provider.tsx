@@ -418,19 +418,44 @@ export function CursorsProvider({
       const target = event.target;
       // Keepalive zones (BubbleMenu, cursor portal) always stay.
       if (target.closest(`[${KEEPALIVE_ATTR}]`)) return;
-      // Only the ACTIVE field's own wrapper counts as "still here" —
-      // clicking inside a *different* tracked field's wrapper (where
-      // focus may not have moved, because the wrapper itself isn't
-      // focusable) must trigger a leave, otherwise the cursor sticks
-      // to the old field forever.
+      // Find the nearest tracked element under the click. If absent,
+      // the click is on plain background — leave the active field.
       const trackedAncestor = target.closest(`[${FOCUSABLE_ATTR}]`);
+      if (!trackedAncestor) {
+        publishLeave(fieldKey);
+        return;
+      }
+      const clickedKey = trackedAncestor.getAttribute(FOCUSABLE_ATTR);
+      if (clickedKey === fieldKey) return;
+      // Different tracked element under the click. The intuitive
+      // semantic is "stay on the active field as long as the click is
+      // anywhere in the active field's DOM neighbourhood":
+      //   - clickedKey is an ancestor wrapping the active field
+      //     (e.g. active = `collage.<id>.caption`, click landed on the
+      //     `collage.<id>` row that wraps the caption) → stay
+      //   - clickedKey is a descendant of the active field
+      //     (rare, but happens when the active wrapper has a more
+      //     specific child the user just hit) → stay; focusin will
+      //     soon publish the narrower field anyway
+      //   - the two are siblings / unrelated → leave
+      const activeFieldEl = document.querySelector<HTMLElement>(
+        `[${FOCUSABLE_ATTR}="${cssEscape(fieldKey)}"]`,
+      );
       if (
-        trackedAncestor &&
-        trackedAncestor.getAttribute(FOCUSABLE_ATTR) === fieldKey
+        activeFieldEl &&
+        (trackedAncestor.contains(activeFieldEl) ||
+          activeFieldEl.contains(trackedAncestor))
       ) {
         return;
       }
       publishLeave(fieldKey);
+    }
+
+    function cssEscape(value: string): string {
+      if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+        return CSS.escape(value);
+      }
+      return value.replace(/["\\]/g, '\\$&');
     }
 
     document.addEventListener('focusin', handleFocusIn, true);

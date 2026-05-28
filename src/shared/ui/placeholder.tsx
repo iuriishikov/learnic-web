@@ -1,5 +1,3 @@
-import Image from 'next/image';
-
 import { cn } from '@/shared/lib/utils';
 import {
   brandPlaceholderFromSeed,
@@ -7,6 +5,7 @@ import {
   softCoverGradient,
   type SoftAccent,
 } from '@/shared/lib/placeholder-accent';
+import { Image } from '@/shared/ui/image';
 
 export type PlaceholderVariant = 'brand' | 'soft';
 
@@ -50,7 +49,10 @@ export function Placeholder(props: PlaceholderProps) {
         fill
         priority={priority}
         sizes={sizes}
-        className={cn('object-cover', className)}
+        className={cn(className)}
+        // Decorative brand SVG — error UI would be noisy. Render an icon-only
+        // fallback if the asset somehow 404s; tiny enough to blend in.
+        errorSize="icon"
       />
     );
   }

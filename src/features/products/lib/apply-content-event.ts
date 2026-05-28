@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 
 import { courseDraftKey } from '../api/use-course-draft';
 import { courseReleasesKey } from '../api/use-course-releases';
+import { myProductsKey } from '../api/use-my-products';
 import { productKey } from '../api/use-product';
 import type { CourseDraft, DraftLesson, DraftModule } from '../model/draft';
 
@@ -76,6 +77,15 @@ export function applyContentEvent(
   event: EventEnvelope<ContentEventKind>,
 ): void {
   const { kind, payload } = event;
+
+  // Any content edit bumps the parent product's `updated_at` server-side
+  // (DB trigger on course_modules / course_lessons / lesson_blocks), which
+  // feeds the "Обновлено N ago" label on the my-products list. That list
+  // is a separate cache (`myProductsKey`) and isn't active while editing,
+  // so mark it stale here — it refetches with the fresh timestamp when the
+  // user navigates back to it. Cheap: invalidating an inactive query just
+  // flags it, no immediate network call.
+  qc.invalidateQueries({ queryKey: myProductsKey });
 
   switch (kind) {
     case 'module_renamed': {

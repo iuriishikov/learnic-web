@@ -27,6 +27,7 @@
   },
   "pagination": {
     "previous": "Назад",
-    "next": "Вперёд"
+    "next": "Вперёд",
+    "position": "Страница {current} из {total}"
   }
 }

@@ -12,6 +12,9 @@
  */
 
 import { accessRevokedDescriptor } from './access-revoked';
+import { giftAcceptedDescriptor } from './gift-accepted';
+import { giftDeclinedDescriptor } from './gift-declined';
+import { giftReceivedDescriptor } from './gift-received';
 import {
   inviteAcceptedDescriptor,
 } from './invite-accepted';
@@ -27,6 +30,9 @@ export const KIND_REGISTRY = {
   invite_accepted: inviteAcceptedDescriptor,
   invite_declined: inviteDeclinedDescriptor,
   access_revoked: accessRevokedDescriptor,
+  gift_received: giftReceivedDescriptor,
+  gift_accepted: giftAcceptedDescriptor,
+  gift_declined: giftDeclinedDescriptor,
   new_login: newLoginDescriptor,
 };
 

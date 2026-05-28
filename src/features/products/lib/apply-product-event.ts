@@ -7,12 +7,13 @@ import {
   productMyPermissionsKey,
   productRolesKey,
 } from '../api/use-team';
+import { productGiftsKey } from '../api/use-gifts';
 import { productKey } from '../api/use-product';
 import { productQAKey } from '../api/use-product-qa';
 import type { ProductQA } from '../api/qa';
 import type { Collaboration, Permission, Role } from '../model/team';
 import { PERMISSIONS } from '../model/team';
-import type { Product } from '../model/types';
+import type { Product, ProductVisibility } from '../model/types';
 
 import type { EventEnvelope } from './events-channel';
 
@@ -32,6 +33,7 @@ export type ProductEventKind =
   | 'published'
   | 'archived'
   | 'unarchived'
+  | 'visibility_changed'
   | 'deleted'
   | 'qa_added'
   | 'qa_question_changed'
@@ -46,7 +48,11 @@ export type ProductEventKind =
   | 'role_created'
   | 'role_updated'
   | 'role_deleted'
-  | 'tags_changed';
+  | 'tags_changed'
+  | 'gift_issued'
+  | 'gift_accepted'
+  | 'gift_declined'
+  | 'gift_revoked';
 
 /**
  * Apply one product-family event envelope to the local React Query
@@ -108,6 +114,15 @@ export function applyProductEvent(
     case 'deleted':
       qc.invalidateQueries({ queryKey: productKey(productId) });
       return;
+
+    /* ---------- visibility: trivial patch ---------- */
+    case 'visibility_changed': {
+      const visibility = visibilityField(payload, 'visibility');
+      if (visibility !== undefined) {
+        patchProduct(qc, productId, (p) => ({ ...p, visibility }));
+      }
+      return;
+    }
 
     /* ---------- Q&A ---------- */
     case 'qa_added':
@@ -244,6 +259,20 @@ export function applyProductEvent(
       qc.invalidateQueries({ queryKey: productKey(productId) });
       return;
     }
+
+    /* ---------- gift lifecycle ---------- */
+    // The "Gifts" tab renders a flat, server-authorised projection of
+    // every gift and its status. Each lifecycle event carries only
+    // `gift_id`, so refetch the permission-gated list rather than
+    // splicing — the same invalidate-and-refetch policy as
+    // collaboration events. If the gifts query has no active observer
+    // (the tab isn't open), this is a no-op until it mounts.
+    case 'gift_issued':
+    case 'gift_accepted':
+    case 'gift_declined':
+    case 'gift_revoked':
+      qc.invalidateQueries({ queryKey: productGiftsKey(productId) });
+      return;
 
     default: {
       // Exhaustiveness guard — every variant of `ProductEventKind`
@@ -453,6 +482,14 @@ function strField(
 ): string | undefined {
   const v = payload[key];
   return typeof v === 'string' ? v : undefined;
+}
+
+function visibilityField(
+  payload: Record<string, unknown>,
+  key: string,
+): ProductVisibility | undefined {
+  const v = payload[key];
+  return v === 'public' || v === 'private' ? v : undefined;
 }
 
 function affectsCurrentUser(

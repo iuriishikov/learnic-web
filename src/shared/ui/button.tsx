@@ -1,3 +1,4 @@
+import * as React from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -40,18 +41,55 @@ const buttonVariants = cva(
   }
 )
 
+type ButtonSize = NonNullable<VariantProps<typeof buttonVariants>["size"]>
+
+const iconSizeMap = {
+  default: "icon",
+  xs: "icon-xs",
+  sm: "icon-sm",
+  lg: "icon-lg",
+} as const satisfies Partial<Record<ButtonSize, ButtonSize>>
+
+function hasOnlyIconChild(children: React.ReactNode): boolean {
+  let elementCount = 0
+  let hasText = false
+  React.Children.forEach(children, (child) => {
+    if (child === null || child === undefined || typeof child === "boolean") return
+    if (typeof child === "string") {
+      if (child.trim() !== "") hasText = true
+      return
+    }
+    if (typeof child === "number") {
+      hasText = true
+      return
+    }
+    if (React.isValidElement(child)) {
+      elementCount += 1
+    }
+  })
+  return !hasText && elementCount === 1
+}
+
 function Button({
   className,
   variant = "default",
   size = "default",
+  children,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+  const resolvedSize =
+    size && size in iconSizeMap && hasOnlyIconChild(children)
+      ? iconSizeMap[size as keyof typeof iconSizeMap]
+      : size
+
   return (
     <ButtonPrimitive
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={cn(buttonVariants({ variant, size: resolvedSize, className }))}
       {...props}
-    />
+    >
+      {children}
+    </ButtonPrimitive>
   )
 }
 

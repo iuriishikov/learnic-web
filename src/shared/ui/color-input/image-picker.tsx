@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 
 import { cn } from '@/shared/lib/utils';
+import { Image } from '@/shared/ui/image';
 import {
   Menu,
   MenuContent,
@@ -132,15 +133,22 @@ export function ImagePicker({
         style={{ background: CHECKER_BG }}
       >
         {value.src ? (
-          // eslint-disable-next-line @next/next/no-img-element -- object-URL preview, optimization not applicable
-          <img
-            alt=""
+          <Image
+            // Local object URL — optimizer would be pointless; the dynamic
+            // CSS filter and `objectFit` (incl. `fill`/`tile` outside the
+            // primitive's `fit` prop) ride on imageStyle so they win over
+            // the wrapper's object-* utility.
             src={value.src}
-            className="absolute inset-0 size-full"
-            style={{
-              objectFit: fitToObjectFit[value.fit] as React.CSSProperties['objectFit'],
+            alt=""
+            fill
+            unoptimized
+            imageStyle={{
+              objectFit: fitToObjectFit[
+                value.fit
+              ] as React.CSSProperties['objectFit'],
               filter: filterCss,
             }}
+            errorSize="icon"
           />
         ) : (
           <div className="flex flex-col items-center gap-2 text-center text-sm">

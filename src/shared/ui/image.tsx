@@ -48,6 +48,10 @@ export type ImageProps = NextImageInherited & {
   className?: string;
   /** Class merged onto the underlying <img>. */
   imageClassName?: string;
+  /** Inline style passed to the underlying <img>. Use for dynamic CSS (e.g. filter). */
+  imageStyle?: CSSProperties;
+  /** Forwarded to the underlying <img>. Set `false` to opt out of native drag (DnD surfaces). */
+  draggable?: boolean;
   /** Convenience radius for the wrapper. Use `className` for anything fancier. */
   rounded?: ImageRoundness;
   /** Object-fit on the loaded image. Defaults to `cover`. */
@@ -94,6 +98,8 @@ export const Image = forwardRef<HTMLDivElement, ImageProps>(function Image(
     alt,
     className,
     imageClassName,
+    imageStyle,
+    draggable,
     rounded = 'none',
     fit = 'cover',
     lightbox = false,
@@ -201,6 +207,8 @@ export const Image = forwardRef<HTMLDivElement, ImageProps>(function Image(
             loading={loading}
             placeholder={placeholder}
             blurDataURL={blurDataURL}
+            draggable={draggable}
+            style={imageStyle}
             onLoad={handleLoad}
             onError={handleError}
             className={cn(

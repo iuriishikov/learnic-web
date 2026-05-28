@@ -20,6 +20,14 @@ export type AuthContextValue = {
   setUser: (user: User | null) => void;
   refresh: () => Promise<User | null>;
   logout: () => Promise<void>;
+  /**
+   * Whether the current user is a platform administrator. Resolved
+   * server-side from `GET /users/me/admin-status` and threaded in via
+   * the provider; `false` for anonymous users. Gates admin-only UI
+   * (e.g. the "admin panel" entry in the user menu) — the `/admin`
+   * routes still enforce it server-side regardless.
+   */
+  isAdmin: boolean;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

@@ -16,6 +16,12 @@ import { logoutAction } from '../api/session';
 
 type AuthProviderProps = {
   initialUser: User | null;
+  /**
+   * Admin flag resolved server-side in the root layout. Stays stable
+   * for the session (admin grants happen out-of-band via CLI), so it
+   * rides straight into the context value without local state.
+   */
+  initialIsAdmin?: boolean;
   children: ReactNode;
 };
 
@@ -23,7 +29,11 @@ type AuthProviderProps = {
 // auth-specific server actions (`getMeAction`, `logoutAction`); the
 // context shape and the `useAuth` hook live in `shared/auth` so any
 // feature can consume them without crossing a feature boundary.
-export function AuthProvider({ initialUser, children }: AuthProviderProps) {
+export function AuthProvider({
+  initialUser,
+  initialIsAdmin = false,
+  children,
+}: AuthProviderProps) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(initialUser);
   const [prevInitialOid, setPrevInitialOid] = useState<string | null>(
@@ -50,8 +60,8 @@ export function AuthProvider({ initialUser, children }: AuthProviderProps) {
   }, [router]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, setUser, refresh, logout }),
-    [user, refresh, logout],
+    () => ({ user, setUser, refresh, logout, isAdmin: initialIsAdmin }),
+    [user, refresh, logout, initialIsAdmin],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

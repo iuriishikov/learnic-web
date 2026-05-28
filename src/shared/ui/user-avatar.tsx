@@ -119,6 +119,14 @@ type UserAvatarProps = VariantProps<typeof userAvatarVariants> & {
    * managed object URL — no network request involved.
    */
   previewFile?: File | Blob | null;
+  /**
+   * Direct image URL override. Takes precedence over `user.avatar?.url`
+   * (but not over a live `previewFile`). Use it when the image source
+   * isn't a backend `ApiFile` — e.g. mock / placeholder avatars, or any
+   * caller that already has a plain URL. The usual error/loading
+   * handling and the initials fallback still apply.
+   */
+  imageUrl?: string | null;
 };
 
 const SHAPE_RADIUS: Record<AvatarShape, { root: string; image: string; fallback: string; after: string }> = {
@@ -154,10 +162,11 @@ export function UserAvatar({
   shape = 'square',
   halo = true,
   previewFile,
+  imageUrl,
 }: UserAvatarProps) {
   const t = useTranslations('app');
   const previewUrl = useObjectUrl(previewFile);
-  const effectiveSrc = previewUrl ?? user?.avatar?.url ?? null;
+  const effectiveSrc = previewUrl ?? imageUrl ?? user?.avatar?.url ?? null;
   const hasUrl = Boolean(effectiveSrc);
   const [status, setStatus] = useState<AvatarLoadStatus>(
     hasUrl ? 'loading' : 'idle',

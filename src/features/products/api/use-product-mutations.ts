@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 
 import { useNotify } from '@/shared/lib/notify';
 
-import type { Product } from '../model/types';
+import type { Product, ProductVisibility } from '../model/types';
 
 import {
   archiveProductAction,
@@ -13,6 +13,7 @@ import {
   changeProductDurationAction,
   changeProductNameAction,
   changeProductPriceAction,
+  changeProductVisibilityAction,
   deleteProductAction,
   publishProductAction,
   removeProductCoverAction,
@@ -172,6 +173,47 @@ export function useChangeProductPriceMutation(productId: string) {
       fail('updatePriceFailed');
     },
     // 204 — no server-derived state to fetch. Skip invalidation.
+  });
+}
+
+export function useChangeProductVisibilityMutation(productId: string) {
+  const qc = useQueryClient();
+  const fail = useFailureToast();
+  return useMutation<
+    void,
+    Error,
+    { visibility: ProductVisibility },
+    { previous?: Product }
+  >({
+    mutationFn: async ({ visibility }) => {
+      const result = await changeProductVisibilityAction({
+        productId,
+        visibility,
+      });
+      if (!result.ok) throw new Error(result.reason);
+    },
+    onMutate: async ({ visibility }) => {
+      await qc.cancelQueries({ queryKey: productKey(productId) });
+      const previous = qc.getQueryData<Product>(productKey(productId));
+      if (previous) {
+        qc.setQueryData<Product>(productKey(productId), {
+          ...previous,
+          visibility,
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) {
+        qc.setQueryData(productKey(productId), ctx.previous);
+      }
+      fail('changeVisibilityFailed');
+    },
+    // PATCH /visibility returns 204 — the optimistic cache write IS the
+    // new server state. No follow-up GET. Visibility doesn't change
+    // which products appear in the catalog/search (private products
+    // stay listed); it only gates self-enrollment, so there are no
+    // list caches to invalidate here.
   });
 }
 

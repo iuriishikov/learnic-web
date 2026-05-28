@@ -42,6 +42,8 @@ import {
 
 import { useNotify } from '@/shared/lib/notify';
 import { Button } from '@/shared/ui/button';
+import { FileCard } from '@/shared/ui/file-card';
+import { Image } from '@/shared/ui/image';
 import { VideoPlayer } from '@/shared/ui/video-player';
 import {
   Dialog,
@@ -87,27 +89,17 @@ export function FileBlockView({ block }: { block: FileBlock }) {
     return <MissingFilePlaceholder kind="file" />;
   }
   return (
-    <a
-      href={block.file.url}
-      target="_blank"
-      rel="noreferrer"
-      className="flex items-center gap-3 rounded-xl border border-border bg-muted/10 px-4 py-3 transition-colors hover:bg-muted/20"
-    >
-      <span
-        aria-hidden
-        className="flex size-10 shrink-0 items-center justify-center rounded-md bg-foreground/[0.04] text-foreground/80 ring-1 ring-foreground/10"
-      >
-        <FileIcon className="size-5" />
-      </span>
-      <span className="flex min-w-0 flex-col gap-0.5">
-        <span className="truncate text-sm font-medium leading-tight text-foreground">
-          {block.title ?? t('defaultTitle')}
-        </span>
-        <span className="text-xs leading-snug text-muted-foreground">
-          {t('downloadHint')}
-        </span>
-      </span>
-    </a>
+    <FileCard
+      url={block.file.url}
+      title={block.title}
+      mimeType={block.file.contentType}
+      labels={{
+        previewSubtitle: t('downloadHint'),
+        downloadSubtitle: t('downloadSubtitle'),
+        downloadAction: t('downloadAction'),
+        defaultTitle: t('defaultTitle'),
+      }}
+    />
   );
 }
 
@@ -473,14 +465,8 @@ function FileBlockDialogShell({
             {cancelLabel}
           </Button>
           <Button onClick={onSubmit} disabled={!canSubmit} className="gap-1.5">
-            {isPending ? (
-              <>
-                <Loader2Icon className="size-4 animate-spin" />
-                {uploadingLabel}
-              </>
-            ) : (
-              confirmLabel
-            )}
+            {isPending && <Loader2Icon className="size-4 animate-spin" />}
+            {isPending ? uploadingLabel : confirmLabel}
           </Button>
         </div>
       </DialogContent>
@@ -1011,12 +997,15 @@ function CollageDraftCard({
     >
       <div className="relative aspect-[16/10] overflow-hidden rounded-lg bg-muted/40">
         {previewUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={previewUrl}
             alt={item.caption || item.file.name}
-            className="h-full w-full object-cover"
+            fill
+            // Local object URL or backend storage URL — optimizer doesn't apply.
+            unoptimized
+            sizes="(max-width: 640px) 100vw, 50vw"
             draggable={false}
+            rounded="lg"
           />
         ) : null}
         <button

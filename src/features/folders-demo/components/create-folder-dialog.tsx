@@ -17,7 +17,7 @@ import {
 import { TextInput } from '@/shared/ui/input-extended';
 import { Label } from '@/shared/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
-import { DescriptionTextarea } from '@/shared/ui/textarea-extended';
+import { Textarea } from '@/shared/ui/textarea';
 
 import { Emoji } from './emoji';
 import { EmojiPicker } from './emoji-picker';
@@ -158,7 +158,7 @@ export function CreateFolderDialog({
                 {description.length} / {DESCRIPTION_MAX}
               </span>
             </div>
-            <DescriptionTextarea
+            <Textarea
               id="folder-description"
               value={description}
               onChange={(event) => {

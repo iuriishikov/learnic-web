@@ -5,6 +5,17 @@ export type ProductType = 'course';
 
 export type ProductStatus = 'draft' | 'published' | 'archived' | 'banned';
 
+/**
+ * Enrollment visibility, orthogonal to {@link ProductStatus}. Both
+ * `public` and `private` products appear in the catalog/search and on
+ * their detail page; the difference is enrollment. `public` accepts
+ * self-enrollment; `private` is invite-only — self-enroll is refused
+ * and access is granted only through an accepted gift. The SPA should
+ * hide the self-enroll CTA when `private`. Owner-only to toggle
+ * (`PATCH /products/{id}/visibility`).
+ */
+export type ProductVisibility = 'public' | 'private';
+
 // `Currency` lives in `@/shared/types/money` — cross-cutting; wallet
 // and order UI consume the same union. Products themselves no longer
 // store currency (denominated in the owner's account currency, RUB-only
@@ -27,6 +38,8 @@ export type Product = {
   id: string;
   type: ProductType;
   status: ProductStatus;
+  /** Discovery visibility (public vs invite-only). See {@link ProductVisibility}. */
+  visibility: ProductVisibility;
   title: string;
   description: string;
   durationHours: number;

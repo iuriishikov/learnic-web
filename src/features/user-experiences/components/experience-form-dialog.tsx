@@ -28,7 +28,7 @@ import {
 } from '@/shared/ui/dialog';
 import { TextInput } from '@/shared/ui/input-extended';
 import { RequiredMark } from '@/shared/ui/required-mark';
-import { DescriptionTextarea } from '@/shared/ui/textarea-extended';
+import { Textarea } from '@/shared/ui/textarea';
 
 import {
   useAddExperienceMutation,
@@ -318,7 +318,7 @@ function ExperienceForm({
           >
             {t('fields.description.label')}
           </label>
-          <DescriptionTextarea
+          <Textarea
             id={descriptionId}
             placeholder={t('fields.description.placeholder')}
             className="min-h-24"

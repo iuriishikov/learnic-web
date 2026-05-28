@@ -8,6 +8,7 @@ import { useObjectUrl } from '@/shared/hooks/use-object-url';
 import { useNotify } from '@/shared/lib/notify';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
+import { Image } from '@/shared/ui/image';
 
 import { deleteCoverAction, uploadCoverAction } from '../api/cover';
 import { useAuth } from '@/shared/auth';
@@ -115,14 +116,15 @@ export function CoverUploader() {
         )}
       >
         {hasCover && displayUrl ? (
-          // External presigned URL from object storage — `next/image` would
-          // require remotePatterns config; the existing UserAvatar follows
-          // the same approach with a plain <img>.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          // Presigned storage URL — bypass next/image's optimizer (no
+          // remotePatterns config for arbitrary backend hosts).
+          <Image
             src={displayUrl}
             alt={t('alt')}
-            className="absolute inset-0 size-full object-cover"
+            fill
+            unoptimized
+            sizes="(max-width: 768px) 100vw, 50vw"
+            rounded="xl"
           />
         ) : (
           <div className="flex flex-col items-center gap-2 text-sm">

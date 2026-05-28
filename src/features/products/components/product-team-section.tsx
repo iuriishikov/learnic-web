@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  GiftIcon,
   UserPlusIcon,
   UsersIcon,
 } from 'lucide-react';
@@ -17,14 +18,17 @@ import {
   useProductCollaborations,
   useProductRoles,
 } from '../api/use-team';
+import { useProductGifts } from '../api/use-gifts';
 import type { Product } from '../model/types';
 
+import { GiftInviteDialog } from './team/gift-invite-dialog';
+import { TeamGiftsTab } from './team/team-gifts-tab';
 import { TeamInvitationsTab } from './team/team-invitations-tab';
 import { TeamInviteDialog } from './team/team-invite-dialog';
 import { TeamMembersTab } from './team/team-members-tab';
 import { TeamRolesTab } from './team/team-roles-tab';
 
-const TAB_KEYS = ['members', 'roles', 'invitations'] as const;
+const TAB_KEYS = ['members', 'roles', 'invitations', 'gifts'] as const;
 type TabKey = (typeof TAB_KEYS)[number];
 
 export function ProductTeamSection({ product }: { product: Product }) {
@@ -33,9 +37,11 @@ export function ProductTeamSection({ product }: { product: Product }) {
 
   const [activeTab, setActiveTab] = useState<TabKey>('members');
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [giftOpen, setGiftOpen] = useState(false);
 
   const collabsQuery = useProductCollaborations(product.id);
   const rolesQuery = useProductRoles(product.id);
+  const giftsQuery = useProductGifts(product.id);
   const myPerms = useMyEffectivePermissions(product.id);
   const canInvite =
     myPerms.data?.permissions.includes('manage_collaborators') ?? false;
@@ -45,13 +51,18 @@ export function ProductTeamSection({ product }: { product: Product }) {
     const activeCollabs = collabs.filter((c) => c.status === 'active');
     const pending = collabs.filter((c) => c.status === 'pending_invite');
     const roles = rolesQuery.data ?? [];
+    const gifts = giftsQuery.data ?? [];
+    const liveGifts = gifts.filter(
+      (g) => g.status === 'pending_invite' || g.status === 'accepted',
+    );
     return {
       // +1 for the product owner row in the members list.
       members: activeCollabs.length + 1,
       roles: roles.length,
       invitations: pending.length,
+      gifts: liveGifts.length,
     };
-  }, [collabsQuery.data, rolesQuery.data]);
+  }, [collabsQuery.data, rolesQuery.data, giftsQuery.data]);
 
   const memberRoleId = useMemo(() => {
     const roles = rolesQuery.data ?? [];
@@ -97,6 +108,17 @@ export function ProductTeamSection({ product }: { product: Product }) {
               <Button
                 type="button"
                 size="sm"
+                variant="outline"
+                onClick={() => setGiftOpen(true)}
+                className="h-9 gap-1.5 px-3 sm:px-4"
+              >
+                <GiftIcon className="size-4" />
+                <span className="sm:hidden">{t('actions.gift')}</span>
+                <span className="hidden sm:inline">{t('actions.giftFull')}</span>
+              </Button>
+              <Button
+                type="button"
+                size="sm"
                 onClick={() => setInviteOpen(true)}
                 disabled={
                   rolesQuery.isPending ||
@@ -129,11 +151,17 @@ export function ProductTeamSection({ product }: { product: Product }) {
             <TeamMembersTab key="members" productId={product.id} product={product} />
           ) : activeTab === 'roles' ? (
             <TeamRolesTab key="roles" productId={product.id} />
-          ) : (
+          ) : activeTab === 'invitations' ? (
             <TeamInvitationsTab
               key="invitations"
               productId={product.id}
               onAddInvite={() => setInviteOpen(true)}
+            />
+          ) : (
+            <TeamGiftsTab
+              key="gifts"
+              productId={product.id}
+              onAddGift={() => setGiftOpen(true)}
             />
           )}
         </AnimatePresence>
@@ -146,6 +174,14 @@ export function ProductTeamSection({ product }: { product: Product }) {
         ownerId={product.author.id}
         roles={rolesQuery.data ?? []}
         defaultRoleId={memberRoleId}
+      />
+
+      <GiftInviteDialog
+        open={giftOpen}
+        onOpenChange={setGiftOpen}
+        productId={product.id}
+        ownerId={product.author.id}
+        gifts={giftsQuery.data ?? []}
       />
     </motion.section>
   );
@@ -163,7 +199,12 @@ function TeamTabs({
 }: {
   activeTab: TabKey;
   onChange: (key: TabKey) => void;
-  counts: { members: number; roles: number; invitations: number };
+  counts: {
+    members: number;
+    roles: number;
+    invitations: number;
+    gifts: number;
+  };
   reduceMotion: boolean;
 }) {
   const t = useTranslations('teach-products.editor.team.tabs');

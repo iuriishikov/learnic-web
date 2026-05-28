@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 
 import { useNotify } from '@/shared/lib/notify';
 import { TextInput } from '@/shared/ui/input-extended';
-import { DescriptionTextarea } from '@/shared/ui/textarea-extended';
+import { Textarea } from '@/shared/ui/textarea';
 import {
   AutosaveIndicator,
   SettingsRow,
@@ -244,7 +244,7 @@ export function ProfileForm() {
           description={tFields('description.description')}
           labelFor={descriptionId}
         >
-          <DescriptionTextarea
+          <Textarea
             id={descriptionId}
             aria-invalid={Boolean(errors.description)}
             className="min-h-32 max-w-2xl rounded-lg text-[15px]"

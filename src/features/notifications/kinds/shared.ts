@@ -9,6 +9,8 @@ import type {
   ActorRef,
   CollaborationSnapshot,
   CollaborationStatus,
+  GiftSnapshot,
+  GiftStatus,
   ProductRef,
 } from '../model/types';
 
@@ -41,6 +43,25 @@ export function toProduct(raw: ProductRaw): ProductRef {
 export function toCollaboration(
   raw: CollaborationRaw | null | undefined,
 ): CollaborationSnapshot | null {
+  if (raw == null) return null;
+  return {
+    status: raw.status,
+    acceptedAt: raw.accepted_at,
+    declinedAt: raw.declined_at,
+    revokedAt: raw.revoked_at,
+    inviteExpiresAt: raw.invite_expires_at,
+  };
+}
+
+export type GiftRaw = {
+  status: GiftStatus;
+  accepted_at: string | null;
+  declined_at: string | null;
+  revoked_at: string | null;
+  invite_expires_at: string | null;
+};
+
+export function toGift(raw: GiftRaw | null | undefined): GiftSnapshot | null {
   if (raw == null) return null;
   return {
     status: raw.status,

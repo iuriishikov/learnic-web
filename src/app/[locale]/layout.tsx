@@ -3,7 +3,7 @@ import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { AuthProvider } from '@/features/auth';
-import { getCurrentUser } from '@/features/auth/server';
+import { getCurrentUser, getMyAdminStatus } from '@/features/auth/server';
 import { PresenceProvider } from '@/features/presence';
 import { QueryProvider } from '@/shared/api/query-provider';
 import { routing } from '@/shared/config/i18n/routing';
@@ -75,10 +75,11 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
 
   const initialUser = await getCurrentUser();
+  const initialIsAdmin = initialUser ? await getMyAdminStatus() : false;
 
   return (
     <NextIntlClientProvider>
-      <AuthProvider initialUser={initialUser}>
+      <AuthProvider initialUser={initialUser} initialIsAdmin={initialIsAdmin}>
         <QueryProvider>
           <PresenceProvider>
             <BannerProvider>

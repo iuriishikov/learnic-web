@@ -7,6 +7,7 @@ import type {
   ProductAuthor,
   ProductStatus,
   ProductType,
+  ProductVisibility,
 } from '../model/types';
 
 type AuthorSchemaResponse = {
@@ -25,6 +26,7 @@ export type ProductSchemaResponse = {
   oid: string;
   type: ProductType;
   status: ProductStatus;
+  visibility: ProductVisibility;
   name: string;
   description: string | null;
   total_duration_in_hours: number | null;
@@ -46,6 +48,7 @@ export function fromProductSchema(raw: ProductSchemaResponse): Product {
     id: raw.oid,
     type: raw.type,
     status: raw.status,
+    visibility: raw.visibility,
     title: raw.name,
     description: raw.description ?? '',
     durationHours: raw.total_duration_in_hours ?? 0,

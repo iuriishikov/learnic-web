@@ -4,8 +4,10 @@ import {
   ArchiveIcon,
   ArchiveRestoreIcon,
   CheckIcon,
+  GlobeIcon,
   HistoryIcon,
   LoaderCircleIcon,
+  LockIcon,
   PackagePlusIcon,
   RotateCcwIcon,
   RocketIcon,
@@ -16,9 +18,11 @@ import { useFormatter, useTranslations } from 'next-intl';
 import {
   type ChangeEvent as ReactChangeEvent,
   type FormEvent as ReactFormEvent,
+  type ReactNode,
   useState,
 } from 'react';
 
+import { useAuth } from '@/shared/auth';
 import { useRouter } from '@/shared/config/i18n/navigation';
 import { cn } from '@/shared/lib/utils';
 import {
@@ -41,7 +45,7 @@ import {
   DialogTitle,
 } from '@/shared/ui/dialog';
 import { Skeleton } from '@/shared/ui/skeleton';
-import { DescriptionTextarea } from '@/shared/ui/textarea-extended';
+import { Textarea } from '@/shared/ui/textarea';
 
 import {
   type CourseReleaseKind,
@@ -56,12 +60,17 @@ import {
 } from '../api/use-course-releases';
 import {
   useArchiveProductMutation,
+  useChangeProductVisibilityMutation,
   useDeleteProductMutation,
   usePublishProductMutation,
   useUnarchiveProductMutation,
 } from '../api/use-product-mutations';
 import { useProductPermissions } from '../api/use-product-permissions';
-import type { Product, ProductStatus } from '../model/types';
+import type {
+  Product,
+  ProductStatus,
+  ProductVisibility,
+} from '../model/types';
 import { EditorRow, EditorSection } from './editor-row';
 
 const NOTES_MAX = 5000;
@@ -87,6 +96,7 @@ export function ProductSettingsSection({
     >
       <EditorSection title={t('title')} description={t('description')}>
         <StatusRow product={product} />
+        <VisibilityRow product={product} />
         {isCourse ? <ReleasesRow product={product} /> : null}
         <DangerRow product={product} />
       </EditorSection>
@@ -230,6 +240,115 @@ function StatusRow({ product }: { product: Product }) {
         </AlertDialogContent>
       </AlertDialog>
     </EditorRow>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Visibility row (owner only)                                                */
+/* -------------------------------------------------------------------------- */
+
+function VisibilityRow({ product }: { product: Product }) {
+  const t = useTranslations('teach-products.editor.settings.visibility');
+  const currentUserId = useAuth().user?.oid ?? null;
+  const isOwner =
+    currentUserId !== null && currentUserId === product.author.id;
+  const mutation = useChangeProductVisibilityMutation(product.id);
+
+  // Owner-only — collaborators (even with every permission) can't see or
+  // toggle this. The backend enforces the same rule (403 NotResourceOwner);
+  // hiding the control just avoids surfacing an action that would fail.
+  if (!isOwner) return null;
+
+  const choose = (visibility: ProductVisibility) => {
+    // Single-select: skip re-picking the active option (no-op PATCH).
+    if (visibility !== product.visibility) {
+      mutation.mutate({ visibility });
+    }
+  };
+
+  return (
+    <EditorRow label={t('title')} description={t('description')}>
+      <div
+        role="radiogroup"
+        aria-label={t('title')}
+        className="flex flex-col gap-2.5"
+      >
+        <VisibilityOption
+          icon={<GlobeIcon className="size-4" />}
+          title={t('publicOption')}
+          description={t('publicHint')}
+          selected={product.visibility === 'public'}
+          disabled={mutation.isPending}
+          onSelect={() => choose('public')}
+        />
+        <VisibilityOption
+          icon={<LockIcon className="size-4" />}
+          title={t('privateOption')}
+          description={t('privateHint')}
+          selected={product.visibility === 'private'}
+          disabled={mutation.isPending}
+          onSelect={() => choose('private')}
+        />
+      </div>
+    </EditorRow>
+  );
+}
+
+function VisibilityOption({
+  icon,
+  title,
+  description,
+  selected,
+  disabled,
+  onSelect,
+}: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  selected: boolean;
+  disabled: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      disabled={disabled}
+      onClick={onSelect}
+      className={cn(
+        'flex w-full items-start gap-3 rounded-xl border p-3.5 text-left outline-none transition-colors',
+        'focus-visible:ring-[3px] focus-visible:ring-ring/50',
+        selected
+          ? 'border-brand bg-brand/5 ring-1 ring-brand/30'
+          : 'border-border hover:border-foreground/15 hover:bg-muted/40',
+        disabled && 'opacity-60',
+      )}
+    >
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+        {icon}
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-sm font-medium text-foreground">{title}</span>
+        <span className="text-sm leading-snug text-muted-foreground">
+          {description}
+        </span>
+      </span>
+      {/* Visual single-select indicator, mirrors the shadcn Checkbox checked
+          state. Decorative (aria-hidden) — selection state lives on the
+          enclosing role="radio" button. */}
+      <span
+        aria-hidden
+        className={cn(
+          'mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-[4px] border transition-colors',
+          selected
+            ? 'border-brand bg-brand text-brand-foreground'
+            : 'border-input',
+        )}
+      >
+        {selected ? <CheckIcon className="size-3.5" /> : null}
+      </span>
+    </button>
   );
 }
 
@@ -535,7 +654,7 @@ function CreateReleaseDialog({
             >
               {t('notesLabel')}
             </label>
-            <DescriptionTextarea
+            <Textarea
               id="release-notes"
               value={notes}
               onChange={(e: ReactChangeEvent<HTMLTextAreaElement>) =>

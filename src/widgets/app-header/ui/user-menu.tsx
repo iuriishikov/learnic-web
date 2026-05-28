@@ -5,6 +5,7 @@ import {
   GraduationCapIcon,
   HelpCircleIcon,
   LayersIcon,
+  LayoutDashboardIcon,
   LifeBuoyIcon,
   LogOutIcon,
   MailIcon,
@@ -17,6 +18,7 @@ import { useTheme } from 'next-themes';
 import { useState, useSyncExternalStore, useTransition } from 'react';
 
 import { logoutAction, type User } from '@/features/auth';
+import { useAuth } from '@/shared/auth';
 import { Link, useRouter, usePathname } from '@/shared/config/i18n/navigation';
 import {
   AlertDialog,
@@ -82,6 +84,7 @@ export function UserMenu({ user }: UserMenuProps) {
   const tConfirm = useTranslations('app-header.userMenu.confirmSignOut');
   const pathname = usePathname();
   const router = useRouter();
+  const { isAdmin } = useAuth();
   const { theme, setTheme } = useTheme();
   const [isSigningOut, startSignOut] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -188,6 +191,20 @@ export function UserMenu({ user }: UserMenuProps) {
           </MenuGroup>
 
           <MenuSeparator />
+
+          {isAdmin && (
+            <>
+              <MenuGroup>
+                <MenuItem
+                  render={<Link href="/admin" />}
+                  leading={<LayoutDashboardIcon />}
+                >
+                  {tMenu('adminPanel')}
+                </MenuItem>
+              </MenuGroup>
+              <MenuSeparator />
+            </>
+          )}
 
           <MenuGroup>
             <MenuItem

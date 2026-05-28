@@ -39,7 +39,7 @@ import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { TextInput } from '@/shared/ui/input-extended';
 import { Skeleton } from '@/shared/ui/skeleton';
-import { DescriptionTextarea } from '@/shared/ui/textarea-extended';
+import { Textarea } from '@/shared/ui/textarea';
 
 import type { ProductQA } from '../api/qa';
 import {
@@ -437,7 +437,7 @@ function AnswerField({
   const isEmpty = draft.trim().length === 0;
   return (
     <div className="flex flex-col gap-1">
-      <DescriptionTextarea
+      <Textarea
         key={rowId}
         value={draft}
         maxLength={ANSWER_MAX}

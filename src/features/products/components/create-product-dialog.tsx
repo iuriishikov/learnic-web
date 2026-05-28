@@ -45,7 +45,7 @@ import {
   ResponsiveSheetTitle,
   ResponsiveSheetTrigger,
 } from '@/shared/ui/responsive-sheet';
-import { DescriptionTextarea } from '@/shared/ui/textarea-extended';
+import { Textarea } from '@/shared/ui/textarea';
 
 import { createProductAction } from '../api/create-product';
 import { myProductsKey } from '../api/use-my-products';
@@ -233,7 +233,7 @@ export function CreateProductDialog({ trigger }: CreateProductDialogProps) {
               hint={t('fields.optional')}
               error={descriptionError ? t(`errors.${descriptionError}`) : null}
             >
-              <DescriptionTextarea
+              <Textarea
                 id="cp-description"
                 placeholder={t('fields.description.placeholder.course')}
                 aria-invalid={Boolean(descriptionError)}

@@ -1,0 +1,37 @@
+{
+  "meta": {
+    "title": "Свяжитесь с нами",
+    "description": "Напишите нам — наша дружная команда будет рада услышать вас."
+  },
+  "title": "Свяжитесь с нами",
+  "subtitle": "Наша дружная команда будет рада услышать вас.",
+  "fields": {
+    "firstName": { "label": "Имя", "placeholder": "Имя" },
+    "lastName": { "label": "Фамилия", "placeholder": "Фамилия" },
+    "email": { "label": "Эл. почта", "placeholder": "you@company.com" },
+    "phone": { "label": "Телефон", "placeholder": "(900) 000-00-00" },
+    "message": { "label": "Сообщение", "placeholder": "Оставьте сообщение…" }
+  },
+  "consent": "Вы соглашаетесь с нашей <link>политикой конфиденциальности</link>.",
+  "submit": "Отправить сообщение",
+  "submitHint": "Отправить",
+  "mail": {
+    "subject": "Сообщение с сайта Learnic от {name}",
+    "name": "Имя",
+    "email": "Эл. почта",
+    "phone": "Телефон"
+  },
+  "errors": {
+    "firstNameRequired": "Укажите имя",
+    "firstNameTooLong": "Слишком длинное имя",
+    "lastNameRequired": "Укажите фамилию",
+    "lastNameTooLong": "Слишком длинная фамилия",
+    "emailRequired": "Укажите эл. почту",
+    "emailInvalid": "Неверный адрес эл. почты",
+    "emailTooLong": "Слишком длинный адрес",
+    "phoneIncomplete": "Введите номер полностью",
+    "messageRequired": "Напишите сообщение",
+    "messageTooLong": "Сообщение слишком длинное",
+    "consentRequired": "Подтвердите согласие, чтобы продолжить"
+  }
+}
