@@ -10,8 +10,6 @@
  *   for transport to the backend
  */
 
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? '';
-
 export type SerializedSubscription = {
   endpoint: string;
   p256dh: string;
@@ -55,10 +53,6 @@ export function isIOS(): boolean {
   if (/iPhone|iPad|iPod/.test(ua)) return true;
   if (platform === 'MacIntel' && navigator.maxTouchPoints > 1) return true;
   return false;
-}
-
-export function hasVapidKey(): boolean {
-  return Boolean(VAPID_PUBLIC_KEY);
 }
 
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration> {

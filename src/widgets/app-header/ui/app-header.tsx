@@ -88,7 +88,7 @@ export function AppHeader({
               variant="pill"
               layoutId="app-header-nav"
               ariaLabel={t('navAriaLabel')}
-              className="hidden lg:flex"
+              className="hidden md:flex"
             />
           ) : null}
         </div>
@@ -124,7 +124,7 @@ export function AppHeader({
           <MobileMenu open={mobileOpen} onOpenChange={setMobileOpen}>
             <MobileMenuTrigger
               aria-label={t('openMenu')}
-              hideFrom="lg"
+              hideFrom="md"
             />
             <MobileMenuContent
               srTitle={t('openMenu')}

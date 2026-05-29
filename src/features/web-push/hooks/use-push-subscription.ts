@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
+  getVapidPublicKeyAction,
   subscribePushAction,
   unsubscribePushAction,
 } from '../api/subscriptions';
 import {
   getExistingSubscription,
   getNotificationPermission,
-  hasVapidKey,
   isIOS,
   isPushSupported,
   isStandaloneDisplayMode,
@@ -92,11 +92,14 @@ export function usePushSubscription() {
   const subscribe = useCallback(async (): Promise<
     { ok: true } | { ok: false; error: WebPushError }
   > => {
-    if (!hasVapidKey()) {
-      return { ok: false, error: { kind: 'notConfigured' } };
-    }
     if (!isPushSupported()) {
       return { ok: false, error: { kind: 'unknown', message: 'unsupported' } };
+    }
+    // VAPID public key comes from the backend (single source of truth,
+    // derived from the private key) — not a build-time env var.
+    const keyResult = await getVapidPublicKeyAction();
+    if (!keyResult.ok) {
+      return { ok: false, error: keyResult.error };
     }
     let permission = getNotificationPermission();
     if (permission === 'default') {
@@ -108,8 +111,7 @@ export function usePushSubscription() {
     }
     try {
       await registerServiceWorker();
-      const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? '';
-      const sub = await subscribeOnDevice(key);
+      const sub = await subscribeOnDevice(keyResult.publicKey);
       const serialized = serializeSubscription(sub);
       const result = await subscribePushAction({
         endpoint: serialized.endpoint,
