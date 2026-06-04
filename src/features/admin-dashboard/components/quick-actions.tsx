@@ -1,7 +1,6 @@
 'use client';
 
 import { BookOpenIcon, UsersIcon } from 'lucide-react';
-import { motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import type { ComponentType } from 'react';
 
@@ -18,7 +17,6 @@ type ActionItem = {
 export function QuickActions() {
   const t = useTranslations('admin-dashboard');
   const comingSoon = useComingSoon();
-  const reduce = useReducedMotion();
 
   const items: ActionItem[] = [
     {
@@ -28,38 +26,36 @@ export function QuickActions() {
       desc: t('quickActions.manageUsersDesc'),
     },
     {
-      key: 'courses',
+      key: 'notes',
       Icon: BookOpenIcon,
-      title: t('quickActions.manageCoursesTitle'),
-      desc: t('quickActions.manageCoursesDesc'),
+      title: t('quickActions.manageNotesTitle'),
+      desc: t('quickActions.manageNotesDesc'),
     },
   ];
 
   return (
     <section className="flex flex-col gap-4">
       <SectionHeader title={t('quickActions.title')} showSeparator={false} />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {items.map(({ key, Icon, title, desc }) => (
-          <motion.button
+          <button
             key={key}
             type="button"
             onClick={comingSoon}
-            whileHover={reduce ? undefined : { y: -2 }}
-            whileTap={reduce ? undefined : { scale: 0.99 }}
-            className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-left transition-shadow hover:shadow-sm"
+            className="flex items-stretch gap-3 rounded-xl border border-border bg-card p-4 text-left outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:hover:bg-muted/50"
           >
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground">
-              <Icon className="size-5" />
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-transparent text-foreground">
+              <Icon className="size-6" />
             </span>
-            <span className="flex min-w-0 flex-col">
-              <span className="text-sm font-medium text-foreground">
+            <span className="flex min-w-0 flex-col justify-between py-px">
+              <span className="text-sm font-semibold leading-snug text-foreground">
                 {title}
               </span>
-              <span className="truncate text-sm text-muted-foreground">
+              <span className="truncate text-xs leading-snug text-muted-foreground">
                 {desc}
               </span>
             </span>
-          </motion.button>
+          </button>
         ))}
       </div>
     </section>

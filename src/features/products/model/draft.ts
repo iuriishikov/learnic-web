@@ -126,7 +126,7 @@ export const CODE_TAB_LABEL_MAX_LEN = 32;
 export const CODE_BLOCK_MAX_TABS = 8;
 
 // Interactive answer block limits — keep in sync with the backend
-// constants under `entities/course_block/constants.py`.
+// constants under `entities/note_block/constants.py`.
 export const CHOICE_OPTION_LABEL_MAX_LEN = 200;
 export const CHOICE_BLOCK_MIN_OPTIONS = 2;
 export const CHOICE_BLOCK_MAX_OPTIONS = 8;
@@ -176,7 +176,7 @@ export type TextInputBlock = {
 };
 
 // File-backed block limits — keep in sync with the backend's
-// `entities/course_block/constants.py`. Title is shared across all
+// `entities/note_block/constants.py`. Title is shared across all
 // three file-backed types.
 export const BLOCK_TITLE_MAX_LEN = 200;
 export const PHOTO_COLLAGE_CAPTION_MAX_LEN = 280;
@@ -259,8 +259,8 @@ export type DraftModule = {
   lessons: DraftLesson[];
 };
 
-export type CourseDraft = {
-  courseId: string;
+export type NoteDraft = {
+  noteId: string;
   fetchedAt: string;
   modules: DraftModule[];
 };

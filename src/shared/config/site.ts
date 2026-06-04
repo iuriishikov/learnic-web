@@ -5,7 +5,7 @@ export const SITE_URL =
 
 /**
  * Recipient address for the contact form. Read on the server and passed to
- * the contact page, which builds a `mailto:` link the visitor's mail client
+ * the help page, which builds a `mailto:` link the visitor's mail client
  * opens. Not a secret (it ships in the rendered page), but kept server-read
  * so the address lives in one place.
  */

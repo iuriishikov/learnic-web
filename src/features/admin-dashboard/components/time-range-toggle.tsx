@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
 
-import { RANGE_KEYS, type RangeKey } from '../model/mock-data';
+import { RANGE_KEYS, type RangeKey } from '../model/range';
 
 const LABEL_KEY: Record<RangeKey, string> = {
   '12m': 'range12m',

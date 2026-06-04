@@ -1,10 +1,10 @@
 /**
- * Wire types + mappers for the course-draft tree.
+ * Wire types + mappers for the note-draft tree.
  *
  * Used by both the server-only REST loader (`api/draft.ts`) and the
  * client-only content-event handler (`lib/apply-content-event.ts`),
- * which receives the same `LessonBlockSchema` / `CourseDraftLessonSchema`
- * / `CourseDraftModuleSchema` shapes inside event payloads. Keeping
+ * which receives the same `LessonBlockSchema` / `NoteDraftLessonSchema`
+ * / `NoteDraftModuleSchema` shapes inside event payloads. Keeping
  * the mappers in `lib/` (no server-only marker, no client-only
  * marker) lets both call sites share one source of truth.
  *
@@ -16,7 +16,7 @@ import { toApiFile, type FileResponse } from '@/shared/types/user';
 
 import type {
   CodeBlockLanguage,
-  CourseDraft,
+  NoteDraft,
   DraftLesson,
   DraftModule,
   LessonBlock,
@@ -145,15 +145,15 @@ export type DraftModuleResponse = {
   lessons: DraftLessonResponse[];
 };
 
-export type CourseDraftResponse = {
-  course_id: string;
+export type NoteDraftResponse = {
+  note_id: string;
   modules: DraftModuleResponse[];
   fetched_at: string;
 };
 
-export function fromCourseDraftResponse(raw: CourseDraftResponse): CourseDraft {
+export function fromNoteDraftResponse(raw: NoteDraftResponse): NoteDraft {
   return {
-    courseId: raw.course_id,
+    noteId: raw.note_id,
     fetchedAt: raw.fetched_at,
     modules: [...raw.modules]
       .sort((a, b) => a.position - b.position)

@@ -41,6 +41,7 @@ import {
 } from 'react';
 
 import { useNotify } from '@/shared/lib/notify';
+import { notifyResourceLimit } from '@/shared/ui/resource-limit-dialog';
 import { Button } from '@/shared/ui/button';
 import { FileCard } from '@/shared/ui/file-card';
 import { Image } from '@/shared/ui/image';
@@ -61,7 +62,7 @@ import {
   useAddFileBlockMutation,
   useAddPhotoCollageBlockMutation,
   useAddVideoFileBlockMutation,
-} from '../api/use-course-mutations';
+} from '../api/use-note-mutations';
 import {
   BLOCK_TITLE_MAX_LEN,
   LESSON_COLLAGE_ITEM_MAX_BYTES,
@@ -147,7 +148,7 @@ export type AddFileBackedDialogKind = 'file' | 'video_file' | 'photo_collage';
 type CommonAddDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  courseId: string;
+  noteId: string;
   lessonId: string;
 };
 
@@ -481,13 +482,13 @@ function FileBlockDialogShell({
 export function AddFileBlockDialog({
   open,
   onOpenChange,
-  courseId,
+  noteId,
   lessonId,
 }: CommonAddDialogProps) {
   const t = useTranslations('teach-products.editor.addFileDialog');
   const tToast = useTranslations('teach-products.editor.toast');
   const notify = useNotify();
-  const mutation = useAddFileBlockMutation(courseId);
+  const mutation = useAddFileBlockMutation(noteId);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const titleInputId = useId();
@@ -524,6 +525,7 @@ export function AddFileBlockDialog({
       );
       return;
     }
+    if (notifyResourceLimit(result.resourceLimit)) return;
     notify.error(tToast(failureToastKey(result.reason)));
   };
 
@@ -595,13 +597,13 @@ export function AddFileBlockDialog({
 export function AddVideoFileBlockDialog({
   open,
   onOpenChange,
-  courseId,
+  noteId,
   lessonId,
 }: CommonAddDialogProps) {
   const t = useTranslations('teach-products.editor.addVideoFileDialog');
   const tToast = useTranslations('teach-products.editor.toast');
   const notify = useNotify();
-  const mutation = useAddVideoFileBlockMutation(courseId);
+  const mutation = useAddVideoFileBlockMutation(noteId);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const titleInputId = useId();
@@ -643,6 +645,7 @@ export function AddVideoFileBlockDialog({
       notify.error(tToast('wrongContentTypeVideo'));
       return;
     }
+    if (notifyResourceLimit(result.resourceLimit)) return;
     notify.error(tToast(failureToastKey(result.reason)));
   };
 
@@ -730,14 +733,14 @@ function _newDraftId(): string {
 export function AddPhotoCollageBlockDialog({
   open,
   onOpenChange,
-  courseId,
+  noteId,
   lessonId,
 }: CommonAddDialogProps) {
   const t = useTranslations('teach-products.editor.addCollageDialog');
   const tToast = useTranslations('teach-products.editor.toast');
   const tBlock = useTranslations('teach-products.editor.collageBlock');
   const notify = useNotify();
-  const mutation = useAddPhotoCollageBlockMutation(courseId);
+  const mutation = useAddPhotoCollageBlockMutation(noteId);
   const [items, setItems] = useState<DraftItem[]>([]);
   const [title, setTitle] = useState('');
   const titleInputId = useId();
@@ -844,6 +847,7 @@ export function AddPhotoCollageBlockDialog({
       notify.error(tToast('wrongContentTypeImage'));
       return;
     }
+    if (notifyResourceLimit(result.resourceLimit)) return;
     notify.error(tToast(failureToastKey(result.reason)));
   };
 

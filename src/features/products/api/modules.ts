@@ -5,19 +5,20 @@ import { apiFetch } from '@/shared/api/client';
 import {
   type CreatedResult,
   type MutationResult,
+  conflictResult,
   mapMutationStatus,
   safeJson,
 } from './_shared';
 
-export async function addCourseModuleAction(args: {
-  courseId: string;
+export async function addNoteModuleAction(args: {
+  noteId: string;
   title: string;
   description?: string | null;
 }): Promise<CreatedResult> {
   let res: Response;
   try {
     res = await apiFetch(
-      `/courses/${encodeURIComponent(args.courseId)}/modules`,
+      `/notes/${encodeURIComponent(args.noteId)}/modules`,
       {
         method: 'POST',
         body: {
@@ -44,19 +45,19 @@ export async function addCourseModuleAction(args: {
   if (res.status === 401) return { ok: false, reason: 'unauthorized' };
   if (res.status === 403) return { ok: false, reason: 'forbidden' };
   if (res.status === 404) return { ok: false, reason: 'not-found' };
-  if (res.status === 409) return { ok: false, reason: 'conflict' };
+  if (res.status === 409) return conflictResult(res);
   return { ok: false, reason: 'unknown' };
 }
 
-export async function renameCourseModuleAction(args: {
-  courseId: string;
+export async function renameNoteModuleAction(args: {
+  noteId: string;
   moduleId: string;
   title: string;
 }): Promise<MutationResult> {
   let res: Response;
   try {
     res = await apiFetch(
-      `/courses/${encodeURIComponent(args.courseId)}/modules/${encodeURIComponent(args.moduleId)}/title`,
+      `/notes/${encodeURIComponent(args.noteId)}/modules/${encodeURIComponent(args.moduleId)}/title`,
       { method: 'PATCH', body: { title: args.title } },
     );
   } catch {
@@ -65,15 +66,15 @@ export async function renameCourseModuleAction(args: {
   return mapMutationStatus(res.status) ?? { ok: false, reason: 'unknown' };
 }
 
-export async function updateCourseModuleDescriptionAction(args: {
-  courseId: string;
+export async function updateNoteModuleDescriptionAction(args: {
+  noteId: string;
   moduleId: string;
   description: string | null;
 }): Promise<MutationResult> {
   let res: Response;
   try {
     res = await apiFetch(
-      `/courses/${encodeURIComponent(args.courseId)}/modules/${encodeURIComponent(args.moduleId)}/description`,
+      `/notes/${encodeURIComponent(args.noteId)}/modules/${encodeURIComponent(args.moduleId)}/description`,
       { method: 'PATCH', body: { description: args.description } },
     );
   } catch {
@@ -82,14 +83,14 @@ export async function updateCourseModuleDescriptionAction(args: {
   return mapMutationStatus(res.status) ?? { ok: false, reason: 'unknown' };
 }
 
-export async function deleteCourseModuleAction(args: {
-  courseId: string;
+export async function deleteNoteModuleAction(args: {
+  noteId: string;
   moduleId: string;
 }): Promise<MutationResult> {
   let res: Response;
   try {
     res = await apiFetch(
-      `/courses/${encodeURIComponent(args.courseId)}/modules/${encodeURIComponent(args.moduleId)}`,
+      `/notes/${encodeURIComponent(args.noteId)}/modules/${encodeURIComponent(args.moduleId)}`,
       { method: 'DELETE' },
     );
   } catch {
@@ -98,14 +99,14 @@ export async function deleteCourseModuleAction(args: {
   return mapMutationStatus(res.status) ?? { ok: false, reason: 'unknown' };
 }
 
-export async function reorderCourseModulesAction(args: {
-  courseId: string;
+export async function reorderNoteModulesAction(args: {
+  noteId: string;
   orderedIds: string[];
 }): Promise<MutationResult> {
   let res: Response;
   try {
     res = await apiFetch(
-      `/courses/${encodeURIComponent(args.courseId)}/modules/order`,
+      `/notes/${encodeURIComponent(args.noteId)}/modules/order`,
       { method: 'PUT', body: { ordered_ids: args.orderedIds } },
     );
   } catch {

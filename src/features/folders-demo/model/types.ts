@@ -1,4 +1,4 @@
-export type DemoProductType = 'course';
+export type DemoProductType = 'note';
 
 export type DemoProductStatus = 'draft' | 'published' | 'archived';
 

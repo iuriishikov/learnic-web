@@ -75,7 +75,7 @@
   },
   "products": {
     "type": {
-      "course": "Курс",
+      "note": "Конспект",
       "webinar": "Вебинар",
       "podcast": "Подкаст"
     },

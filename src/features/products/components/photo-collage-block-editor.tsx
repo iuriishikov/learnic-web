@@ -47,7 +47,7 @@ import {
   useReorderCollageItemsMutation,
   useUpdateCollageItemCaptionMutation,
   useUpdateCollageTitleMutation,
-} from '../api/use-course-mutations';
+} from '../api/use-note-mutations';
 import {
   LESSON_COLLAGE_ITEM_MAX_BYTES,
   PHOTO_COLLAGE_CAPTION_MAX_LEN,
@@ -96,14 +96,14 @@ function _itemsFromBlock(block: PhotoCollageBlock): EditorItem[] {
 
 export type PhotoCollageBlockEditorProps = {
   block: PhotoCollageBlock;
-  courseId: string;
+  noteId: string;
   canEditLessons: boolean;
   insufficientPermissionsTitle?: string;
 };
 
 export function PhotoCollageBlockEditor({
   block,
-  courseId,
+  noteId,
   canEditLessons,
   insufficientPermissionsTitle,
 }: PhotoCollageBlockEditorProps) {
@@ -112,11 +112,11 @@ export function PhotoCollageBlockEditor({
   const notify = useNotify();
   const titleId = useId();
 
-  const addItem = useAddCollageItemMutation(courseId);
-  const removeItem = useRemoveCollageItemMutation(courseId);
-  const reorderItems = useReorderCollageItemsMutation(courseId);
-  const updateCaption = useUpdateCollageItemCaptionMutation(courseId);
-  const updateTitle = useUpdateCollageTitleMutation(courseId);
+  const addItem = useAddCollageItemMutation(noteId);
+  const removeItem = useRemoveCollageItemMutation(noteId);
+  const reorderItems = useReorderCollageItemsMutation(noteId);
+  const updateCaption = useUpdateCollageItemCaptionMutation(noteId);
+  const updateTitle = useUpdateCollageTitleMutation(noteId);
 
   const [items, setItems] = useState<EditorItem[]>(() =>
     _itemsFromBlock(block),

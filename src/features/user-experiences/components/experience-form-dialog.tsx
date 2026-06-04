@@ -7,6 +7,7 @@ import { useId, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import { useObjectUrl } from '@/shared/hooks/use-object-url';
+import { isResourceLimitError } from '@/shared/api/resource-limit';
 import { useNotify } from '@/shared/lib/notify';
 import { cn } from '@/shared/lib/utils';
 import {
@@ -208,7 +209,8 @@ function ExperienceForm({
         notify.success(t('created'));
       }
       onClose();
-    } catch {
+    } catch (err) {
+      if (isResourceLimitError(err)) return;
       notify.error(tErrors('saveFailed'));
     }
   }

@@ -6,8 +6,8 @@ import { toast } from 'sonner';
 
 /**
  * Returns a handler that announces an unbuilt section via a toast.
- * The dashboard is a mock — its actions (filters, manage users/courses,
- * open course) have no destination yet, so they acknowledge the click
+ * The dashboard is a mock — its actions (filters, manage users/notes,
+ * open note) have no destination yet, so they acknowledge the click
  * honestly instead of being dead buttons.
  */
 export function useComingSoon(): () => void {

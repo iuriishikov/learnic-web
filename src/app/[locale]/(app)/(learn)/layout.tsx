@@ -22,7 +22,7 @@ export default async function LearnLayout({
 
   const navItems: AppHeaderNavItem[] = [
     { key: 'marketplace', href: '/marketplace', label: t('nav.marketplace') },
-    { key: 'my-courses', href: '/my-courses', label: t('nav.myCourses') },
+    { key: 'my-notes', href: '/my-notes', label: t('nav.myNotes') },
     { key: 'community', href: '/community', label: t('nav.community') },
   ];
 

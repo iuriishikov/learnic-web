@@ -36,5 +36,5 @@ export const SECTIONS_BY_PRODUCT_TYPE: Record<
   ProductType,
   readonly [ProductSectionKey, ...ProductSectionKey[]]
 > = {
-  course: ['content', 'description', 'team', 'settings'],
+  note: ['content', 'description', 'team', 'settings'],
 };

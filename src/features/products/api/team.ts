@@ -1,6 +1,7 @@
 'use server';
 
 import { apiFetch } from '@/shared/api/client';
+import type { ResourceLimitInfo } from '@/shared/api/resource-limit';
 import { toApiFile, type FileResponse } from '@/shared/types/user';
 
 import type {
@@ -17,6 +18,7 @@ import type {
 import {
   type CreatedResult,
   type MutationResult,
+  conflictResult,
   mapMutationStatus,
   safeJson,
 } from './_shared';
@@ -183,11 +185,7 @@ export async function createCustomRoleAction(args: {
   if (res.status === 401) return { ok: false, reason: 'unauthorized' };
   if (res.status === 403) return { ok: false, reason: 'forbidden' };
   if (res.status === 404) return { ok: false, reason: 'not-found' };
-  if (res.status === 409) {
-    const body = await safeJson(res);
-    const message = typeof body?.error === 'string' ? body.error : undefined;
-    return { ok: false, reason: 'conflict', message };
-  }
+  if (res.status === 409) return conflictResult(res);
   if (res.status === 422) {
     const body = await safeJson(res);
     const message = typeof body?.error === 'string' ? body.error : undefined;
@@ -312,11 +310,7 @@ export async function inviteCollaboratorByUserAction(args: {
   if (res.status === 401) return { ok: false, reason: 'unauthorized' };
   if (res.status === 403) return { ok: false, reason: 'forbidden' };
   if (res.status === 404) return { ok: false, reason: 'not-found' };
-  if (res.status === 409) {
-    const body = await safeJson(res);
-    const message = typeof body?.error === 'string' ? body.error : undefined;
-    return { ok: false, reason: 'conflict', message };
-  }
+  if (res.status === 409) return conflictResult(res);
   if (res.status === 422) {
     const body = await safeJson(res);
     const message = typeof body?.error === 'string' ? body.error : undefined;
@@ -338,6 +332,7 @@ export type InviteByEmailResult =
         | 'network'
         | 'unknown';
       message?: string;
+      resourceLimit?: ResourceLimitInfo;
     }
   | {
       ok: false;
@@ -373,11 +368,7 @@ export async function inviteCollaboratorByEmailAction(args: {
   if (res.status === 401) return { ok: false, reason: 'unauthorized' };
   if (res.status === 403) return { ok: false, reason: 'forbidden' };
   if (res.status === 404) return { ok: false, reason: 'not-found' };
-  if (res.status === 409) {
-    const body = await safeJson(res);
-    const message = typeof body?.error === 'string' ? body.error : undefined;
-    return { ok: false, reason: 'conflict', message };
-  }
+  if (res.status === 409) return conflictResult(res);
   if (res.status === 422) {
     const body = await safeJson(res);
     const message = typeof body?.error === 'string' ? body.error : undefined;

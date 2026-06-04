@@ -1,5 +1,5 @@
 /**
- * Author-side push channel for product / course events.
+ * Author-side push channel for product / note events.
  *
  * Wire format and close-code conventions are spelt out in the OpenAPI spec
  * under the "WebSocket channels" section of `info.description` (OpenAPI 3

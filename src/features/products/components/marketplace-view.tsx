@@ -349,6 +349,7 @@ function MarketplaceCardWrapper({
   tagFilterActive,
 }: MarketplaceCardWrapperProps) {
   const reduceMotion = useReducedMotion();
+  const router = useRouter();
   const tCard = useTranslations('marketplace.card');
   const tags = product.tags;
   const productTagIds = useMemo(
@@ -378,15 +379,15 @@ function MarketplaceCardWrapper({
       transition={{ duration: 0.18, ease: 'easeOut' }}
     >
       {/*
-        Detail-view route (e.g. ``/products/[id]``) does not exist
-        yet for the marketplace flow — landing it later wires
-        ``onClick`` here to ``router.push``. For now the card is
-        intentionally non-interactive.
+        Card opens the public product landing (pre-enrollment detail) at
+        ``/marketplace/[id]``. ``ProductShowcaseCard`` turns interactive
+        (role=button + keyboard) once it gets an ``onClick``.
       */}
       <ProductShowcaseCard
-        type="course"
-        typeLabel={tCard('typeCourse')}
+        type="note"
+        typeLabel={tCard('typeNote')}
         title={product.title}
+        onClick={() => router.push(`/marketplace/${product.id}`)}
         durationLabel={
           product.durationHours > 0
             ? tCard('durationHours', { hours: product.durationHours })

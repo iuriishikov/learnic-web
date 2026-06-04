@@ -60,7 +60,7 @@ type UserMenuProps = {
 const TEACH_PATH_PREFIXES = ['/products'] as const;
 const LEARN_PATH_PREFIXES = [
   '/marketplace',
-  '/my-courses',
+  '/my-notes',
   '/community',
 ] as const;
 const MODE_NEUTRAL_PREFIXES = ['/settings'] as const;

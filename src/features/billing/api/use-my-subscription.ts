@@ -12,7 +12,7 @@ export const mySubscriptionKey = ['my-subscription'] as const;
  * Polls /users/me/subscription on focus + every 60s.
  *
  * Storage usage updates as the user adds file-backed blocks across
- * their courses; refetching on focus keeps the displayed "X of Y GB"
+ * their notes; refetching on focus keeps the displayed "X of Y GB"
  * close to live without a WS channel. The 60s background interval
  * catches passive growth (e.g. a collaborator uploaded in another
  * tab).

@@ -1,12 +1,21 @@
 'use server';
 
 import { apiFetch } from '@/shared/api/client';
+import {
+  readResourceLimit,
+  type ResourceLimitInfo,
+} from '@/shared/api/resource-limit';
 
 import type { CreateProductInput } from '../model/create-product';
 
 export type CreateProductResult =
   | { ok: true; productId: string }
-  | { ok: false; reason: 'unauthorized' | 'network' | 'unknown'; message?: string }
+  | {
+      ok: false;
+      reason: 'unauthorized' | 'network' | 'unknown';
+      message?: string;
+      resourceLimit?: ResourceLimitInfo;
+    }
   | { ok: false; reason: 'validation'; field?: string; message: string };
 
 type CreatedProductSchemaResponse = {
@@ -25,7 +34,7 @@ export async function createProductAction(
     formData.append('cover', values.cover);
   }
 
-  const path = '/products/courses';
+  const path = '/products/notes';
 
   let res: Response;
   try {
@@ -39,6 +48,11 @@ export async function createProductAction(
     return { ok: true, productId: raw.oid };
   }
   if (res.status === 401) return { ok: false, reason: 'unauthorized' };
+  if (res.status === 409) {
+    const info = await readResourceLimit(res);
+    if (info) return { ok: false, reason: 'unknown', resourceLimit: info };
+    return { ok: false, reason: 'unknown' };
+  }
   if (res.status === 422) {
     const body = await safeJson(res);
     const field = typeof body?.field === 'string' ? body.field : undefined;

@@ -81,7 +81,6 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
             <UserAvatar
               shape="circle"
               statusType={profile.isVerified ? 'verified' : null}
-              halo={false}
               user={{
                 id: profile.id,
                 fullName: profile.fullName,

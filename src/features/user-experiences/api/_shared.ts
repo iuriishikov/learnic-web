@@ -1,3 +1,7 @@
+import {
+  readResourceLimit,
+  type ResourceLimitInfo,
+} from '@/shared/api/resource-limit';
 import { toApiFile, type FileResponse } from '@/shared/types/user';
 
 import type { UserExperience } from '../model/types';
@@ -41,6 +45,7 @@ export type MutationResult =
         | 'network'
         | 'unknown';
       message?: string;
+      resourceLimit?: ResourceLimitInfo;
     };
 
 export type CreatedResult =
@@ -56,6 +61,7 @@ export type CreatedResult =
         | 'network'
         | 'unknown';
       message?: string;
+      resourceLimit?: ResourceLimitInfo;
     };
 
 export function mapMutationStatus(status: number): MutationResult | null {
@@ -76,4 +82,24 @@ export async function safeJson(
   } catch {
     return null;
   }
+}
+
+/**
+ * Classify a 409: a backend `ResourceLimitReached` body yields
+ * `resourceLimit` (so the client can pop the limit dialog); any other
+ * 409 stays a plain `conflict`.
+ */
+export async function conflictResult(res: Response): Promise<{
+  ok: false;
+  reason: 'conflict';
+  message?: string;
+  resourceLimit?: ResourceLimitInfo;
+}> {
+  const resourceLimit = (await readResourceLimit(res)) ?? undefined;
+  if (resourceLimit) {
+    return { ok: false, reason: 'conflict', resourceLimit };
+  }
+  const body = await safeJson(res);
+  const message = typeof body?.error === 'string' ? body.error : undefined;
+  return { ok: false, reason: 'conflict', message };
 }

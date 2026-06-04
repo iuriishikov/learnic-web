@@ -48,7 +48,7 @@ import { Skeleton } from '@/shared/ui/skeleton';
 
 import type {
   CodeTab,
-  CourseDraft,
+  NoteDraft,
   DraftLesson,
   DraftModule,
   LessonBlock,
@@ -60,9 +60,9 @@ import {
 import type { Product } from '../model/types';
 
 import {
-  CourseDraftError,
-  useCourseDraft,
-} from '../api/use-course-draft';
+  NoteDraftError,
+  useNoteDraft,
+} from '../api/use-note-draft';
 import { useProductEventsWs } from '../api/use-product-events-ws';
 import {
   useAddBlockMutation,
@@ -83,7 +83,7 @@ import {
   useUpdateMultiChoiceBlockMutation,
   useUpdateSingleChoiceBlockMutation,
   useUpdateTextInputBlockMutation,
-} from '../api/use-course-mutations';
+} from '../api/use-note-mutations';
 import type { ChoiceOptionDraftInput } from '../api/blocks';
 import { useProductQuery } from '../api/use-product';
 import {
@@ -125,7 +125,7 @@ function clampSidebarWidth(value: number): number {
 }
 
 function findLessonInDraft(
-  draft: CourseDraft | undefined,
+  draft: NoteDraft | undefined,
   lessonId: string | null,
 ): { module: DraftModule; lesson: DraftLesson } | null {
   if (!draft || !lessonId) return null;
@@ -149,19 +149,19 @@ export function ProductEditorView({
   const productQuery = useProductQuery(initialProduct.id, initialProduct);
   const product = productQuery.data ?? initialProduct;
 
-  const isCourse = product.type === 'course';
+  const isNote = product.type === 'note';
   // Tabs shown for this product type — order is tab order, [0] is the
   // default-selected section. See `model/sections.ts`.
   const sectionKeys = SECTIONS_BY_PRODUCT_TYPE[product.type];
   const perms = useProductPermissions(product.id);
   const insufficientTitle = t('insufficientPermissions');
 
-  // Course draft (modules / lessons / blocks)
-  const draftQuery = useCourseDraft(product.id, isCourse);
+  // Note draft (modules / lessons / blocks)
+  const draftQuery = useNoteDraft(product.id, isNote);
   // Unified product channel — multiplexes product metadata, Q&A,
-  // collaboration, role and (for courses) content-tree deltas in one
+  // collaboration, role and (for notes) content-tree deltas in one
   // socket. The backend gates content events on the product's
-  // `has_course_content` capability.
+  // `has_note_content` capability.
   useProductEventsWs(product.id, true);
 
   // Mutations
@@ -648,7 +648,7 @@ export function ProductEditorView({
               {sectionKeys.map((key) =>
                 key === 'content' ? (
                   // Content is the only section whose sidebar entry hosts an
-                  // inline, expandable body (the course tree). Every other
+                  // inline, expandable body (the note tree). Every other
                   // section is a plain nav button.
                   <ContentNavItem
                     key="content"
@@ -658,7 +658,7 @@ export function ProductEditorView({
                     reduceMotion={!!reduceMotion}
                   >
                     <DraftTree
-                      isCourse={isCourse}
+                      isNote={isNote}
                       query={draftQuery}
                       modules={treeModules}
                       selectedLessonId={
@@ -737,9 +737,9 @@ export function ProductEditorView({
             />
           </div>
 
-          {/* Mobile/tablet only: list-cell trigger that opens the course tree
+          {/* Mobile/tablet only: list-cell trigger that opens the note tree
               Sheet — desktop uses the persistent sidebar instead. */}
-          {isCourse && activeSection === 'content' ? (
+          {isNote && activeSection === 'content' ? (
             <button
               type="button"
               onClick={() => setMobileTreeOpen(true)}
@@ -777,8 +777,8 @@ export function ProductEditorView({
                 <ContentSection
                   key="content"
                   reduceMotion={!!reduceMotion}
-                  isCourse={isCourse}
-                  courseId={product.id}
+                  isNote={isNote}
+                  noteId={product.id}
                   query={draftQuery}
                   selectedLesson={selectedLesson}
                   onUpdateHtml={handleUpdateHtmlBlock}
@@ -840,7 +840,7 @@ export function ProductEditorView({
         defaultRoleId={memberRoleId}
       />
 
-      {/* Mobile/tablet course tree Sheet */}
+      {/* Mobile/tablet note tree Sheet */}
       <Sheet open={mobileTreeOpen} onOpenChange={setMobileTreeOpen}>
         <SheetContent
           side="left"
@@ -854,7 +854,7 @@ export function ProductEditorView({
           </SheetHeader>
           <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
             <DraftTree
-              isCourse={isCourse}
+              isNote={isNote}
               query={draftQuery}
               modules={treeModules}
               selectedLessonId={selectedLessonId}
@@ -887,13 +887,13 @@ export function ProductEditorView({
 }
 
 /* -------------------------------------------------------------------------- */
-/* Sidebar tree wrapper — handles loading / error / empty / not-a-course      */
+/* Sidebar tree wrapper — handles loading / error / empty / not-a-note      */
 /* -------------------------------------------------------------------------- */
 
-type DraftQuery = ReturnType<typeof useCourseDraft>;
+type DraftQuery = ReturnType<typeof useNoteDraft>;
 
 type DraftTreeProps = {
-  isCourse: boolean;
+  isNote: boolean;
   query: DraftQuery;
   modules: ContentTreeModule[];
   selectedLessonId: string | null;
@@ -915,7 +915,7 @@ type DraftTreeProps = {
 };
 
 function DraftTree({
-  isCourse,
+  isNote,
   query,
   modules,
   selectedLessonId,
@@ -937,10 +937,10 @@ function DraftTree({
 }: DraftTreeProps) {
   const t = useTranslations('teach-products.editor.load');
 
-  if (!isCourse) {
+  if (!isNote) {
     return (
       <p className="px-2.5 py-1.5 text-xs text-muted-foreground">
-        {t('notACourseDescription')}
+        {t('notANoteDescription')}
       </p>
     );
   }
@@ -959,7 +959,7 @@ function DraftTree({
 
   if (query.isError) {
     const reason =
-      query.error instanceof CourseDraftError ? query.error.reason : 'unknown';
+      query.error instanceof NoteDraftError ? query.error.reason : 'unknown';
     return (
       <DraftLoadError
         reason={reason}
@@ -997,7 +997,7 @@ function DraftLoadError({
   onRetry,
   isRetrying,
 }: {
-  reason: 'forbidden' | 'not-found' | 'not-a-course' | 'unauthorized' | 'network' | 'unknown';
+  reason: 'forbidden' | 'not-found' | 'not-a-note' | 'unauthorized' | 'network' | 'unknown';
   onRetry: () => void;
   isRetrying: boolean;
 }) {
@@ -1005,16 +1005,16 @@ function DraftLoadError({
   const titleKey =
     reason === 'forbidden'
       ? 'forbiddenTitle'
-      : reason === 'not-a-course'
-        ? 'notACourseTitle'
+      : reason === 'not-a-note'
+        ? 'notANoteTitle'
         : 'errorTitle';
   const descriptionKey =
     reason === 'forbidden'
       ? 'forbiddenDescription'
-      : reason === 'not-a-course'
-        ? 'notACourseDescription'
+      : reason === 'not-a-note'
+        ? 'notANoteDescription'
         : 'errorDescription';
-  const showRetry = reason !== 'forbidden' && reason !== 'not-a-course';
+  const showRetry = reason !== 'forbidden' && reason !== 'not-a-note';
   return (
     <div role="alert" className="flex flex-col gap-2 px-2.5 py-2">
       <p className="text-xs font-semibold text-foreground">{t(titleKey)}</p>
@@ -1044,8 +1044,8 @@ function DraftLoadError({
 
 type ContentSectionProps = {
   reduceMotion: boolean;
-  isCourse: boolean;
-  courseId: string;
+  isNote: boolean;
+  noteId: string;
   query: DraftQuery;
   selectedLesson: { module: DraftModule; lesson: DraftLesson } | null;
   onUpdateHtml: (blockId: string, html: string) => void;
@@ -1069,8 +1069,8 @@ type ContentSectionProps = {
 
 function ContentSection({
   reduceMotion,
-  isCourse,
-  courseId,
+  isNote,
+  noteId,
   query,
   selectedLesson,
   onUpdateHtml,
@@ -1088,10 +1088,10 @@ function ContentSection({
   const t = useTranslations('teach-products.editor');
   const tLoad = useTranslations('teach-products.editor.load');
 
-  if (!isCourse) {
+  if (!isNote) {
     return (
       <motion.div
-        key="not-a-course"
+        key="not-a-note"
         initial={reduceMotion ? false : { opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
@@ -1099,10 +1099,10 @@ function ContentSection({
         className="rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center"
       >
         <h3 className="font-heading text-base font-semibold tracking-tight text-foreground">
-          {tLoad('notACourseTitle')}
+          {tLoad('notANoteTitle')}
         </h3>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          {tLoad('notACourseDescription')}
+          {tLoad('notANoteDescription')}
         </p>
       </motion.div>
     );
@@ -1135,7 +1135,7 @@ function ContentSection({
 
   if (query.isError) {
     const reason =
-      query.error instanceof CourseDraftError ? query.error.reason : 'unknown';
+      query.error instanceof NoteDraftError ? query.error.reason : 'unknown';
     return (
       <motion.div
         key={`error-${reason}`}
@@ -1214,7 +1214,7 @@ function ContentSection({
       </div>
       <LessonBlocks
         blocks={selectedLesson.lesson.blocks satisfies LessonBlock[]}
-        courseId={courseId}
+        noteId={noteId}
         lessonId={selectedLesson.lesson.id}
         onUpdateHtml={onUpdateHtml}
         onUpdateKatex={onUpdateKatex}

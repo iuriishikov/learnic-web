@@ -30,7 +30,7 @@ type ProductsPaginationProps = {
 };
 
 /**
- * Shared products pagination (marketplace + "my courses").
+ * Shared products pagination (marketplace + "my notes").
  *
  * From `md` up it renders the full `1 2 3 … 8 9 10` numbered design.
  * On mobile that row — `Назад` + up to ten 36px page buttons + `Вперёд`

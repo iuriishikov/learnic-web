@@ -1,9 +1,9 @@
 'use server';
 
-import { getCourseDraft, type GetCourseDraftResult } from './draft';
+import { getNoteDraft, type GetNoteDraftResult } from './draft';
 
-export async function getCourseDraftAction(
-  courseId: string,
-): Promise<GetCourseDraftResult> {
-  return getCourseDraft(courseId);
+export async function getNoteDraftAction(
+  noteId: string,
+): Promise<GetNoteDraftResult> {
+  return getNoteDraft(noteId);
 }

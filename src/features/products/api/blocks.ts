@@ -12,6 +12,7 @@ import {
   type BlockMutationResult,
   type CreatedResult,
   type MutationResult,
+  conflictResult,
   mapErrorResponse,
   mapMutationStatus,
   safeJson,
@@ -32,73 +33,73 @@ function _toOptionsWire(
 }
 
 export async function addHtmlBlockAction(args: {
-  courseId: string;
+  noteId: string;
   lessonId: string;
   html: string;
 }): Promise<CreatedResult> {
-  return addBlock(args.courseId, args.lessonId, 'html', { html: args.html });
+  return addBlock(args.noteId, args.lessonId, 'html', { html: args.html });
 }
 
 export async function addKatexBlockAction(args: {
-  courseId: string;
+  noteId: string;
   lessonId: string;
   source: string;
 }): Promise<CreatedResult> {
-  return addBlock(args.courseId, args.lessonId, 'katex', {
+  return addBlock(args.noteId, args.lessonId, 'katex', {
     source: args.source,
   });
 }
 
 export async function addRutubeVideoBlockAction(args: {
-  courseId: string;
+  noteId: string;
   lessonId: string;
   rutubeUrl: string;
   title: string | null;
 }): Promise<CreatedResult> {
-  return addBlock(args.courseId, args.lessonId, 'rutube-video', {
+  return addBlock(args.noteId, args.lessonId, 'rutube-video', {
     rutube_url: args.rutubeUrl,
     title: args.title,
   });
 }
 
 export async function addCodeBlockAction(args: {
-  courseId: string;
+  noteId: string;
   lessonId: string;
   tabs: CodeTab[];
 }): Promise<CreatedResult> {
-  return addBlock(args.courseId, args.lessonId, 'code', {
+  return addBlock(args.noteId, args.lessonId, 'code', {
     tabs: args.tabs,
   });
 }
 
 export async function addSingleChoiceBlockAction(args: {
-  courseId: string;
+  noteId: string;
   lessonId: string;
   options: ChoiceOptionDraftInput[];
 }): Promise<CreatedResult> {
-  return addBlock(args.courseId, args.lessonId, 'single-choice', {
+  return addBlock(args.noteId, args.lessonId, 'single-choice', {
     options: _toOptionsWire(args.options),
   });
 }
 
 export async function addMultiChoiceBlockAction(args: {
-  courseId: string;
+  noteId: string;
   lessonId: string;
   options: ChoiceOptionDraftInput[];
 }): Promise<CreatedResult> {
-  return addBlock(args.courseId, args.lessonId, 'multi-choice', {
+  return addBlock(args.noteId, args.lessonId, 'multi-choice', {
     options: _toOptionsWire(args.options),
   });
 }
 
 export async function addTextInputBlockAction(args: {
-  courseId: string;
+  noteId: string;
   lessonId: string;
   acceptedAnswers: string[];
   caseSensitive: boolean;
   trimWhitespace: boolean;
 }): Promise<CreatedResult> {
-  return addBlock(args.courseId, args.lessonId, 'text-input', {
+  return addBlock(args.noteId, args.lessonId, 'text-input', {
     accepted_answers: args.acceptedAnswers,
     case_sensitive: args.caseSensitive,
     trim_whitespace: args.trimWhitespace,
@@ -106,7 +107,7 @@ export async function addTextInputBlockAction(args: {
 }
 
 async function addBlock(
-  courseId: string,
+  noteId: string,
   lessonId: string,
   type:
     | 'html'
@@ -121,7 +122,7 @@ async function addBlock(
   let res: Response;
   try {
     res = await apiFetch(
-      `/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(lessonId)}/blocks/${type}`,
+      `/notes/${encodeURIComponent(noteId)}/lessons/${encodeURIComponent(lessonId)}/blocks/${type}`,
       { method: 'POST', body },
     );
   } catch {
@@ -140,78 +141,78 @@ async function addBlock(
   if (res.status === 401) return { ok: false, reason: 'unauthorized' };
   if (res.status === 403) return { ok: false, reason: 'forbidden' };
   if (res.status === 404) return { ok: false, reason: 'not-found' };
-  if (res.status === 409) return { ok: false, reason: 'conflict' };
+  if (res.status === 409) return conflictResult(res);
   return { ok: false, reason: 'unknown' };
 }
 
 export async function updateHtmlBlockAction(args: {
-  courseId: string;
+  noteId: string;
   blockId: string;
   html: string;
 }): Promise<MutationResult> {
-  return patchBlock(args.courseId, args.blockId, 'html', { html: args.html });
+  return patchBlock(args.noteId, args.blockId, 'html', { html: args.html });
 }
 
 export async function updateKatexBlockAction(args: {
-  courseId: string;
+  noteId: string;
   blockId: string;
   source: string;
 }): Promise<MutationResult> {
-  return patchBlock(args.courseId, args.blockId, 'katex', {
+  return patchBlock(args.noteId, args.blockId, 'katex', {
     source: args.source,
   });
 }
 
 export async function updateRutubeVideoBlockAction(args: {
-  courseId: string;
+  noteId: string;
   blockId: string;
   rutubeUrl: string;
   title: string | null;
 }): Promise<MutationResult> {
-  return patchBlock(args.courseId, args.blockId, 'rutube-video', {
+  return patchBlock(args.noteId, args.blockId, 'rutube-video', {
     rutube_url: args.rutubeUrl,
     title: args.title,
   });
 }
 
 export async function updateCodeBlockAction(args: {
-  courseId: string;
+  noteId: string;
   blockId: string;
   tabs: CodeTab[];
 }): Promise<MutationResult> {
-  return patchBlock(args.courseId, args.blockId, 'code', {
+  return patchBlock(args.noteId, args.blockId, 'code', {
     tabs: args.tabs,
   });
 }
 
 export async function updateSingleChoiceBlockAction(args: {
-  courseId: string;
+  noteId: string;
   blockId: string;
   options: ChoiceOptionDraftInput[];
 }): Promise<MutationResult> {
-  return patchBlock(args.courseId, args.blockId, 'single-choice', {
+  return patchBlock(args.noteId, args.blockId, 'single-choice', {
     options: _toOptionsWire(args.options),
   });
 }
 
 export async function updateMultiChoiceBlockAction(args: {
-  courseId: string;
+  noteId: string;
   blockId: string;
   options: ChoiceOptionDraftInput[];
 }): Promise<MutationResult> {
-  return patchBlock(args.courseId, args.blockId, 'multi-choice', {
+  return patchBlock(args.noteId, args.blockId, 'multi-choice', {
     options: _toOptionsWire(args.options),
   });
 }
 
 export async function updateTextInputBlockAction(args: {
-  courseId: string;
+  noteId: string;
   blockId: string;
   acceptedAnswers: string[];
   caseSensitive: boolean;
   trimWhitespace: boolean;
 }): Promise<MutationResult> {
-  return patchBlock(args.courseId, args.blockId, 'text-input', {
+  return patchBlock(args.noteId, args.blockId, 'text-input', {
     accepted_answers: args.acceptedAnswers,
     case_sensitive: args.caseSensitive,
     trim_whitespace: args.trimWhitespace,
@@ -219,7 +220,7 @@ export async function updateTextInputBlockAction(args: {
 }
 
 async function patchBlock(
-  courseId: string,
+  noteId: string,
   blockId: string,
   type:
     | 'html'
@@ -234,7 +235,7 @@ async function patchBlock(
   let res: Response;
   try {
     res = await apiFetch(
-      `/courses/${encodeURIComponent(courseId)}/blocks/${encodeURIComponent(blockId)}/${type}`,
+      `/notes/${encodeURIComponent(noteId)}/blocks/${encodeURIComponent(blockId)}/${type}`,
       { method: 'PATCH', body },
     );
   } catch {
@@ -244,14 +245,14 @@ async function patchBlock(
 }
 
 export async function reorderLessonBlocksAction(args: {
-  courseId: string;
+  noteId: string;
   lessonId: string;
   orderedIds: string[];
 }): Promise<MutationResult> {
   let res: Response;
   try {
     res = await apiFetch(
-      `/courses/${encodeURIComponent(args.courseId)}/lessons/${encodeURIComponent(args.lessonId)}/blocks/order`,
+      `/notes/${encodeURIComponent(args.noteId)}/lessons/${encodeURIComponent(args.lessonId)}/blocks/order`,
       { method: 'PUT', body: { ordered_ids: args.orderedIds } },
     );
   } catch {
@@ -261,13 +262,13 @@ export async function reorderLessonBlocksAction(args: {
 }
 
 export async function deleteLessonBlockAction(args: {
-  courseId: string;
+  noteId: string;
   blockId: string;
 }): Promise<MutationResult> {
   let res: Response;
   try {
     res = await apiFetch(
-      `/courses/${encodeURIComponent(args.courseId)}/blocks/${encodeURIComponent(args.blockId)}`,
+      `/notes/${encodeURIComponent(args.noteId)}/blocks/${encodeURIComponent(args.blockId)}`,
       { method: 'DELETE' },
     );
   } catch {
@@ -293,7 +294,7 @@ const _MULTIPART_TIMEOUT_MS = 10 * 60 * 1000;
 
 // Both helpers parse the full block-schema body the backend returns on
 // success so the caller can splice the new entity straight into the
-// course-draft cache, skipping a follow-up GET. Error responses still
+// note-draft cache, skipping a follow-up GET. Error responses still
 // flow through `mapErrorResponse` so quota / wrong-content-type
 // metadata is preserved.
 //
@@ -355,56 +356,56 @@ async function _patchMultipartBlock(
 }
 
 export async function addFileBlockAction(
-  courseId: string,
+  noteId: string,
   lessonId: string,
   formData: FormData,
 ): Promise<BlockMutationResult> {
   return _postMultipartBlock(
-    `/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(lessonId)}/blocks/file`,
+    `/notes/${encodeURIComponent(noteId)}/lessons/${encodeURIComponent(lessonId)}/blocks/file`,
     formData,
   );
 }
 
 export async function updateFileBlockAction(
-  courseId: string,
+  noteId: string,
   blockId: string,
   formData: FormData,
 ): Promise<BlockMutationResult> {
   return _patchMultipartBlock(
-    `/courses/${encodeURIComponent(courseId)}/blocks/${encodeURIComponent(blockId)}/file`,
+    `/notes/${encodeURIComponent(noteId)}/blocks/${encodeURIComponent(blockId)}/file`,
     formData,
   );
 }
 
 export async function addVideoFileBlockAction(
-  courseId: string,
+  noteId: string,
   lessonId: string,
   formData: FormData,
 ): Promise<BlockMutationResult> {
   return _postMultipartBlock(
-    `/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(lessonId)}/blocks/video-file`,
+    `/notes/${encodeURIComponent(noteId)}/lessons/${encodeURIComponent(lessonId)}/blocks/video-file`,
     formData,
   );
 }
 
 export async function updateVideoFileBlockAction(
-  courseId: string,
+  noteId: string,
   blockId: string,
   formData: FormData,
 ): Promise<BlockMutationResult> {
   return _patchMultipartBlock(
-    `/courses/${encodeURIComponent(courseId)}/blocks/${encodeURIComponent(blockId)}/video-file`,
+    `/notes/${encodeURIComponent(noteId)}/blocks/${encodeURIComponent(blockId)}/video-file`,
     formData,
   );
 }
 
 export async function addPhotoCollageBlockAction(
-  courseId: string,
+  noteId: string,
   lessonId: string,
   formData: FormData,
 ): Promise<BlockMutationResult> {
   return _postMultipartBlock(
-    `/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(lessonId)}/blocks/photo-collage`,
+    `/notes/${encodeURIComponent(noteId)}/lessons/${encodeURIComponent(lessonId)}/blocks/photo-collage`,
     formData,
   );
 }
@@ -464,56 +465,56 @@ async function _patchJsonBlock(
 }
 
 export async function addCollageItemAction(
-  courseId: string,
+  noteId: string,
   blockId: string,
   formData: FormData,
 ): Promise<BlockMutationResult> {
   return _postMultipartBlock(
-    `/courses/${encodeURIComponent(courseId)}/blocks/${encodeURIComponent(blockId)}/photo-collage/items`,
+    `/notes/${encodeURIComponent(noteId)}/blocks/${encodeURIComponent(blockId)}/photo-collage/items`,
     formData,
   );
 }
 
 export async function removeCollageItemAction(
-  courseId: string,
+  noteId: string,
   blockId: string,
   itemId: string,
 ): Promise<BlockMutationResult> {
   return _deleteBlock(
-    `/courses/${encodeURIComponent(courseId)}/blocks/${encodeURIComponent(blockId)}/photo-collage/items/${encodeURIComponent(itemId)}`,
+    `/notes/${encodeURIComponent(noteId)}/blocks/${encodeURIComponent(blockId)}/photo-collage/items/${encodeURIComponent(itemId)}`,
   );
 }
 
 export async function reorderCollageItemsAction(
-  courseId: string,
+  noteId: string,
   blockId: string,
   orderedIds: string[],
 ): Promise<BlockMutationResult> {
   return _putJsonBlock(
-    `/courses/${encodeURIComponent(courseId)}/blocks/${encodeURIComponent(blockId)}/photo-collage/items/order`,
+    `/notes/${encodeURIComponent(noteId)}/blocks/${encodeURIComponent(blockId)}/photo-collage/items/order`,
     { ordered_ids: orderedIds },
   );
 }
 
 export async function updateCollageItemCaptionAction(
-  courseId: string,
+  noteId: string,
   blockId: string,
   itemId: string,
   caption: string | null,
 ): Promise<BlockMutationResult> {
   return _patchJsonBlock(
-    `/courses/${encodeURIComponent(courseId)}/blocks/${encodeURIComponent(blockId)}/photo-collage/items/${encodeURIComponent(itemId)}/caption`,
+    `/notes/${encodeURIComponent(noteId)}/blocks/${encodeURIComponent(blockId)}/photo-collage/items/${encodeURIComponent(itemId)}/caption`,
     { caption },
   );
 }
 
 export async function updateCollageTitleAction(
-  courseId: string,
+  noteId: string,
   blockId: string,
   title: string | null,
 ): Promise<BlockMutationResult> {
   return _patchJsonBlock(
-    `/courses/${encodeURIComponent(courseId)}/blocks/${encodeURIComponent(blockId)}/photo-collage/title`,
+    `/notes/${encodeURIComponent(noteId)}/blocks/${encodeURIComponent(blockId)}/photo-collage/title`,
     { title },
   );
 }

@@ -24,9 +24,9 @@ export function SettingsHeaderConfig({ mode }: { mode: AppMode }) {
         label: tLearn('nav.marketplace'),
       },
       {
-        key: 'my-courses',
-        href: '/my-courses',
-        label: tLearn('nav.myCourses'),
+        key: 'my-notes',
+        href: '/my-notes',
+        label: tLearn('nav.myNotes'),
       },
       { key: 'community', href: '/community', label: tLearn('nav.community') },
     ];

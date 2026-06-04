@@ -8,7 +8,7 @@ const folders: DemoFolder[] = [
   {
     id: 'f-math',
     name: 'Математика',
-    description: 'Курсы и вебинары по школьной и вузовской математике',
+    description: 'Конспекты и вебинары по школьной и вузовской математике',
     parentId: null,
     emoji: '🧮',
     updatedAt: ago(36),
@@ -77,11 +77,11 @@ const COVERS = [
 const products: DemoProduct[] = [
   {
     id: 'p-quad',
-    type: 'course',
+    type: 'note',
     status: 'published',
     title: 'Квадратные уравнения',
     description:
-      'Полный курс с разбором всех типов задач: от базовых до олимпиадных.',
+      'Полный конспект с разбором всех типов задач: от базовых до олимпиадных.',
     durationHours: 24,
     lessons: 18,
     cover: COVERS[0],
@@ -90,7 +90,7 @@ const products: DemoProduct[] = [
   },
   {
     id: 'p-poly',
-    type: 'course',
+    type: 'note',
     status: 'published',
     title: 'Многочлены и их корни',
     description:
@@ -103,7 +103,7 @@ const products: DemoProduct[] = [
   },
   {
     id: 'p-matrices',
-    type: 'course',
+    type: 'note',
     status: 'draft',
     title: 'Матрицы и определители',
     description:
@@ -116,7 +116,7 @@ const products: DemoProduct[] = [
   },
   {
     id: 'p-vectors',
-    type: 'course',
+    type: 'note',
     status: 'published',
     title: 'Векторные пространства',
     description:
@@ -129,7 +129,7 @@ const products: DemoProduct[] = [
   },
   {
     id: 'p-triangles',
-    type: 'course',
+    type: 'note',
     status: 'published',
     title: 'Треугольники и подобие',
     description:
@@ -142,11 +142,11 @@ const products: DemoProduct[] = [
   },
   {
     id: 'p-circles',
-    type: 'course',
+    type: 'note',
     status: 'archived',
     title: 'Окружность и угол',
     description:
-      'Вписанные и центральные углы, касательные и хорды. Архивный курс прошлого года.',
+      'Вписанные и центральные углы, касательные и хорды. Архивный конспект прошлого года.',
     durationHours: 16,
     lessons: 12,
     cover: COVERS[5],
@@ -155,11 +155,11 @@ const products: DemoProduct[] = [
   },
   {
     id: 'p-newton',
-    type: 'course',
+    type: 'note',
     status: 'published',
     title: 'Законы Ньютона',
     description:
-      'Три закона, силы, инерциальные системы отсчёта. Базовый курс по механике.',
+      'Три закона, силы, инерциальные системы отсчёта. Базовый конспект по механике.',
     durationHours: 28,
     lessons: 20,
     cover: COVERS[3],
@@ -168,7 +168,7 @@ const products: DemoProduct[] = [
   },
   {
     id: 'p-energy',
-    type: 'course',
+    type: 'note',
     status: 'draft',
     title: 'Работа и энергия',
     description:
@@ -181,7 +181,7 @@ const products: DemoProduct[] = [
   },
   {
     id: 'p-optics',
-    type: 'course',
+    type: 'note',
     status: 'published',
     title: 'Геометрическая оптика',
     description:
@@ -194,11 +194,11 @@ const products: DemoProduct[] = [
   },
   {
     id: 'p-thermo',
-    type: 'course',
+    type: 'note',
     status: 'published',
     title: 'Термодинамика. Первое начало',
     description:
-      'Внутренняя энергия, теплота, работа газа. Курс с лабораторными задачами.',
+      'Внутренняя энергия, теплота, работа газа. Конспект с лабораторными задачами.',
     durationHours: 30,
     lessons: 22,
     cover: COVERS[3],
@@ -207,11 +207,11 @@ const products: DemoProduct[] = [
   },
   {
     id: 'p-organic',
-    type: 'course',
+    type: 'note',
     status: 'published',
     title: 'Органическая химия. Основы',
     description:
-      'Углеводороды, функциональные группы, изомерия. Полный курс для старшей школы.',
+      'Углеводороды, функциональные группы, изомерия. Полный конспект для старшей школы.',
     durationHours: 36,
     lessons: 28,
     cover: COVERS[2],
@@ -220,7 +220,7 @@ const products: DemoProduct[] = [
   },
   {
     id: 'p-reactions',
-    type: 'course',
+    type: 'note',
     status: 'draft',
     title: 'Скорость реакций',
     description:
@@ -233,7 +233,7 @@ const products: DemoProduct[] = [
   },
   {
     id: 'p-intro',
-    type: 'course',
+    type: 'note',
     status: 'published',
     title: 'Подготовка к экзамену: общий план',
     description:
@@ -246,7 +246,7 @@ const products: DemoProduct[] = [
   },
   {
     id: 'p-essay',
-    type: 'course',
+    type: 'note',
     status: 'published',
     title: 'Как читать научные тексты',
     description:

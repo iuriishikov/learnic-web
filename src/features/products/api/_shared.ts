@@ -1,4 +1,8 @@
 import type { Tag } from '@/features/product-tags';
+import {
+  readResourceLimit,
+  type ResourceLimitInfo,
+} from '@/shared/api/resource-limit';
 import { toApiFile, type FileResponse } from '@/shared/types/user';
 
 import type { LessonBlock } from '../model/draft';
@@ -106,6 +110,7 @@ export type MutationResult =
       message?: string;
       quota?: QuotaExceededDetails;
       wrongContentType?: WrongContentTypeDetails;
+      resourceLimit?: ResourceLimitInfo;
     };
 
 export type CreatedResult =
@@ -116,6 +121,7 @@ export type CreatedResult =
       message?: string;
       quota?: QuotaExceededDetails;
       wrongContentType?: WrongContentTypeDetails;
+      resourceLimit?: ResourceLimitInfo;
     };
 
 // Returned by mutating endpoints that now echo the full `ProductSchema`
@@ -134,12 +140,12 @@ export type ProductMutationResult =
 // (`FileBlockSchema`, `VideoFileBlockSchema`, `PhotoCollageBlockSchema`)
 // in their 2xx body — file/video-file/photo-collage add + update.
 // On success the caller can merge the entity straight into the
-// `courseDraftKey(id)` cache, skipping a follow-up GET.
+// `noteDraftKey(id)` cache, skipping a follow-up GET.
 //
 // `block` is optional so legacy 204-only responses (e.g. an older
 // backend that hasn't been redeployed with the schema-returning routes)
 // still surface as `ok: true` — the caller falls back to invalidating
-// `courseDraftKey` instead of breaking the editor with a toast.
+// `noteDraftKey` instead of breaking the editor with a toast.
 export type BlockMutationResult =
   | { ok: true; block?: LessonBlock }
   | {
@@ -148,6 +154,7 @@ export type BlockMutationResult =
       message?: string;
       quota?: QuotaExceededDetails;
       wrongContentType?: WrongContentTypeDetails;
+      resourceLimit?: ResourceLimitInfo;
     };
 
 function _quotaFromBody(
@@ -198,7 +205,7 @@ export async function mapErrorResponse(
   if (res.status === 401) return { ok: false, reason: 'unauthorized' };
   if (res.status === 403) return { ok: false, reason: 'forbidden' };
   if (res.status === 404) return { ok: false, reason: 'not-found' };
-  if (res.status === 409) return { ok: false, reason: 'conflict' };
+  if (res.status === 409) return conflictResult(res);
   if (res.status === 413) {
     const body = await safeJson(res);
     return { ok: false, reason: 'quota-exceeded', quota: _quotaFromBody(body) };
@@ -239,4 +246,26 @@ export async function safeJson(
   } catch {
     return null;
   }
+}
+
+/**
+ * Classify a 409 from a create/mutate endpoint. A backend
+ * `ResourceLimitReached` body yields `resourceLimit` so the client can
+ * pop the limit dialog; any other 409 stays a plain `conflict` (with the
+ * named error in `message`). The body is read via a clone, so the caller
+ * may still read `res` afterwards if needed.
+ */
+export async function conflictResult(res: Response): Promise<{
+  ok: false;
+  reason: 'conflict';
+  message?: string;
+  resourceLimit?: ResourceLimitInfo;
+}> {
+  const resourceLimit = (await readResourceLimit(res)) ?? undefined;
+  if (resourceLimit) {
+    return { ok: false, reason: 'conflict', resourceLimit };
+  }
+  const body = await safeJson(res);
+  const message = typeof body?.error === 'string' ? body.error : undefined;
+  return { ok: false, reason: 'conflict', message };
 }

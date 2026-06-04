@@ -33,7 +33,7 @@
   },
   "marketplace": {
     "title": "Маркетплейс",
-    "description": "Все курсы, уроки и подборки на одной странице."
+    "description": "All notes, lessons, and collections on a single page."
   },
   "profile": {
     "title": "Профиль",
@@ -46,7 +46,7 @@
   "teach": {
     "products": {
       "title": "Продукты",
-      "description": "Управление продуктами, тарифами и каталогом курсов студии."
+      "description": "Manage the studio's products, pricing plans, and note catalog."
     },
     "catalog": {
       "title": "Каталог",
@@ -62,7 +62,7 @@
     },
     "editor": {
       "title": "Редактор продукта",
-      "description": "Редактирование курса."
+      "description": "Editing a note."
     }
   },
   "notFound": {

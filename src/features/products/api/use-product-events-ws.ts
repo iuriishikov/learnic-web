@@ -20,8 +20,8 @@ import {
   type EventEnvelope,
 } from '../lib/events-channel';
 
-import { courseDraftKey } from './use-course-draft';
-import { courseReleasesKey } from './use-course-releases';
+import { noteDraftKey } from './use-note-draft';
+import { noteReleasesKey } from './use-note-releases';
 import { productKey } from './use-product';
 import { productQAKey } from './use-product-qa';
 import {
@@ -91,8 +91,8 @@ export function useProductEventsWs(productId: string, enabled: boolean) {
           queryKey: productMyPermissionsKey(productId),
         });
         qc.invalidateQueries({ queryKey: productTagsKey(productId) });
-        qc.invalidateQueries({ queryKey: courseDraftKey(productId) });
-        qc.invalidateQueries({ queryKey: courseReleasesKey(productId) });
+        qc.invalidateQueries({ queryKey: noteDraftKey(productId) });
+        qc.invalidateQueries({ queryKey: noteReleasesKey(productId) });
       },
       onTerminalClose: (code) => {
         console.warn(

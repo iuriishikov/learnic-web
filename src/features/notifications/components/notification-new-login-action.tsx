@@ -85,7 +85,7 @@ export function NotificationNewLoginAction({
       variant="destructive"
       onClick={handleRevoke}
       disabled={status === 'pending'}
-      className="h-8 gap-1.5"
+      className="h-auto min-h-8 max-w-full gap-1.5 py-1 text-left whitespace-normal"
     >
       {status === 'pending' ? (
         <Loader2Icon className="size-3.5 animate-spin" aria-hidden />

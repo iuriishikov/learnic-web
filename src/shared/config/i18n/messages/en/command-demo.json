@@ -24,12 +24,12 @@
     "products": "Поиск по продуктам"
   },
   "products": {
-    "group": "Курсы",
-    "typeCourse": "Курс",
+    "group": "Notes",
+    "typeNote": "Note",
     "durationHours": "{count, plural, one {# час} few {# часа} many {# часов} other {# часа}}",
-    "createCourse": "Создать курс",
-    "emptyTitle": "Курсы не найдены",
-    "emptyDescription": "По запросу «{query}» курсов не найдено. Попробуйте другой запрос."
+    "createNote": "Create note",
+    "emptyTitle": "No notes found",
+    "emptyDescription": "No notes found for «{query}». Try a different search."
   },
   "groups": {
     "recent": "Недавнее",
@@ -88,7 +88,7 @@
   "sections": {
     "products": {
       "title": "Поиск по продуктам",
-      "description": "Палитра в визуальном языке продуктовых карточек: мини-обложка с soft-акцентом, заголовок, автор и длительность, пилюля «Курс»."
+      "description": "A palette in the visual language of product cards: a mini cover with a soft accent, a title, author and duration, and a «Note» pill."
     },
     "subheader": {
       "title": "AppSubHeader с полем поиска",

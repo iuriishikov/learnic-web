@@ -1,22 +1,22 @@
 {
   "general": {
     "title": "Мои продукты",
-    "description": "Все курсы и вебинары студии в одном месте — создавайте, редактируйте и делитесь с учениками.",
+    "description": "All of the studio's notes and webinars in one place — create, edit, and share them with your students.",
     "createCta": "Создать",
     "searchPlaceholder": "Найти продукт",
     "searchAriaLabel": "Поиск по продуктам"
   },
   "filter": {
     "all": "Все",
-    "courses": "Курсы",
+    "notes": "Notes",
     "webinars": "Вебинары"
   },
   "create": {
     "chooseTitle": "Что создаём?",
     "chooseDescription": "Выберите тип продукта — основные поля заполните на следующем шаге, материалы добавите позже.",
     "options": {
-      "course": {
-        "label": "Курс",
+      "note": {
+        "label": "Note",
         "description": "Структурированная программа из уроков, заданий и материалов. Подходит для длинных программ обучения."
       },
       "webinar": {
@@ -26,7 +26,7 @@
     },
     "details": {
       "title": {
-        "course": "Создать курс",
+        "note": "Create note",
         "webinar": "Создать вебинар"
       },
       "description": "Заполните основные поля — материалы, уроки и расписание добавите потом."
@@ -41,7 +41,7 @@
       "description": {
         "label": "Описание",
         "placeholder": {
-          "course": "О чём курс, кому он подойдёт и какие навыки даст к концу обучения.",
+          "note": "What the note covers, who it's for, and what skills it'll give by the end.",
           "webinar": "О чём вебинар, кому он будет полезен и какие выводы получат участники."
         }
       },
@@ -60,7 +60,7 @@
     },
     "info": {
       "eyebrow": {
-        "course": "Курс",
+        "note": "Note",
         "webinar": "Вебинар"
       },
       "control": {
@@ -94,7 +94,7 @@
     "footerHint": "Параметры можно изменить после создания."
   },
   "type": {
-    "course": "Курс",
+    "note": "Note",
     "webinar": "Вебинар"
   },
   "status": {
@@ -150,7 +150,7 @@
         "file": "Файл",
         "fileDescription": "Один файл любого типа — ученики скачивают по клику",
         "videoFile": "Видео",
-        "videoFileDescription": "Видеофайл, загруженный в курс — играется встроенным плеером",
+        "videoFileDescription": "A video file uploaded to the note — plays in the built-in player",
         "photoCollage": "Фотоколлаж",
         "photoCollageDescription": "Несколько фотографий с подписями в сетке"
       }
@@ -173,7 +173,7 @@
       "dropHint": "Один файл любого типа, до {maxMb} МБ",
       "replace": "Сменить",
       "titleLabel": "Заголовок (опционально)",
-      "titlePlaceholder": "Например: Программа курса",
+      "titlePlaceholder": "For example: Note program",
       "cancel": "Отмена",
       "confirm": "Добавить",
       "uploading": "Загружаем…"
@@ -260,7 +260,7 @@
       "empty": "Нажмите, чтобы добавить код"
     },
     "tree": {
-      "heading": "Структура курса",
+      "heading": "Note structure",
       "addModule": "Добавить модуль",
       "addLesson": "Добавить урок",
       "renameModule": "Переименовать модуль",
@@ -282,7 +282,7 @@
     },
     "lessonEmpty": {
       "title": "Урок не выбран",
-      "description": "Выберите урок в структуре курса слева, чтобы начать редактирование."
+      "description": "Pick a lesson in the note structure on the left to start editing."
     },
     "overview": {
       "title": "Обзор продукта",
@@ -322,14 +322,14 @@
       "delete": "Удалить обложку"
     },
     "load": {
-      "errorTitle": "Не удалось загрузить содержимое курса",
+      "errorTitle": "Couldn't load the note's content",
       "errorDescription": "Проверьте соединение и попробуйте снова.",
       "forbiddenTitle": "Недостаточно прав для просмотра",
-      "forbiddenDescription": "У вашей роли в этом продукте нет права читать содержимое курса. Попросите автора расширить ваши права.",
-      "notACourseTitle": "Этот продукт — не курс",
-      "notACourseDescription": "У вебинаров пока нет редактора содержимого.",
+      "forbiddenDescription": "Your role on this product doesn't have permission to read the note's content. Ask the author to expand your permissions.",
+      "notANoteTitle": "This product is not a note",
+      "notANoteDescription": "У вебинаров пока нет редактора содержимого.",
       "retry": "Повторить",
-      "loading": "Загрузка структуры курса"
+      "loading": "Loading note structure"
     },
     "toast": {
       "addModuleFailed": "Не удалось создать модуль",
@@ -522,7 +522,7 @@
         },
         "onboarding": {
           "title": "Настроим роли вашей команды",
-          "description": "Роли — это пресеты прав, которые вы выдаёте участникам. Ниже стандартный набор: подойдёт большинству курсов и его всегда можно поменять.",
+          "description": "Roles are presets of permissions you grant to members. Below is a standard set: it fits most notes and you can always change it.",
           "hint": "Можно создать любые свои роли позже — например, для модераторов или маркетинга.",
           "suggestedCta": "Создать набор",
           "customCta": "Создать свою",
@@ -530,11 +530,11 @@
           "suggested": {
             "editor": {
               "name": "Редактор",
-              "description": "Видит и редактирует материалы курса: описание, обложку, модули, уроки и Q&A. Не может публиковать и управлять командой."
+              "description": "Views and edits the note's materials: description, cover, modules, lessons, and Q&A. Cannot publish or manage the team."
             },
             "commentor": {
               "name": "Комментатор",
-              "description": "Видит материалы курса и оставляет комментарии в обсуждениях. Не может вносить правки."
+              "description": "Views the note's materials and leaves comments in discussions. Cannot make edits."
             }
           }
         }
@@ -548,23 +548,23 @@
         "items": {
           "read_product": {
             "label": "Просмотр продукта",
-            "description": "Видеть структуру курса, модули, уроки и материалы."
+            "description": "See the note structure, modules, lessons, and materials."
           },
           "comment": {
             "label": "Комментирование",
-            "description": "Оставлять комментарии в обсуждениях курса."
+            "description": "Leave comments in the note's discussions."
           },
           "edit_description": {
             "label": "Редактировать описание",
-            "description": "Менять название, описание и ключевые поля курса."
+            "description": "Change the note's name, description, and key fields."
           },
           "edit_cover": {
             "label": "Менять обложку",
-            "description": "Загружать и удалять обложку курса."
+            "description": "Upload and remove the note's cover."
           },
           "edit_modules": {
             "label": "Управлять модулями",
-            "description": "Создавать, переименовывать и удалять модули курса."
+            "description": "Create, rename, and delete the note's modules."
           },
           "edit_lessons": {
             "label": "Управлять уроками",
@@ -639,7 +639,7 @@
       },
       "empty": {
         "title": "В команде пока только вы",
-        "description": "Пригласите коллег, чтобы вместе работать над курсом.",
+        "description": "Invite colleagues to work on the note together.",
         "cta": "Пригласить участника"
       },
       "filteredEmpty": {
@@ -802,8 +802,8 @@
         "privateHint": "Самостоятельная запись закрыта — доступ только по подарку или приглашению. Продукт остаётся виден в каталоге."
       },
       "releases": {
-        "title": "Релизы курса",
-        "description": "Релиз — снимок текущего черновика, который выдают новым ученикам. Первый релиз публикует курс.",
+        "title": "Note releases",
+        "description": "A release is a snapshot of the current draft that's given to new students. The first release publishes the note.",
         "createCta": "Выпустить релиз",
         "resetTo": "Сбросить черновик до этой версии",
         "countLabel": "{count, plural, one {# релиз} few {# релиза} many {# релизов} other {# релизов}}",
@@ -814,7 +814,7 @@
         },
         "empty": {
           "title": "Релизов ещё нет",
-          "description": "Курс пока в черновике. Выпустите первый релиз, чтобы открыть его ученикам."
+          "description": "The note is still a draft. Publish the first release to open it to students."
         },
         "error": {
           "title": "Не удалось загрузить релизы",
@@ -838,7 +838,7 @@
             },
             "major": {
               "label": "Major — крупные изменения",
-              "description": "Серьёзная переработка курса. Версия: (M+1).0.0. Открывает окно возврата для активных студентов."
+              "description": "A major overhaul of the note. Version: (M+1).0.0. Opens a refund window for active students."
             }
           },
           "notesLabel": "Описание изменений",
@@ -874,7 +874,7 @@
   },
   "empty": {
     "title": "Здесь появятся ваши продукты",
-    "description": "Создайте первый курс или вебинар — он сразу окажется в этом списке. Все материалы и аналитика будут доступны на одном экране.",
+    "description": "Create your first note or webinar — it'll show up in this list right away. All materials and analytics will be available on one screen.",
     "cta": "Создать продукт",
     "filteredTitle": "Ничего не нашлось",
     "filteredDescription": "Попробуйте изменить фильтры или текст поиска — возможно, продукта с таким названием пока нет."

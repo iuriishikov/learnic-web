@@ -106,7 +106,7 @@ function GiftSearchPanel({
 
   // Recipients with a live gift (pending or accepted) can't be gifted
   // again. Terminal statuses (declined, revoked) are skipped so the
-  // owner can re-gift a course someone turned down.
+  // owner can re-gift a note someone turned down.
   const existingUserIds = useMemo(() => {
     const set = new Set<string>([ownerId]);
     for (const g of gifts) {

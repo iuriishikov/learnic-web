@@ -201,7 +201,7 @@
       },
       "learning": {
         "label": "Обучение",
-        "description": "События по курсам, на которые вы записаны: новые материалы, дедлайны и сообщения от преподавателей."
+        "description": "Activity in the notes you're enrolled in: new materials, deadlines, and messages from instructors."
       },
       "security": {
         "label": "Безопасность",

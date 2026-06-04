@@ -8,7 +8,9 @@ import {
 } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 
+import { isResourceLimitError } from '@/shared/api/resource-limit';
 import { useNotify } from '@/shared/lib/notify';
+import { failMutation } from '@/shared/ui/resource-limit-dialog';
 
 import {
   addProductQAAction,
@@ -26,7 +28,10 @@ export const productQAKey = (productId: string) =>
 function useFailureToast() {
   const t = useTranslations('teach-products.editor.toast');
   const notify = useNotify();
-  return (key: string) => notify.error(t(key));
+  return (key: string, err?: unknown) => {
+    if (isResourceLimitError(err)) return;
+    notify.error(t(key));
+  };
 }
 
 export function useProductQA(productId: string) {
@@ -96,7 +101,7 @@ export function useAddQAMutation(productId: string) {
         answer,
         position: current.length,
       });
-      if (!result.ok) throw new Error(result.reason);
+      if (!result.ok) failMutation(result);
       return { id: result.id, tempId: '' };
     },
     onMutate: async ({ question, answer }) => {
@@ -125,7 +130,7 @@ export function useAddQAMutation(productId: string) {
     },
     onError: (_err, _vars, ctx) => {
       restore(qc, productId, ctx);
-      fail('addQAFailed');
+      fail('addQAFailed', _err);
     },
     // Server appends at the position we sent (= current length); the temp-id
     // swap above already reconciles. Refetching here would just GET the same

@@ -34,7 +34,7 @@ export default function LocaleNotFound() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/*
-        Contribute the three mode-entry tabs (find a course / my
+        Contribute the three mode-entry tabs (find a note / my
         learning / teach) to the locale-root HeaderConfigProvider so
         the AppHeader on the 404 page still feels navigable instead
         of a dead end.

@@ -2,29 +2,36 @@
 
 import { motion, useReducedMotion, type Variants } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type { DateRange } from 'react-day-picker';
 
 import { DateRangePicker } from '@/shared/ui/date-picker';
 import { Separator } from '@/shared/ui/separator';
 
+import { useAdminMetrics } from '../api/use-admin-metrics';
 import {
   DEFAULT_RANGE,
-  RANGE_PRESETS,
+  buildRangePresets,
   matchPresetKey,
+  spanToDays,
   type DateSpan,
-  type SeriesVisibility,
-} from '../model/mock-data';
-import { ChartFilters } from './chart-filters';
+} from '../model/range';
+import type { AdminMetrics, AdminStats, TopTeacher } from '../model/types';
 import { OverviewPanel } from './overview-panel';
 import { QuickActions } from './quick-actions';
 import { RecentPosts } from './recent-posts';
-import { RecentUsers } from './recent-users';
 import { SideStats } from './side-stats';
 import { TimeRangeToggle } from './time-range-toggle';
+import { TopTeachers } from './top-teachers';
 
 type AdminDashboardProps = {
   userName: string;
+  /** Server-resolved "now" so range presets match across SSR/CSR. */
+  nowMs: number;
+  stats: AdminStats;
+  initialDays: number;
+  initialMetrics: AdminMetrics;
+  teachers: TopTeacher[];
 };
 
 const SECTION_VARIANTS: Variants = {
@@ -59,13 +66,21 @@ function Reveal({
   );
 }
 
-export function AdminDashboard({ userName }: AdminDashboardProps) {
+export function AdminDashboard({
+  userName,
+  nowMs,
+  stats,
+  initialDays,
+  initialMetrics,
+  teachers,
+}: AdminDashboardProps) {
   const t = useTranslations('admin-dashboard');
-  const [span, setSpan] = useState<DateSpan>(RANGE_PRESETS[DEFAULT_RANGE]);
-  const [series, setSeries] = useState<SeriesVisibility>({
-    users: true,
-    enrollments: true,
-  });
+  const presets = useMemo(() => buildRangePresets(nowMs), [nowMs]);
+  const [span, setSpan] = useState<DateSpan>(presets[DEFAULT_RANGE]);
+
+  const days = spanToDays(span);
+  const metricsQuery = useAdminMetrics({ days, initialDays, initialMetrics });
+  const metrics = metricsQuery.data ?? initialMetrics;
 
   function handleRangeChange(range: DateRange | undefined) {
     if (range?.from && range.to) setSpan({ from: range.from, to: range.to });
@@ -80,26 +95,30 @@ export function AdminDashboard({ userName }: AdminDashboardProps) {
           </h1>
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <TimeRangeToggle
-              value={matchPresetKey(span)}
-              onChange={(key) => setSpan(RANGE_PRESETS[key])}
+              value={matchPresetKey(span, presets)}
+              onChange={(key) => setSpan(presets[key])}
             />
-            <div className="flex flex-wrap items-center gap-2">
-              <DateRangePicker
-                value={span}
-                onChange={handleRangeChange}
-                triggerClassName="h-7"
-              />
-              <ChartFilters value={series} onChange={setSeries} />
-            </div>
+            <DateRangePicker
+              value={span}
+              onChange={handleRangeChange}
+              triggerClassName="h-7"
+            />
           </div>
+          {metricsQuery.isError ? (
+            <p className="text-sm text-destructive">{t('metricsError')}</p>
+          ) : null}
         </Reveal>
 
         <Reveal index={1} className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <OverviewPanel span={span} series={series} />
+            <OverviewPanel mau={stats.mau} points={metrics.points} span={span} />
           </div>
           <div className="lg:col-span-1">
-            <SideStats />
+            <SideStats
+              dau={stats.dau}
+              newProducts={metrics.newProducts}
+              newEnrollments={metrics.newEnrollments}
+            />
           </div>
         </Reveal>
 
@@ -118,7 +137,7 @@ export function AdminDashboard({ userName }: AdminDashboardProps) {
             </Reveal>
           </div>
           <Reveal index={4} className="lg:col-span-1">
-            <RecentUsers />
+            <TopTeachers teachers={teachers} />
           </Reveal>
         </div>
       </div>

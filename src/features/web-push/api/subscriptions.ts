@@ -1,6 +1,7 @@
 'use server';
 
 import { apiFetch } from '@/shared/api/client';
+import { readResourceLimit } from '@/shared/api/resource-limit';
 
 import type {
   GetVapidKeyResult,
@@ -47,6 +48,16 @@ export async function subscribePushAction(
       },
     });
     if (res.status === 204) return { ok: true };
+    if (res.status === 409) {
+      const info = await readResourceLimit(res);
+      if (info) {
+        return {
+          ok: false,
+          error: { kind: 'resourceLimit' },
+          resourceLimit: info,
+        };
+      }
+    }
     return { ok: false, error: statusToError(res.status) };
   } catch {
     return { ok: false, error: { kind: 'network' } };

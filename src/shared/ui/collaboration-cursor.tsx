@@ -450,7 +450,6 @@ function CursorAvatar({
         user={toAvatarUser(user)}
         size="sm"
         shape="circle"
-        halo={false}
         statusType={null}
         showLoadErrorIndicator={false}
       />

@@ -31,7 +31,7 @@ type GiftLandingProps = {
   token: string | null;
 };
 
-const COURSE_HREF = '/marketplace';
+const NOTE_HREF = '/marketplace';
 
 /**
  * Derive the initial landing state from the gift's live status, so a
@@ -81,7 +81,7 @@ export function GiftLanding({ gift, action, token }: GiftLandingProps) {
       const result = await acceptGiftByTokenAction({ giftId: gift.id, token });
       if (result.ok) {
         setStatus('success');
-        startNavigating(() => router.push(COURSE_HREF));
+        startNavigating(() => router.push(NOTE_HREF));
         return;
       }
       mapFailure(result.reason);
@@ -138,7 +138,7 @@ export function GiftLanding({ gift, action, token }: GiftLandingProps) {
         action={
           <Button
             className="h-11 w-full rounded-lg bg-brand text-[15px] font-semibold text-brand-foreground hover:bg-brand/90"
-            onClick={() => router.push(COURSE_HREF)}
+            onClick={() => router.push(NOTE_HREF)}
             disabled={isNavigating}
           >
             {isNavigating ? (
@@ -164,7 +164,7 @@ export function GiftLanding({ gift, action, token }: GiftLandingProps) {
           <Button
             variant="outline"
             className="h-11 w-full rounded-lg text-[15px] font-semibold"
-            render={<Link href={COURSE_HREF} />}
+            render={<Link href={NOTE_HREF} />}
             nativeButton={false}
           >
             {t('declined.browse')}

@@ -31,7 +31,7 @@
     "items": {
       "notifications": {
         "label": "Push-уведомления",
-        "description": "Получай мгновенные оповещения о новых событиях в курсе."
+        "description": "Get instant alerts about new activity in a note."
       },
       "email": {
         "label": "Email-дайджесты",

@@ -70,6 +70,10 @@ export function PushBanner() {
         notify.success(t('enabled'));
         return;
       }
+      if (result.error.kind === 'resourceLimit') {
+        // Surfaced by the global ResourceLimit dialog.
+        return;
+      }
       if (result.error.kind === 'forbidden') {
         notify.error(t('errors.permissionDenied'));
       } else if (result.error.kind === 'notConfigured') {

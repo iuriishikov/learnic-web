@@ -146,7 +146,7 @@ export function LibraryView() {
         acc[p.type] += 1;
         return acc;
       },
-      { all: 0, course: 0 } as Record<Filter, number>,
+      { all: 0, note: 0 } as Record<Filter, number>,
     );
   }, [state, folderId]);
 
@@ -300,9 +300,9 @@ export function LibraryView() {
               <TabsList className="h-9">
                 <FilterTab value="all" label={tFilter('all')} count={counts.all} />
                 <FilterTab
-                  value="course"
-                  label={tFilter('courses')}
-                  count={counts.course}
+                  value="note"
+                  label={tFilter('notes')}
+                  count={counts.note}
                   icon={<GraduationCapIcon className="size-3.5" />}
                 />
               </TabsList>

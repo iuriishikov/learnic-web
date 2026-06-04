@@ -48,16 +48,16 @@ import { Skeleton } from '@/shared/ui/skeleton';
 import { Textarea } from '@/shared/ui/textarea';
 
 import {
-  type CourseReleaseKind,
-  type CourseReleaseSummary,
-  type CourseReleaseVersion,
+  type NoteReleaseKind,
+  type NoteReleaseSummary,
+  type NoteReleaseVersion,
 } from '../api/releases';
 import {
-  CourseReleasesError,
-  useCourseReleases,
-  useCreateCourseReleaseMutation,
-  useResetCourseDraftMutation,
-} from '../api/use-course-releases';
+  NoteReleasesError,
+  useNoteReleases,
+  useCreateNoteReleaseMutation,
+  useResetNoteDraftMutation,
+} from '../api/use-note-releases';
 import {
   useArchiveProductMutation,
   useChangeProductVisibilityMutation,
@@ -84,7 +84,7 @@ export function ProductSettingsSection({
 }: ProductSettingsSectionProps) {
   const t = useTranslations('teach-products.editor.settings');
   const reduceMotion = useReducedMotion();
-  const isCourse = product.type === 'course';
+  const isNote = product.type === 'note';
 
   return (
     <motion.div
@@ -97,7 +97,7 @@ export function ProductSettingsSection({
       <EditorSection title={t('title')} description={t('description')}>
         <StatusRow product={product} />
         <VisibilityRow product={product} />
-        {isCourse ? <ReleasesRow product={product} /> : null}
+        {isNote ? <ReleasesRow product={product} /> : null}
         <DangerRow product={product} />
       </EditorSection>
     </motion.div>
@@ -113,7 +113,7 @@ function StatusRow({ product }: { product: Product }) {
   const tEditor = useTranslations('teach-products.editor');
   const tStatus = useTranslations('teach-products.status');
   const formatter = useFormatter();
-  const isCourse = product.type === 'course';
+  const isNote = product.type === 'note';
   const archive = useArchiveProductMutation(product.id);
   const unarchive = useUnarchiveProductMutation(product.id);
   const publish = usePublishProductMutation(product.id);
@@ -161,7 +161,7 @@ function StatusRow({ product }: { product: Product }) {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {!isCourse && product.status === 'draft' ? (
+          {!isNote && product.status === 'draft' ? (
             <Button
               type="button"
               size="sm"
@@ -202,7 +202,7 @@ function StatusRow({ product }: { product: Product }) {
               onClick={() => setConfirmArchive(true)}
               disabled={
                 archive.isPending ||
-                (isCourse && product.status === 'draft') ||
+                (isNote && product.status === 'draft') ||
                 !perms.canArchive
               }
               title={!perms.canArchive ? insufficientTitle : undefined}
@@ -353,25 +353,25 @@ function VisibilityOption({
 }
 
 /* -------------------------------------------------------------------------- */
-/* Releases row (course only)                                                 */
+/* Releases row (note only)                                                 */
 /* -------------------------------------------------------------------------- */
 
 function ReleasesRow({ product }: { product: Product }) {
   const t = useTranslations('teach-products.editor.settings.releases');
   const tEditor = useTranslations('teach-products.editor');
-  const isCourse = product.type === 'course';
-  const query = useCourseReleases(product.id, isCourse);
-  const create = useCreateCourseReleaseMutation(product.id);
-  const reset = useResetCourseDraftMutation(product.id);
+  const isNote = product.type === 'note';
+  const query = useNoteReleases(product.id, isNote);
+  const create = useCreateNoteReleaseMutation(product.id);
+  const reset = useResetNoteDraftMutation(product.id);
   const perms = useProductPermissions(product.id);
   const insufficientTitle = tEditor('insufficientPermissions');
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [resetTarget, setResetTarget] = useState<CourseReleaseSummary | null>(
+  const [resetTarget, setResetTarget] = useState<NoteReleaseSummary | null>(
     null,
   );
 
-  const onCreate = (kind: CourseReleaseKind, notes: string | null) => {
+  const onCreate = (kind: NoteReleaseKind, notes: string | null) => {
     create.mutate(
       { kind, notes },
       {
@@ -419,7 +419,7 @@ function ReleasesRow({ product }: { product: Product }) {
           ) : query.isError ? (
             <ReleasesLoadError
               reason={
-                query.error instanceof CourseReleasesError
+                query.error instanceof NoteReleasesError
                   ? query.error.reason
                   : 'unknown'
               }
@@ -503,7 +503,7 @@ function ReleaseRow({
   canManageReleases,
   insufficientPermissionsTitle,
 }: {
-  release: CourseReleaseSummary;
+  release: NoteReleaseSummary;
   onResetRequest: () => void;
   isResetPending: boolean;
   canManageReleases: boolean;
@@ -560,7 +560,7 @@ function ReleasesLoadError({
   onRetry,
   isRetrying,
 }: {
-  reason: 'forbidden' | 'not-found' | 'not-a-course' | 'unauthorized' | 'network' | 'unknown';
+  reason: 'forbidden' | 'not-found' | 'not-a-note' | 'unauthorized' | 'network' | 'unknown';
   onRetry: () => void;
   isRetrying: boolean;
 }) {
@@ -568,7 +568,7 @@ function ReleasesLoadError({
   const isForbidden = reason === 'forbidden';
   const titleKey = isForbidden ? 'forbiddenTitle' : 'title';
   const descriptionKey = isForbidden ? 'forbiddenDescription' : 'description';
-  const showRetry = !isForbidden && reason !== 'not-a-course';
+  const showRetry = !isForbidden && reason !== 'not-a-note';
   return (
     <div role="alert" className="rounded-xl bg-muted/40 px-4 py-4">
       <p className="text-sm font-medium text-foreground">{t(titleKey)}</p>
@@ -600,11 +600,11 @@ function CreateReleaseDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (kind: CourseReleaseKind, notes: string | null) => void;
+  onSubmit: (kind: NoteReleaseKind, notes: string | null) => void;
   isSubmitting: boolean;
 }) {
   const t = useTranslations('teach-products.editor.settings.releases.create');
-  const [kind, setKind] = useState<CourseReleaseKind>('minor');
+  const [kind, setKind] = useState<NoteReleaseKind>('minor');
   const [notes, setNotes] = useState('');
 
   const handleSubmit = (event: ReactFormEvent<HTMLFormElement>) => {
@@ -704,7 +704,7 @@ function KindOption({
   label,
   description,
 }: {
-  value: CourseReleaseKind;
+  value: NoteReleaseKind;
   checked: boolean;
   onSelect: () => void;
   label: string;
@@ -813,7 +813,7 @@ function DangerRow({ product }: { product: Product }) {
 /* Helpers                                                                    */
 /* -------------------------------------------------------------------------- */
 
-function formatVersion(version: CourseReleaseVersion): string {
+function formatVersion(version: NoteReleaseVersion): string {
   return `${version.major}.${version.minor}.${version.patch}`;
 }
 
@@ -830,7 +830,7 @@ function statusToneClass(status: ProductStatus): string {
   }
 }
 
-function kindToneClass(kind: CourseReleaseKind): string {
+function kindToneClass(kind: NoteReleaseKind): string {
   switch (kind) {
     case 'major':
       return 'bg-brand/10 text-brand';

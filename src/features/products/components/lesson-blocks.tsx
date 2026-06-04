@@ -13,28 +13,23 @@ import {
   SortableContext,
   arrayMove,
   sortableKeyboardCoordinates,
-  useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import {
   CircleDotIcon,
   CodeIcon,
   FileIcon,
-  GripVerticalIcon,
   ImagesIcon,
   ListChecksIcon,
   PlayIcon,
   PlusIcon,
   SigmaIcon,
   TextCursorInputIcon,
-  Trash2Icon,
   TypeIcon,
   VideoIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
-  type CSSProperties,
   type ReactNode,
   useCallback,
   useEffect,
@@ -59,6 +54,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
+import {
+  EditorBlockList,
+  EditorBlockShell,
+} from '@/shared/ui/editor-block-shell';
 import {
   InlineCodeEditor,
   type InlineCodeTab,
@@ -103,8 +102,8 @@ export type TextInputBlockUpdate = {
 
 export type LessonBlocksProps = {
   blocks: LessonBlock[];
-  /** Owning course id — needed by file-backed block dialogs for multipart upload. */
-  courseId: string;
+  /** Owning note id — needed by file-backed block dialogs for multipart upload. */
+  noteId: string;
   /** Owning lesson id — needed by file-backed block dialogs for multipart upload. */
   lessonId: string;
   onUpdateHtml: (blockId: string, html: string) => void;
@@ -139,7 +138,7 @@ const KATEX_DEBOUNCE_MS = 600;
 
 export function LessonBlocks({
   blocks,
-  courseId,
+  noteId,
   lessonId,
   onUpdateHtml,
   onUpdateKatex,
@@ -184,7 +183,7 @@ export function LessonBlocks({
   const itemIds = blocks.map((b) => b.id);
 
   return (
-    <div className="group/lesson flex flex-col">
+    <div className="flex flex-col">
       <DndContext
         id="lesson-blocks-dnd"
         sensors={sensors}
@@ -192,13 +191,13 @@ export function LessonBlocks({
         onDragEnd={onDragEnd}
       >
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-          <ul className="flex flex-col">
+          <EditorBlockList>
             {blocks.map((block, idx) => (
               <SortableBlock
                 key={block.id}
                 block={block}
                 isFirst={idx === 0}
-                courseId={courseId}
+                noteId={noteId}
                 onUpdateHtml={(html) => onUpdateHtml(block.id, html)}
                 onUpdateKatex={(source) => onUpdateKatex(block.id, source)}
                 onUpdateCode={(nextTabs) => onUpdateCode(block.id, nextTabs)}
@@ -214,7 +213,7 @@ export function LessonBlocks({
                 insufficientPermissionsTitle={insufficientPermissionsTitle}
               />
             ))}
-          </ul>
+          </EditorBlockList>
         </SortableContext>
       </DndContext>
 
@@ -229,19 +228,19 @@ export function LessonBlocks({
       <AddFileBlockDialog
         open={openDialog === 'file'}
         onOpenChange={(o) => setOpenDialog(o ? 'file' : null)}
-        courseId={courseId}
+        noteId={noteId}
         lessonId={lessonId}
       />
       <AddVideoFileBlockDialog
         open={openDialog === 'video_file'}
         onOpenChange={(o) => setOpenDialog(o ? 'video_file' : null)}
-        courseId={courseId}
+        noteId={noteId}
         lessonId={lessonId}
       />
       <AddPhotoCollageBlockDialog
         open={openDialog === 'photo_collage'}
         onOpenChange={(o) => setOpenDialog(o ? 'photo_collage' : null)}
-        courseId={courseId}
+        noteId={noteId}
         lessonId={lessonId}
       />
     </div>
@@ -251,7 +250,7 @@ export function LessonBlocks({
 type SortableBlockProps = {
   block: LessonBlock;
   isFirst: boolean;
-  courseId: string;
+  noteId: string;
   onUpdateHtml: (html: string) => void;
   onUpdateKatex: (source: string) => void;
   onUpdateCode: (tabs: CodeTab[]) => void;
@@ -266,7 +265,7 @@ type SortableBlockProps = {
 function SortableBlock({
   block,
   isFirst,
-  courseId,
+  noteId,
   onUpdateHtml,
   onUpdateKatex,
   onUpdateCode,
@@ -278,68 +277,17 @@ function SortableBlock({
   insufficientPermissionsTitle,
 }: SortableBlockProps) {
   const t = useTranslations('teach-products.editor');
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: block.id, disabled: !canEditLessons });
-
-  const style: CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    zIndex: isDragging ? 10 : undefined,
-  };
 
   return (
-    <li
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        'group/block relative',
-        !isFirst && 'mt-6',
-        isDragging && 'opacity-80',
-      )}
+    <EditorBlockShell
+      id={block.id}
+      isFirst={isFirst}
+      onRemove={onRemove}
+      canEdit={canEditLessons}
+      disabledTitle={insufficientPermissionsTitle}
+      dragLabel={t('block.drag')}
+      deleteLabel={t('block.delete')}
     >
-      {!isFirst ? (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 -top-3 h-px bg-border/50 opacity-0 transition-opacity duration-200 group-hover/lesson:opacity-100 group-focus-within/lesson:opacity-100"
-        />
-      ) : null}
-
-      <button
-        type="button"
-        {...attributes}
-        {...(canEditLessons ? listeners : {})}
-        disabled={!canEditLessons}
-        title={!canEditLessons ? insufficientPermissionsTitle : undefined}
-        aria-label={t('block.drag')}
-        className={cn(
-          'absolute -left-7 top-1 hidden size-6 touch-none items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:inline-flex',
-          canEditLessons
-            ? 'cursor-grab active:cursor-grabbing'
-            : 'cursor-not-allowed opacity-40',
-          'opacity-0 group-hover/block:opacity-100 group-focus-within/block:opacity-100',
-          isDragging && 'cursor-grabbing opacity-100',
-        )}
-      >
-        <GripVerticalIcon className="size-4" />
-      </button>
-
-      <button
-        type="button"
-        onClick={onRemove}
-        disabled={!canEditLessons}
-        title={!canEditLessons ? insufficientPermissionsTitle : undefined}
-        aria-label={t('block.delete')}
-        className="absolute -right-7 top-1 hidden size-6 items-center justify-center rounded text-muted-foreground opacity-0 transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover/block:opacity-100 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-muted-foreground lg:inline-flex"
-      >
-        <Trash2Icon className="size-3.5" />
-      </button>
-
       {block.type === 'html' ? (
         <DebouncedHtmlEditor
           blockId={block.id}
@@ -391,7 +339,7 @@ function SortableBlock({
       ) : block.type === 'photo_collage' ? (
         <PhotoCollageBlockEditor
           block={block}
-          courseId={courseId}
+          noteId={noteId}
           canEditLessons={canEditLessons}
           insufficientPermissionsTitle={insufficientPermissionsTitle}
         />
@@ -401,7 +349,7 @@ function SortableBlock({
           title={block.title}
         />
       )}
-    </li>
+    </EditorBlockShell>
   );
 }
 

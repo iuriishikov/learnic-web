@@ -1,10 +1,10 @@
 import type { QueryClient } from '@tanstack/react-query';
 
-import { courseDraftKey } from '../api/use-course-draft';
-import { courseReleasesKey } from '../api/use-course-releases';
+import { noteDraftKey } from '../api/use-note-draft';
+import { noteReleasesKey } from '../api/use-note-releases';
 import { myProductsKey } from '../api/use-my-products';
 import { productKey } from '../api/use-product';
-import type { CourseDraft, DraftLesson, DraftModule } from '../model/draft';
+import type { NoteDraft, DraftLesson, DraftModule } from '../model/draft';
 
 import {
   type DraftLessonResponse,
@@ -17,7 +17,7 @@ import {
 import type { EventEnvelope } from './events-channel';
 
 /**
- * Course-content `kind` values fanned in over the unified product
+ * Note-content `kind` values fanned in over the unified product
  * channel (`WS /products/{product_id}/events`). The set is fixed
  * by the spec's `ContentEventKind` enum.
  *
@@ -73,13 +73,13 @@ export function isContentEventKind(kind: string): kind is ContentEventKind {
 
 export function applyContentEvent(
   qc: QueryClient,
-  courseId: string,
+  noteId: string,
   event: EventEnvelope<ContentEventKind>,
 ): void {
   const { kind, payload } = event;
 
   // Any content edit bumps the parent product's `updated_at` server-side
-  // (DB trigger on course_modules / course_lessons / lesson_blocks), which
+  // (DB trigger on note_modules / note_lessons / lesson_blocks), which
   // feeds the "Обновлено N ago" label on the my-products list. That list
   // is a separate cache (`myProductsKey`) and isn't active while editing,
   // so mark it stale here — it refetches with the fresh timestamp when the
@@ -92,7 +92,7 @@ export function applyContentEvent(
       const moduleId = strField(payload, 'module_id');
       const title = strField(payload, 'title');
       if (moduleId && title !== undefined) {
-        patchDraft(qc, courseId, (draft) =>
+        patchDraft(qc, noteId, (draft) =>
           mapModule(draft, moduleId, (m) => ({ ...m, title })),
         );
       }
@@ -102,7 +102,7 @@ export function applyContentEvent(
       const moduleId = strField(payload, 'module_id');
       if (moduleId) {
         const description = nullableStrField(payload, 'description');
-        patchDraft(qc, courseId, (draft) =>
+        patchDraft(qc, noteId, (draft) =>
           mapModule(draft, moduleId, (m) => ({ ...m, description })),
         );
       }
@@ -112,7 +112,7 @@ export function applyContentEvent(
       const lessonId = strField(payload, 'lesson_id');
       const title = strField(payload, 'title');
       if (lessonId && title !== undefined) {
-        patchDraft(qc, courseId, (draft) =>
+        patchDraft(qc, noteId, (draft) =>
           mapLesson(draft, lessonId, (l) => ({ ...l, title })),
         );
       }
@@ -121,7 +121,7 @@ export function applyContentEvent(
     case 'module_deleted': {
       const moduleId = strField(payload, 'module_id');
       if (moduleId) {
-        patchDraft(qc, courseId, (draft) => ({
+        patchDraft(qc, noteId, (draft) => ({
           ...draft,
           modules: reposition(
             draft.modules.filter((m) => m.id !== moduleId),
@@ -133,7 +133,7 @@ export function applyContentEvent(
     case 'lesson_deleted': {
       const lessonId = strField(payload, 'lesson_id');
       if (lessonId) {
-        patchDraft(qc, courseId, (draft) => ({
+        patchDraft(qc, noteId, (draft) => ({
           ...draft,
           modules: draft.modules.map((m) => ({
             ...m,
@@ -146,7 +146,7 @@ export function applyContentEvent(
     case 'block_deleted': {
       const blockId = strField(payload, 'block_id');
       if (blockId) {
-        patchDraft(qc, courseId, (draft) => ({
+        patchDraft(qc, noteId, (draft) => ({
           ...draft,
           modules: draft.modules.map((m) => ({
             ...m,
@@ -163,7 +163,7 @@ export function applyContentEvent(
       const raw = moduleField(payload, 'module');
       if (raw) {
         const nextModule = fromModuleResponse(raw);
-        patchDraft(qc, courseId, (draft) => ({
+        patchDraft(qc, noteId, (draft) => ({
           ...draft,
           // The WS event can land before `onSuccess` of
           // `useAddModuleMutation` swaps the temp id for the real one.
@@ -181,7 +181,7 @@ export function applyContentEvent(
       const raw = lessonField(payload, 'lesson');
       if (moduleId && raw) {
         const lesson = fromLessonResponse(raw);
-        patchDraft(qc, courseId, (draft) =>
+        patchDraft(qc, noteId, (draft) =>
           mapModule(draft, moduleId, (m) => ({
             ...m,
             lessons: upsertById(m.lessons, lesson),
@@ -196,7 +196,7 @@ export function applyContentEvent(
       const toModuleId = strField(payload, 'to_module_id');
       const position = numField(payload, 'position');
       if (lessonId && fromModuleId && toModuleId && position !== undefined) {
-        patchDraft(qc, courseId, (draft) => {
+        patchDraft(qc, noteId, (draft) => {
           const sourceModule = draft.modules.find((m) => m.id === fromModuleId);
           const lesson = sourceModule?.lessons.find((l) => l.id === lessonId);
           if (lesson === undefined) return draft;
@@ -234,11 +234,11 @@ export function applyContentEvent(
       // to a draft refetch for those types so `block.file?.url` is
       // populated correctly — other types apply in place.
       if (_blockTypeNeedsRefetch(raw.type)) {
-        qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
+        qc.invalidateQueries({ queryKey: noteDraftKey(noteId) });
         return;
       }
       const block = fromBlockResponse(raw);
-      patchDraft(qc, courseId, (draft) =>
+      patchDraft(qc, noteId, (draft) =>
         mapLesson(draft, lessonId, (l) => ({
           ...l,
           blocks: upsertById(l.blocks, block),
@@ -250,11 +250,11 @@ export function applyContentEvent(
       const raw = blockField(payload, 'block');
       if (!raw) return;
       if (_blockTypeNeedsRefetch(raw.type)) {
-        qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
+        qc.invalidateQueries({ queryKey: noteDraftKey(noteId) });
         return;
       }
       const updated = fromBlockResponse(raw);
-      patchDraft(qc, courseId, (draft) => ({
+      patchDraft(qc, noteId, (draft) => ({
         ...draft,
         modules: draft.modules.map((m) => ({
           ...m,
@@ -269,7 +269,7 @@ export function applyContentEvent(
     case 'modules_reordered': {
       const orderedIds = stringArrayField(payload, 'ordered_ids');
       if (orderedIds) {
-        patchDraft(qc, courseId, (draft) =>
+        patchDraft(qc, noteId, (draft) =>
           reorderModulesByIds(draft, orderedIds),
         );
       }
@@ -279,7 +279,7 @@ export function applyContentEvent(
       const moduleId = strField(payload, 'module_id');
       const orderedIds = stringArrayField(payload, 'ordered_ids');
       if (moduleId && orderedIds) {
-        patchDraft(qc, courseId, (draft) =>
+        patchDraft(qc, noteId, (draft) =>
           mapModule(draft, moduleId, (m) => ({
             ...m,
             lessons: orderByIds(m.lessons, orderedIds),
@@ -292,7 +292,7 @@ export function applyContentEvent(
       const lessonId = strField(payload, 'lesson_id');
       const orderedIds = stringArrayField(payload, 'ordered_ids');
       if (lessonId && orderedIds) {
-        patchDraft(qc, courseId, (draft) =>
+        patchDraft(qc, noteId, (draft) =>
           mapLesson(draft, lessonId, (l) => ({
             ...l,
             blocks: orderByIds(l.blocks, orderedIds),
@@ -305,13 +305,13 @@ export function applyContentEvent(
     case 'draft_reset':
       // The whole tree is replaced server-side from a release snapshot —
       // refetching is the cheapest path to a consistent client cache.
-      qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
+      qc.invalidateQueries({ queryKey: noteDraftKey(noteId) });
       return;
 
     case 'release_created':
-      qc.invalidateQueries({ queryKey: courseReleasesKey(courseId) });
+      qc.invalidateQueries({ queryKey: noteReleasesKey(noteId) });
       // The first release flips the product status to "published".
-      qc.invalidateQueries({ queryKey: productKey(courseId) });
+      qc.invalidateQueries({ queryKey: productKey(noteId) });
       return;
 
     default: {
@@ -321,7 +321,7 @@ export function applyContentEvent(
       // assignment fails at compile time.
       const _exhaustive: never = kind;
       void _exhaustive;
-      qc.invalidateQueries({ queryKey: courseDraftKey(courseId) });
+      qc.invalidateQueries({ queryKey: noteDraftKey(noteId) });
       return;
     }
   }
@@ -331,20 +331,20 @@ export function applyContentEvent(
 
 function patchDraft(
   qc: QueryClient,
-  courseId: string,
-  fn: (draft: CourseDraft) => CourseDraft,
+  noteId: string,
+  fn: (draft: NoteDraft) => NoteDraft,
 ): void {
-  qc.setQueryData<CourseDraft>(courseDraftKey(courseId), (current) => {
+  qc.setQueryData<NoteDraft>(noteDraftKey(noteId), (current) => {
     if (!current) return current;
     return fn(current);
   });
 }
 
 function mapModule(
-  draft: CourseDraft,
+  draft: NoteDraft,
   moduleId: string,
   fn: (m: DraftModule) => DraftModule,
-): CourseDraft {
+): NoteDraft {
   return {
     ...draft,
     modules: draft.modules.map((m) => (m.id === moduleId ? fn(m) : m)),
@@ -352,10 +352,10 @@ function mapModule(
 }
 
 function mapLesson(
-  draft: CourseDraft,
+  draft: NoteDraft,
   lessonId: string,
   fn: (l: DraftLesson) => DraftLesson,
-): CourseDraft {
+): NoteDraft {
   return {
     ...draft,
     modules: draft.modules.map((m) => ({
@@ -470,9 +470,9 @@ function orderByIds<T extends { id: string }>(items: T[], orderedIds: string[]):
 }
 
 function reorderModulesByIds(
-  draft: CourseDraft,
+  draft: NoteDraft,
   orderedIds: string[],
-): CourseDraft {
+): NoteDraft {
   return { ...draft, modules: orderByIds(draft.modules, orderedIds) };
 }
 

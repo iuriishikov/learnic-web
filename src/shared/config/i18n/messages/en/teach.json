@@ -1,7 +1,7 @@
 {
   "products": {
     "title": "Продукты",
-    "description": "Управление продуктами, тарифами и каталогом курсов студии.",
+    "description": "Manage the studio's products, pricing plans, and note catalog.",
     "body": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
   },
   "catalog": {

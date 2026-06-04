@@ -1,0 +1,222 @@
+'use client';
+
+import {
+  ChevronRightIcon,
+  FileTextIcon,
+  FolderIcon,
+  ListTreeIcon,
+  RotateCwIcon,
+} from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { useTranslations } from 'next-intl';
+import { useState } from 'react';
+
+import { cn } from '@/shared/lib/utils';
+import { Button } from '@/shared/ui/button';
+import { Skeleton } from '@/shared/ui/skeleton';
+
+import {
+  NoteContentError,
+  useNoteContent,
+} from '../api/use-note-content';
+import type { PublicNoteContent, PublicModule } from '../model/public-content';
+import type { Product } from '../model/types';
+
+import { InfoCard } from './product-info-card';
+
+/**
+ * Note curriculum preview for the public product landing — the module →
+ * lesson tree read from the published release (answer keys stripped). It's the
+ * `note` entry in the per-type section registry (`product-info-sections.tsx`).
+ *
+ * Secondary content: a load failure is surfaced inline (retry), and a missing
+ * release / non-note (`not-found`) or an empty tree renders nothing so the
+ * landing stays clean — never a page-level error.
+ */
+export function ProductNoteStructure({ product }: { product: Product }) {
+  const t = useTranslations('marketplace.detail.structure');
+  const isNote = product.type === 'note';
+  const query = useNoteContent(product.id, isNote);
+
+  if (!isNote) return null;
+
+  // Note exists but has no published curriculum yet (or isn't a note on
+  // the content endpoint) — hide the section rather than show an error box.
+  if (
+    query.isError &&
+    query.error instanceof NoteContentError &&
+    query.error.reason === 'not-found'
+  ) {
+    return null;
+  }
+  if (query.data && query.data.modules.length === 0) return null;
+
+  return (
+    <InfoCard
+      title={t('title')}
+      icon={ListTreeIcon}
+      action={
+        query.data && query.data.modules.length > 0 ? (
+          <span className="text-xs text-muted-foreground">
+            {t('summary', {
+              modules: query.data.modules.length,
+              lessons: countLessons(query.data),
+            })}
+          </span>
+        ) : null
+      }
+    >
+      {query.isPending ? (
+        <StructureSkeleton />
+      ) : query.isError ? (
+        <StructureError
+          onRetry={() => query.refetch()}
+          isRetrying={query.isFetching}
+        />
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {query.data.modules.map((module, index) => (
+            <ModuleRow key={module.id} module={module} index={index} />
+          ))}
+        </ul>
+      )}
+    </InfoCard>
+  );
+}
+
+function countLessons(content: PublicNoteContent): number {
+  return content.modules.reduce((sum, m) => sum + m.lessons.length, 0);
+}
+
+function ModuleRow({
+  module,
+  index,
+}: {
+  module: PublicModule;
+  index: number;
+}) {
+  const t = useTranslations('marketplace.detail.structure');
+  const reduceMotion = useReducedMotion();
+  // First module expanded by default — gives a peek at the curriculum depth
+  // without overwhelming the landing.
+  const [open, setOpen] = useState(index === 0);
+  const hasLessons = module.lessons.length > 0;
+
+  return (
+    <li className="overflow-hidden rounded-xl border border-border bg-background">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        aria-label={open ? t('collapse') : t('expand')}
+        className="flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors hover:bg-muted/40"
+      >
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-semibold text-muted-foreground">
+          {index + 1}
+        </span>
+        <FolderIcon
+          className="size-4 shrink-0 text-muted-foreground"
+          aria-hidden
+        />
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+          {module.title}
+        </span>
+        <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
+          {t('moduleLessons', { count: module.lessons.length })}
+        </span>
+        <ChevronRightIcon
+          className={cn(
+            'size-4 shrink-0 text-muted-foreground transition-transform duration-150',
+            open && 'rotate-90',
+          )}
+          aria-hidden
+        />
+      </button>
+
+      <AnimatePresence initial={false}>
+        {open ? (
+          <motion.div
+            key="lessons"
+            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+            animate={
+              reduceMotion ? { opacity: 1 } : { opacity: 1, height: 'auto' }
+            }
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+            transition={{
+              duration: reduceMotion ? 0 : 0.18,
+              ease: [0.32, 0.72, 0, 1],
+            }}
+            style={{ overflow: 'hidden' }}
+          >
+            {hasLessons ? (
+              <ul className="flex flex-col border-t border-border">
+                {module.lessons.map((lesson) => (
+                  <li
+                    key={lesson.id}
+                    className="flex items-center gap-2.5 px-4 py-2.5 pl-6 text-sm"
+                  >
+                    <FileTextIcon
+                      className="size-3.5 shrink-0 text-muted-foreground"
+                      aria-hidden
+                    />
+                    <span className="min-w-0 flex-1 truncate text-foreground">
+                      {lesson.title}
+                    </span>
+                    {lesson.blocks.length > 0 ? (
+                      <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
+                        {t('lessonMaterials', { count: lesson.blocks.length })}
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="border-t border-border px-6 py-3 text-sm text-muted-foreground">
+                {t('lessonsEmpty')}
+              </p>
+            )}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </li>
+  );
+}
+
+function StructureSkeleton() {
+  return (
+    <div className="flex flex-col gap-2">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <Skeleton key={i} className="h-12 w-full rounded-xl" />
+      ))}
+    </div>
+  );
+}
+
+function StructureError({
+  onRetry,
+  isRetrying,
+}: {
+  onRetry: () => void;
+  isRetrying: boolean;
+}) {
+  const t = useTranslations('marketplace.detail.structure.error');
+  return (
+    <div role="alert" className="rounded-xl bg-muted/40 px-4 py-5">
+      <p className="text-sm font-medium text-foreground">{t('title')}</p>
+      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+        {t('description')}
+      </p>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={onRetry}
+        disabled={isRetrying}
+        className="mt-3 gap-1.5"
+      >
+        <RotateCwIcon className={cn('size-3.5', isRetrying && 'animate-spin')} />
+        {t('retry')}
+      </Button>
+    </div>
+  );
+}

@@ -1,17 +1,17 @@
 {
   "title": "Каталог продуктов",
-  "description": "Демо: курсы и вебинары учителя сгруппированы по папкам с вложенностью до трёх уровней. Перетаскивайте карточки между папками или используйте «Переместить в…» в меню. Esc возвращает на уровень выше.",
+  "description": "Demo: a teacher's notes and webinars grouped into folders nested up to three levels deep. Drag cards between folders or use «Переместить в…» from the menu. Esc returns to the level above.",
   "back": "Назад",
   "searchPlaceholder": "Поиск продукта или папки",
   "searchAriaLabel": "Поиск",
   "updated": "Обновлено {time}",
   "filter": {
     "all": "Все",
-    "courses": "Курсы",
+    "notes": "Notes",
     "webinars": "Вебинары"
   },
   "type": {
-    "course": "Курс",
+    "note": "Note",
     "webinar": "Вебинар"
   },
   "status": {

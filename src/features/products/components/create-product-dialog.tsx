@@ -29,6 +29,7 @@ import {
 import { useRouter } from '@/shared/config/i18n/navigation';
 import { useObjectUrl } from '@/shared/hooks/use-object-url';
 import { useNotify } from '@/shared/lib/notify';
+import { notifyResourceLimit } from '@/shared/ui/resource-limit-dialog';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { TextInput } from '@/shared/ui/input-extended';
@@ -59,7 +60,7 @@ type CreateProductDialogProps = {
 };
 
 const EMPTY_FORM: CreateProductInput = {
-  type: 'course',
+  type: 'note',
   title: '',
   description: '',
 };
@@ -123,6 +124,9 @@ export function CreateProductDialog({ trigger }: CreateProductDialogProps) {
   async function onSubmit(values: CreateProductInput) {
     const result = await createProductAction({ ...values, cover: coverFile });
     if (!result.ok) {
+      if ('resourceLimit' in result && notifyResourceLimit(result.resourceLimit)) {
+        return;
+      }
       notify.apiError(result.reason);
       return;
     }
@@ -168,7 +172,7 @@ export function CreateProductDialog({ trigger }: CreateProductDialogProps) {
               </span>
               <div className="flex flex-col gap-1">
                 <ResponsiveSheetTitle>
-                  {t('details.title.course')}
+                  {t('details.title.note')}
                 </ResponsiveSheetTitle>
                 <ResponsiveSheetDescription>
                   {t('details.description')}
@@ -235,7 +239,7 @@ export function CreateProductDialog({ trigger }: CreateProductDialogProps) {
             >
               <Textarea
                 id="cp-description"
-                placeholder={t('fields.description.placeholder.course')}
+                placeholder={t('fields.description.placeholder.note')}
                 aria-invalid={Boolean(descriptionError)}
                 className="min-h-24 max-h-64 text-[15px]"
                 {...form.register('description')}

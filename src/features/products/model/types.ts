@@ -1,7 +1,7 @@
 import type { Tag } from '@/features/product-tags';
 import type { ApiFile } from '@/shared/types/user';
 
-export type ProductType = 'course';
+export type ProductType = 'note';
 
 export type ProductStatus = 'draft' | 'published' | 'archived' | 'banned';
 

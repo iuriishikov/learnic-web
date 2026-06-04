@@ -9,6 +9,7 @@ import { QueryProvider } from '@/shared/api/query-provider';
 import { routing } from '@/shared/config/i18n/routing';
 import { SITE_NAME, SITE_URL, TITLE_TEMPLATE } from '@/shared/config/site';
 import { BannerProvider } from '@/shared/ui/banner';
+import { ResourceLimitDialogHost } from '@/shared/ui/resource-limit-dialog';
 import { Toaster } from '@/shared/ui/sonner';
 import {
   BreadcrumbConfigProvider,
@@ -104,6 +105,7 @@ export default async function LocaleLayout({
         </QueryProvider>
       </AuthProvider>
       <Toaster />
+      <ResourceLimitDialogHost />
     </NextIntlClientProvider>
   );
 }

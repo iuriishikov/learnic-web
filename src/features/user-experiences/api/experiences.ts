@@ -7,6 +7,7 @@ import {
   type CreatedResult,
   type MutationResult,
   type UserExperienceSchemaResponse,
+  conflictResult,
   fromUserExperienceSchema,
   mapMutationStatus,
   safeJson,
@@ -69,6 +70,7 @@ export async function addUserExperienceAction(
   }
   if (res.status === 401) return { ok: false, reason: 'unauthorized' };
   if (res.status === 404) return { ok: false, reason: 'not-found' };
+  if (res.status === 409) return conflictResult(res);
   if (res.status === 422) {
     const body = await safeJson(res);
     const message = typeof body?.error === 'string' ? body.error : undefined;

@@ -131,12 +131,12 @@ export function ProductsGeneralView({
         acc[p.type] += 1;
         return acc;
       },
-      { all: 0, course: 0 } as Record<Filter, number>,
+      { all: 0, note: 0 } as Record<Filter, number>,
     );
   }, [products]);
 
   // Type filter still runs client-side over the current page —
-  // there's only one product type today (``course``), so this is
+  // there's only one product type today (``note``), so this is
   // decorative until a second type lands.
   const visible = useMemo(() => {
     if (filter === 'all') return products;
@@ -178,9 +178,9 @@ export function ProductsGeneralView({
           <TabsList className="h-9">
             <FilterTab value="all" label={tFilter('all')} count={counts.all} />
             <FilterTab
-              value="course"
-              label={tFilter('courses')}
-              count={counts.course}
+              value="note"
+              label={tFilter('notes')}
+              count={counts.note}
             />
           </TabsList>
         </Tabs>

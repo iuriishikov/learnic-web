@@ -75,7 +75,7 @@ export function NotificationsPanel({
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center justify-between gap-2 px-4 py-3">
+      <header className="flex items-center justify-between gap-2 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <h2 className="text-sm font-semibold text-foreground">
           {t('title')}
         </h2>
@@ -178,7 +178,7 @@ export function NotificationsPanel({
         </div>
       </ScrollArea>
 
-      <footer className="flex flex-col gap-2 border-t border-border bg-popover px-3 py-2 md:flex-row md:items-center md:justify-between">
+      <footer className="flex flex-col gap-2 border-t border-border bg-popover px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:flex-row md:items-center md:justify-between">
         <Button
           type="button"
           variant="outline"

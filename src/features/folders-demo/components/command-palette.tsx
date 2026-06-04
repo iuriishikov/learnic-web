@@ -151,7 +151,7 @@ export function CommandPalette({
                     value={`${product.id} ${product.title} ${product.description}`}
                     onSelect={handle(() => onNavigate(product.folderId))}
                   >
-                    {product.type === 'course' ? (
+                    {product.type === 'note' ? (
                       <GraduationCapIcon />
                     ) : (
                       <RadioIcon />

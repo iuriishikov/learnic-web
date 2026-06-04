@@ -17,7 +17,7 @@ export const PUBLISHED_PRODUCTS_PAGE_SIZE = 12;
 // requires a coordinated backend change.
 export const PUBLISHED_PRODUCTS_PER_PAGE_OPTIONS = [12, 24, 48, 96] as const;
 
-// "My courses" reuses the marketplace pagination shape end-to-end
+// "My notes" reuses the marketplace pagination shape end-to-end
 // (numbered controls + URL-driven page/perPage/q). Backend caps at
 // ``MAX_LIMIT = 100`` — the top option here mirrors that.
 export const MY_PRODUCTS_PAGE_SIZE = 12;

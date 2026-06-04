@@ -85,9 +85,9 @@ const INTEGRATIONS: Integration[] = [
   { id: 'dropbox', name: 'Dropbox', domain: 'dropbox.com', tone: 'bg-avatar-6', descKey: 'dropbox' },
 ];
 
-type Course = { id: string; title: string; author: string; hours: number };
+type Note = { id: string; title: string; author: string; hours: number };
 
-const COURSES: Course[] = [
+const NOTES: Note[] = [
   { id: 'react', title: 'React с нуля до продакшена', author: 'Олег Кузнецов', hours: 18 },
   { id: 'python-data', title: 'Python для анализа данных', author: 'Мария Лебедева', hours: 24 },
   { id: 'ux-ui', title: 'UX/UI-дизайн: основы интерфейсов', author: 'Анна Соколова', hours: 12 },
@@ -157,7 +157,7 @@ function LogoTile({
 }
 
 /** Mini product cover — the same soft-accent placeholder used on product cards. */
-function CourseCover({ seed }: { seed: string }) {
+function NoteCover({ seed }: { seed: string }) {
   return (
     <span className="relative block size-11 shrink-0 overflow-hidden rounded-md ring-1 ring-foreground/10">
       <Placeholder variant="soft" seed={seed} />
@@ -165,8 +165,8 @@ function CourseCover({ seed }: { seed: string }) {
   );
 }
 
-/** "Курс" type pill — mirrors the violet course pill from `ProductShowcaseCard`. */
-function CourseTypePill({ children }: { children: React.ReactNode }) {
+/** "Конспект" type pill — mirrors the violet note pill from `ProductShowcaseCard`. */
+function NoteTypePill({ children }: { children: React.ReactNode }) {
   return (
     <span className="inline-flex h-6 items-center rounded-full bg-violet-200 px-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-violet-950">
       {children}
@@ -872,23 +872,23 @@ function ProductsSearchPalette({
           </Button>
           <Button size="lg" onClick={close}>
             <PlusIcon />
-            {t('products.createCourse')}
+            {t('products.createNote')}
           </Button>
         </CommandMenuEmpty>
         <CommandMenuGroup heading={t('products.group')}>
-          {COURSES.map((course) => (
+          {NOTES.map((note) => (
             <CommandMenuItem
-              key={course.id}
-              value={`${course.title} ${course.author}`}
-              keywords={[course.author]}
-              leading={<CourseCover seed={course.title} />}
-              description={`${course.author} · ${t('products.durationHours', {
-                count: course.hours,
+              key={note.id}
+              value={`${note.title} ${note.author}`}
+              keywords={[note.author]}
+              leading={<NoteCover seed={note.title} />}
+              description={`${note.author} · ${t('products.durationHours', {
+                count: note.hours,
               })}`}
-              trailing={<CourseTypePill>{t('products.typeCourse')}</CourseTypePill>}
+              trailing={<NoteTypePill>{t('products.typeNote')}</NoteTypePill>}
               onSelect={close}
             >
-              {course.title}
+              {note.title}
             </CommandMenuItem>
           ))}
         </CommandMenuGroup>

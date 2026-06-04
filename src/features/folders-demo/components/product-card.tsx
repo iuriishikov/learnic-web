@@ -170,7 +170,7 @@ export function ProductCard({
 
             <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-medium tracking-wide text-white ring-1 ring-white/20 backdrop-blur-md">
               <GraduationCapIcon className="size-2.5" />
-              {t('type.course')}
+              {t('type.note')}
             </span>
 
             <StatusGlassChip

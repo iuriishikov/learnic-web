@@ -3,7 +3,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 
+import { isResourceLimitError } from '@/shared/api/resource-limit';
 import { useNotify } from '@/shared/lib/notify';
+import { failMutation } from '@/shared/ui/resource-limit-dialog';
 
 import type {
   Collaboration,
@@ -40,7 +42,10 @@ export const productMyPermissionsKey = (productId: string) =>
 function useFailureToast() {
   const t = useTranslations('teach-products.editor.toast');
   const notify = useNotify();
-  return (key: string) => notify.error(t(key));
+  return (key: string, err?: unknown) => {
+    if (isResourceLimitError(err)) return;
+    notify.error(t(key));
+  };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -131,6 +136,9 @@ export function useInviteByEmailMutation(productId: string) {
         grants,
       });
       if (!result.ok) {
+        if (result.reason !== 'rate-limited' && result.resourceLimit) {
+          failMutation(result);
+        }
         const error: InviteByEmailError = Object.assign(
           new Error(result.reason),
           { reason: result.reason },
@@ -147,6 +155,7 @@ export function useInviteByEmailMutation(productId: string) {
       qc.invalidateQueries({ queryKey: productCollaborationsKey(productId) });
     },
     onError: (err) => {
+      if (isResourceLimitError(err)) return;
       if (err.reason === 'rate-limited' && typeof err.limit === 'number') {
         notify.error(
           t('inviteRateLimited', {
@@ -178,13 +187,13 @@ export function useInviteByUserMutation(productId: string) {
         userId,
         grants,
       });
-      if (!result.ok) throw new Error(result.reason);
+      if (!result.ok) failMutation(result);
       return { id: result.id };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: productCollaborationsKey(productId) });
     },
-    onError: () => fail('inviteCollaboratorFailed'),
+    onError: (err) => fail('inviteCollaboratorFailed', err),
   });
 }
 
@@ -269,13 +278,13 @@ export function useCreateRoleMutation(productId: string) {
         description,
         permissions,
       });
-      if (!result.ok) throw new Error(result.reason);
+      if (!result.ok) failMutation(result);
       return { id: result.id };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: productRolesKey(productId) });
     },
-    onError: () => fail('createRoleFailed'),
+    onError: (err) => fail('createRoleFailed', err),
   });
 }
 

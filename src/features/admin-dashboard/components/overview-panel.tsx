@@ -2,36 +2,29 @@
 
 import { useFormatter, useTranslations } from 'next-intl';
 
-import {
-  getHeadline,
-  type DateSpan,
-  type SeriesVisibility,
-} from '../model/mock-data';
-import { DeltaBadge } from './delta-badge';
+import type { ChartPoint, DateSpan } from '../model/range';
 import { OverviewChart } from './overview-chart';
 
 type OverviewPanelProps = {
+  /** Headline metric — monthly active users (range-independent). */
+  mau: number;
+  points: ChartPoint[];
   span: DateSpan;
-  series: SeriesVisibility;
 };
 
-export function OverviewPanel({ span, series }: OverviewPanelProps) {
+export function OverviewPanel({ mau, points, span }: OverviewPanelProps) {
   const t = useTranslations('admin-dashboard');
   const format = useFormatter();
-  const headline = getHeadline(span);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <span className="text-sm text-muted-foreground">{t('headline')}</span>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <span className="text-3xl font-semibold tracking-tight text-foreground tabular-nums md:text-4xl">
-            {format.number(headline.value)}
-          </span>
-          <DeltaBadge value={headline.deltaPct} />
-        </div>
+        <span className="text-3xl font-semibold tracking-tight text-foreground tabular-nums md:text-4xl">
+          {format.number(mau)}
+        </span>
       </div>
-      <OverviewChart span={span} series={series} />
+      <OverviewChart points={points} span={span} />
     </div>
   );
 }

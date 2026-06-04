@@ -6,6 +6,8 @@
  * snake_case into camelCase before it reaches the rest of the SPA.
  */
 
+import type { ResourceLimitInfo } from '@/shared/api/resource-limit';
+
 export type PushSubscriptionDevice = {
   oid: string;
   endpoint: string;
@@ -27,6 +29,9 @@ export type WebPushError =
   | { kind: 'forbidden' }
   | { kind: 'network' }
   | { kind: 'notConfigured' }
+  // Per-user device cap (409 ResourceLimitReached) — surfaced by the
+  // global ResourceLimit dialog, so consumers skip their own toast.
+  | { kind: 'resourceLimit' }
   | { kind: 'unknown'; message?: string };
 
 export type GetVapidKeyResult =
@@ -35,7 +40,7 @@ export type GetVapidKeyResult =
 
 export type SubscribeResult =
   | { ok: true }
-  | { ok: false; error: WebPushError };
+  | { ok: false; error: WebPushError; resourceLimit?: ResourceLimitInfo };
 
 export type UnsubscribeResult =
   | { ok: true }

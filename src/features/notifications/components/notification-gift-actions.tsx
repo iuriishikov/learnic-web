@@ -86,7 +86,7 @@ export function NotificationGiftActions({
   );
   const [isNavigating, startNavigating] = useTransition();
 
-  const courseHref = '/marketplace';
+  const noteHref = '/marketplace';
   const disabled =
     status === 'pending' || status === 'accepted' || status === 'unavailable';
 
@@ -97,7 +97,7 @@ export function NotificationGiftActions({
     if (result.ok) {
       setStatus('accepted');
       onResolved?.();
-      startNavigating(() => router.push(courseHref));
+      startNavigating(() => router.push(noteHref));
       return;
     }
     if (result.reason === 'not-found' || result.reason === 'forbidden') {
@@ -144,12 +144,12 @@ export function NotificationGiftActions({
 
   if (status === 'accepted') {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
           size="sm"
           variant="outline"
-          onClick={() => router.push(courseHref)}
+          onClick={() => router.push(noteHref)}
           disabled={isNavigating}
           className="h-8 gap-1.5"
         >
@@ -176,7 +176,7 @@ export function NotificationGiftActions({
 
   if (status === 'unavailable') {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
           size="sm"
@@ -197,7 +197,7 @@ export function NotificationGiftActions({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <Button
         type="button"
         size="sm"

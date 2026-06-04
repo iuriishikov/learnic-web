@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { notifyResourceLimit } from '@/shared/ui/resource-limit-dialog';
+
 import {
   getVapidPublicKeyAction,
   subscribePushAction,
@@ -123,6 +125,7 @@ export function usePushSubscription() {
         // Best-effort cleanup so the browser side doesn't hold a
         // subscription the backend never learned about.
         await sub.unsubscribe().catch(() => undefined);
+        notifyResourceLimit(result.resourceLimit);
         return { ok: false, error: result.error };
       }
       setState({ status: 'subscribed', endpoint: serialized.endpoint, initializing: false });

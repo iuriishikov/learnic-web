@@ -97,7 +97,7 @@ export default async function MarketplacePage({
         Marketplace lives outside the ``(app)`` / ``(learn)`` /
         ``(teach)`` route groups, so it doesn't get a HeaderConfig
         from a parent layout. ``DefaultHeaderConfig`` contributes
-        the three mode-entry tabs (find a course / my learning /
+        the three mode-entry tabs (find a note / my learning /
         teach) for the authenticated header on this public route.
       */}
       <DefaultHeaderConfig />

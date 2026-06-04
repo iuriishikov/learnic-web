@@ -2,36 +2,35 @@
 
 import { useFormatter, useTranslations } from 'next-intl';
 
-import { SIDE_STATS, type SideStat } from '../model/mock-data';
-import { DeltaBadge } from './delta-badge';
+type SideStatsProps = {
+  /** Daily active users (range-independent). */
+  dau: number;
+  /** Products created in the selected window. */
+  newProducts: number;
+  /** Enrollments in the selected window. */
+  newEnrollments: number;
+};
 
-function formatValue(stat: SideStat, format: ReturnType<typeof useFormatter>) {
-  if (stat.kind === 'percent') {
-    return format.number(stat.value / 100, {
-      style: 'percent',
-      maximumFractionDigits: 0,
-    });
-  }
-  return format.number(stat.value);
-}
-
-export function SideStats() {
+export function SideStats({ dau, newProducts, newEnrollments }: SideStatsProps) {
   const t = useTranslations('admin-dashboard');
   const format = useFormatter();
 
+  const stats = [
+    { key: 'dau', value: dau },
+    { key: 'newProducts', value: newProducts },
+    { key: 'newEnrollments', value: newEnrollments },
+  ] as const;
+
   return (
     <div className="flex flex-col gap-6">
-      {SIDE_STATS.map((stat) => (
+      {stats.map((stat) => (
         <div key={stat.key} className="flex flex-col gap-1">
           <span className="text-sm text-muted-foreground">
             {t(`stats.${stat.key}`)}
           </span>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <span className="text-2xl font-semibold tracking-tight text-foreground tabular-nums">
-              {formatValue(stat, format)}
-            </span>
-            <DeltaBadge value={stat.deltaPct} />
-          </div>
+          <span className="text-2xl font-semibold tracking-tight text-foreground tabular-nums">
+            {format.number(stat.value)}
+          </span>
         </div>
       ))}
     </div>

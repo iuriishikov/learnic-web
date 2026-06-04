@@ -1,6 +1,6 @@
 import { Skeleton } from '@/shared/ui/skeleton';
 
-const STAT_KEYS = ['users', 'courses', 'completion'] as const;
+const STAT_KEYS = ['users', 'notes', 'completion'] as const;
 const CARD_KEYS = ['a', 'b'] as const;
 const USER_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8'] as const;
 

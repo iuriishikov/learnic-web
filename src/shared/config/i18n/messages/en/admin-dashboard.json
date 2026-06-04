@@ -4,31 +4,33 @@
   "range30d": "30 дней",
   "range7d": "7 дней",
   "range24h": "24 часа",
-  "filters": "Фильтры",
-  "filtersTitle": "Серии графика",
   "moreActions": "Ещё действия",
-  "headline": "Активные пользователи",
+  "headline": "Активные пользователи за месяц (MAU)",
   "chartUsers": "Пользователи",
-  "chartEnrollments": "Записи",
   "stats": {
-    "totalUsers": "Всего пользователей",
-    "publishedCourses": "Опубликовано курсов",
-    "completionRate": "Завершаемость курсов"
+    "dau": "Активные пользователи за день (DAU)",
+    "newProducts": "Новые продукты",
+    "newEnrollments": "Новые записи на продукты"
   },
   "quickActions": {
     "title": "Быстрые действия",
     "manageUsersTitle": "Пользователи",
     "manageUsersDesc": "Просмотр, бан и роли",
-    "manageCoursesTitle": "Курсы",
-    "manageCoursesDesc": "Модерация и удаление"
+    "manageNotesTitle": "Notes",
+    "manageNotesDesc": "Модерация и удаление"
   },
   "recentPosts": {
     "title": "Недавние публикации",
-    "read": "Читать"
+    "read": "Читать",
+    "publish": "Опубликовать пост",
+    "prevSlide": "Предыдущие публикации",
+    "nextSlide": "Следующие публикации"
   },
-  "recentUsers": {
-    "title": "Недавние пользователи",
-    "joinedAt": "На платформе с {date}"
+  "topTeachers": {
+    "title": "Топ учителей",
+    "metrics": "{students, plural, one {# студент} few {# студента} many {# студентов} other {# студента}} · {products, plural, one {# продукт} few {# продукта} many {# продуктов} other {# продукта}}",
+    "empty": "Пока нет учителей со студентами"
   },
+  "metricsError": "Не удалось обновить данные за выбранный период",
   "comingSoon": "Раздел в разработке"
 }

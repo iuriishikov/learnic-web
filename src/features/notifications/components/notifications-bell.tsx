@@ -28,9 +28,11 @@ const MAX_BADGE_COUNT = 99;
 /**
  * Header bell that opens the notifications panel.
  *
- * Uses `Popover` on tablet/desktop and a `Sheet` (slide-up from
- * the right edge) on mobile per the responsive translation rule —
- * the desktop popover does not fit a 375px viewport.
+ * Uses `Popover` on tablet/desktop and a full-screen `Sheet` on mobile
+ * per the responsive translation rule — the desktop popover does not fit
+ * a 375px viewport, and a narrow right-side sheet clipped wide in-card
+ * action buttons (e.g. "Выйти на этом устройстве") against the viewport
+ * edge. On mobile the panel takes over the whole screen instead.
  *
  * The WebSocket is held open for as long as the bell is mounted so
  * the unread badge reacts to push deltas in real time even when the
@@ -84,9 +86,16 @@ export function NotificationsBell() {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger render={trigger} />
         <SheetContent
-          side="right"
+          side="bottom"
           showCloseButton={false}
-          className="w-[88vw] max-w-[360px] gap-0 p-0"
+          className={cn(
+            'gap-0 p-0',
+            // Full-screen takeover on mobile (overrides the side="bottom"
+            // defaults: full height/width, flush to every edge, no border
+            // or rounding). The base translate-y + fade enter/exit stays.
+            'data-[side=bottom]:inset-0 data-[side=bottom]:h-full data-[side=bottom]:w-full',
+            'data-[side=bottom]:max-w-none data-[side=bottom]:rounded-none data-[side=bottom]:border-0',
+          )}
         >
           <NotificationsPanel open={open} onClose={handleClose} />
         </SheetContent>

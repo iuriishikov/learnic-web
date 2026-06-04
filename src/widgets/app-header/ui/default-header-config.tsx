@@ -21,11 +21,11 @@ export function DefaultHeaderConfig() {
     {
       key: 'marketplace',
       href: '/marketplace',
-      label: t('nav.findCourse'),
+      label: t('nav.findNote'),
     },
     {
-      key: 'my-courses',
-      href: '/my-courses',
+      key: 'my-notes',
+      href: '/my-notes',
       label: t('nav.myLearning'),
     },
     {

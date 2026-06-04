@@ -1,26 +1,26 @@
 {
   "page": {
-    "title": "Найдите свой следующий курс",
-    "subtitle": "Каталог курсов и вебинаров от практикующих авторов. Выберите тему — и начните учиться сегодня.",
+    "title": "Find your next note",
+    "subtitle": "A catalog of notes and webinars from practicing authors. Pick a topic and start learning today.",
     "body": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
   },
   "search": {
     "label": "Поиск по названию",
-    "placeholder": "Найти курс или вебинар…"
+    "placeholder": "Find a note or webinar…"
   },
   "tags": {
     "sectionLabel": "Темы",
     "clearLabel": "{count, plural, one {Сбросить (#)} few {Сбросить (#)} other {Сбросить (#)}}"
   },
   "card": {
-    "typeCourse": "Курс",
+    "typeNote": "Note",
     "typeWebinar": "Вебинар",
     "durationHours": "{hours} ч",
     "durationUnset": "—"
   },
   "empty": {
     "title": "Здесь пока пусто",
-    "description": "Скоро тут появятся курсы и вебинары — загляните позже.",
+    "description": "Notes and webinars will appear here soon — check back later.",
     "filteredTitle": "Ничего не нашли",
     "filteredDescription": "Попробуйте изменить запрос или выбрать другие теги.",
     "clearAction": "Сбросить фильтры"
@@ -29,5 +29,57 @@
     "previous": "Назад",
     "next": "Вперёд",
     "position": "Страница {current} из {total}"
+  },
+  "detail": {
+    "back": "В каталог",
+    "visibility": {
+      "public": "Открытая запись",
+      "private": "По приглашению"
+    },
+    "overview": {
+      "title": "About this note",
+      "empty": "Описание появится позже."
+    },
+    "tags": {
+      "title": "Note topics"
+    },
+    "enroll": {
+      "cta": "Enroll in this note",
+      "guarantee": "Access to the note right after payment",
+      "soonTitle": "Скоро",
+      "soonDescription": "Enrolling in notes will be available soon.",
+      "privateTitle": "Доступ по приглашению",
+      "privateHint": "Записаться самостоятельно нельзя — автор выдаёт доступ по приглашению или в подарок."
+    },
+    "faq": {
+      "title": "Вопросы и ответы",
+      "error": {
+        "title": "Не удалось загрузить вопросы",
+        "description": "Проверьте соединение и попробуйте снова.",
+        "retry": "Повторить"
+      }
+    },
+    "meta": {
+      "title": "Note at a glance",
+      "type": "Формат",
+      "duration": "Длительность",
+      "durationValue": "{hours, plural, one {# час} few {# часа} many {# часов} other {# часов}}",
+      "durationUnset": "уточняется",
+      "updatedAt": "Обновлён"
+    },
+    "structure": {
+      "title": "Note program",
+      "summary": "{modules, plural, one {# модуль} few {# модуля} many {# модулей} other {# модулей}} · {lessons, plural, one {# урок} few {# урока} many {# уроков} other {# уроков}}",
+      "moduleLessons": "{count, plural, one {# урок} few {# урока} many {# уроков} other {# уроков}}",
+      "lessonMaterials": "{count, plural, one {# материал} few {# материала} many {# материалов} other {# материалов}}",
+      "expand": "Развернуть модуль",
+      "collapse": "Свернуть модуль",
+      "lessonsEmpty": "В этом модуле пока нет уроков",
+      "error": {
+        "title": "Не удалось загрузить программу",
+        "description": "Проверьте соединение и попробуйте снова.",
+        "retry": "Повторить"
+      }
+    }
   }
 }

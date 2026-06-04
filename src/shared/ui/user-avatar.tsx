@@ -107,13 +107,6 @@ type UserAvatarProps = VariantProps<typeof userAvatarVariants> & {
   /** Avatar silhouette. Defaults to `square` (rounded square) per design. */
   shape?: AvatarShape;
   /**
-   * Apply the design-system "halo" treatment — a soft outer ring and drop
-   * shadow that lift the avatar off the surface. Defaults to `true`. Pass
-   * `false` in dense or already-elevated contexts (e.g. inside a button or
-   * popup trigger that has its own border / background).
-   */
-  halo?: boolean;
-  /**
    * Local file preview (e.g. picked from `<input type="file">` before save).
    * Takes precedence over `user.avatar?.url` and is shown immediately via a
    * managed object URL — no network request involved.
@@ -129,7 +122,14 @@ type UserAvatarProps = VariantProps<typeof userAvatarVariants> & {
   imageUrl?: string | null;
 };
 
-const SHAPE_RADIUS: Record<AvatarShape, { root: string; image: string; fallback: string; after: string }> = {
+type AvatarRadiusSet = {
+  root: string;
+  image: string;
+  fallback: string;
+  after: string;
+};
+
+const SHAPE_RADIUS: Record<AvatarShape, AvatarRadiusSet> = {
   circle: {
     root: 'rounded-full',
     image: 'rounded-full',
@@ -145,12 +145,41 @@ const SHAPE_RADIUS: Record<AvatarShape, { root: string; image: string; fallback:
 };
 
 /**
+ * At `sm` the avatar box is only 24px, where the shared `rounded-lg` (10px) is
+ * ~42% of the side: the square collapses into a lopsided near-circle and the
+ * bottom-right status badge lands in the rounded-away corner, so the online dot
+ * reads as missing. Step the square radius down to `rounded-md` (8px, ~33% —
+ * the proportion the `default` size already has) so the small avatar stays a
+ * clean rounded square and the badge sits on the avatar edge. Circles, and the
+ * larger sizes, are unaffected.
+ */
+const SQUARE_RADIUS_SM: AvatarRadiusSet = {
+  root: 'rounded-md',
+  image: 'rounded-md',
+  fallback: 'rounded-md',
+  after: 'after:rounded-md',
+};
+
+function resolveAvatarRadius(
+  shape: AvatarShape,
+  size: UserAvatarProps['size'],
+): AvatarRadiusSet {
+  if (shape === 'square' && size === 'sm') return SQUARE_RADIUS_SM;
+  return SHAPE_RADIUS[shape];
+}
+
+/**
  * Tailwind radius class matching the avatar silhouette. Apply it to a wrapping
  * trigger (button, link, popover trigger) so its focus / open ring follows the
- * avatar shape — otherwise a square avatar ends up inside a circular ring.
+ * avatar shape — otherwise a square avatar ends up inside a circular ring. Pass
+ * `size` when the wrapped avatar is `sm` so the ring tracks the stepped-down
+ * radius the small square uses.
  */
-export function userAvatarRadiusClass(shape: AvatarShape = 'square'): string {
-  return SHAPE_RADIUS[shape].root;
+export function userAvatarRadiusClass(
+  shape: AvatarShape = 'square',
+  size?: UserAvatarProps['size'],
+): string {
+  return resolveAvatarRadius(shape, size).root;
 }
 
 export function UserAvatar({
@@ -160,7 +189,6 @@ export function UserAvatar({
   showLoadErrorIndicator = true,
   statusType = 'online',
   shape = 'square',
-  halo = true,
   previewFile,
   imageUrl,
 }: UserAvatarProps) {
@@ -199,7 +227,14 @@ export function UserAvatar({
   const onlineLabel = t('presence.online');
   const verifiedLabel = t('verified.badge');
 
-  const radius = SHAPE_RADIUS[shape];
+  const radius = resolveAvatarRadius(shape, size);
+
+  // Anchor the dot badges (online / load-error) just off the bottom-right
+  // corner, the same offset the verified badge and the `/menu-demo` reference
+  // use. The dot then sits centered on the corner — half on the avatar, half
+  // proud of it — reading as a status indicator beside the avatar rather than
+  // pasted flat onto its face.
+  const dotBadgePosition = '-right-0.5 -bottom-0.5';
 
   return (
     // base-ui's `Avatar.Root` keeps the loaded-status in context and never
@@ -213,7 +248,7 @@ export function UserAvatar({
         userAvatarVariants({ size }),
         radius.root,
         radius.after,
-        halo && avatarHaloClasses,
+        avatarHaloClasses,
         className,
       )}
     >
@@ -246,7 +281,7 @@ export function UserAvatar({
         <AvatarBadge
           aria-label="Не удалось загрузить аватар"
           title="Не удалось загрузить аватар"
-          className="bg-destructive text-white"
+          className={cn('bg-destructive text-white', dotBadgePosition)}
         >
           <AlertCircleIcon />
         </AvatarBadge>
@@ -255,7 +290,11 @@ export function UserAvatar({
         <AvatarBadge
           aria-label={onlineLabel}
           title={onlineLabel}
-          className="bg-online group-data-[size=sm]/avatar:size-1.5 group-data-[size=default]/avatar:size-2 group-data-[size=lg]/avatar:size-2.5"
+          className={cn(
+            'bg-online',
+            dotBadgePosition,
+            'group-data-[size=sm]/avatar:size-1.5 group-data-[size=default]/avatar:size-2 group-data-[size=lg]/avatar:size-2.5',
+          )}
         />
       )}
       {showVerifiedBadge && (

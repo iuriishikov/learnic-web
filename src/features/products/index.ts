@@ -33,6 +33,8 @@ export { CreateProductDialog } from './components/create-product-dialog';
 export { ProductCover } from './components/product-cover';
 export { ProductEditorView } from './components/product-editor-view';
 export { ProductEditorSkeleton } from './components/product-editor-skeleton';
+export { ProductInfoView } from './components/product-info-view';
+export { ProductInfoSkeleton } from './components/product-info-skeleton';
 export { getProductByIdAction } from './api/get-product-by-id-action';
 export {
   useProductPermissions,
@@ -63,7 +65,7 @@ export type {
   CodeBlock,
   CodeBlockLanguage,
   CodeTab,
-  CourseDraft,
+  NoteDraft,
   DraftLesson,
   DraftModule,
   HtmlBlock,

@@ -165,7 +165,7 @@ export function NotificationInviteActions({
 
   if (status === 'accepted') {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
           size="sm"
@@ -197,7 +197,7 @@ export function NotificationInviteActions({
 
   if (status === 'unavailable') {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
           size="sm"
@@ -218,7 +218,7 @@ export function NotificationInviteActions({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <Button
         type="button"
         size="sm"

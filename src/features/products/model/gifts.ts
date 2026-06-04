@@ -1,5 +1,5 @@
 /**
- * Domain types for the "gift a course" sub-flow (owner issues gifts).
+ * Domain types for the "gift a note" sub-flow (owner issues gifts).
  *
  * `GiftStatus` mirrors the backend `GiftStatus` enum exhaustively
  * (`docs/api/openapi.json`): `pending_invite` is the awaiting-acceptance

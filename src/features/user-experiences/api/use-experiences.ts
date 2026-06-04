@@ -6,6 +6,8 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 
+import { failMutation } from '@/shared/ui/resource-limit-dialog';
+
 import type { UserExperience } from '../model/types';
 
 import {
@@ -55,7 +57,7 @@ export function useAddExperienceMutation(userId: string) {
         description: vars.description,
         sourceUrl: vars.sourceUrl,
       });
-      if (!created.ok) throw new Error(created.reason);
+      if (!created.ok) failMutation(created);
       if (vars.iconFile) {
         const formData = new FormData();
         formData.set('file', vars.iconFile);
