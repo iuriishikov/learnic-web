@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 
+import { PRODUCT_TAGS_MAX } from '@/features/product-tags';
 import {
   getPopularTagsAction,
   getPublishedProductsAction,
@@ -9,8 +10,6 @@ import {
   PUBLISHED_PRODUCTS_PER_PAGE_OPTIONS,
 } from '@/features/products';
 import { buildPageMetadata } from '@/shared/lib/page-metadata';
-import { DefaultHeaderConfig } from '@/widgets/app-header';
-import { PageHeader } from '@/widgets/page-header';
 import { SiteFooter } from '@/widgets/site-footer';
 
 type PageProps = {
@@ -50,6 +49,19 @@ function readStringParam(
   return trimmed && trimmed.length > 0 ? trimmed : undefined;
 }
 
+function readTagsParam(raw: string | string[] | undefined): string[] {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (!value) return [];
+  // ``?tags=id1,id2`` — comma-separated tag ids. De-dupe and cap at
+  // the per-product tag limit: more can never satisfy the AND filter,
+  // and it bounds the backend ``tag_ids`` IN-list.
+  const ids = value
+    .split(',')
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0);
+  return Array.from(new Set(ids)).slice(0, PRODUCT_TAGS_MAX);
+}
+
 export default async function MarketplacePage({
   params,
   searchParams,
@@ -68,6 +80,7 @@ export default async function MarketplacePage({
   );
   const page = readNumberParam(sp.page, 1, 1, 10_000);
   const q = readStringParam(sp.q);
+  const tags = readTagsParam(sp.tags);
 
   // SSR fetch matches what the client will request on first paint,
   // so React Query hydrates from ``initialData`` and avoids a
@@ -78,6 +91,7 @@ export default async function MarketplacePage({
       offset: (page - 1) * perPage,
       limit: perPage,
       q,
+      tagIds: tags,
     }),
     getPopularTagsAction({ limit: 20 }),
   ]);
@@ -90,18 +104,8 @@ export default async function MarketplacePage({
   const initialTotal = productsResult.ok ? productsResult.total : 0;
   const popularTags = popularTagsResult.ok ? popularTagsResult.tags : [];
 
-
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      {/*
-        Marketplace lives outside the ``(app)`` / ``(learn)`` /
-        ``(teach)`` route groups, so it doesn't get a HeaderConfig
-        from a parent layout. ``DefaultHeaderConfig`` contributes
-        the three mode-entry tabs (find a note / my learning /
-        teach) for the authenticated header on this public route.
-      */}
-      <DefaultHeaderConfig />
-      <PageHeader />
+    <>
       <main className="flex-1">
         <MarketplaceView
           initialProducts={initialProducts}
@@ -109,10 +113,11 @@ export default async function MarketplacePage({
           initialPage={page}
           initialPerPage={perPage}
           initialQuery={q ?? ''}
+          initialTags={tags}
           popularTags={popularTags}
         />
       </main>
       <SiteFooter />
-    </div>
+    </>
   );
 }

@@ -4,5 +4,8 @@
   "errorIconLabel": "Ошибка загрузки. Нажмите, чтобы повторить",
   "retry": "Повторить",
   "openFullscreen": "Открыть на весь экран",
-  "closeFullscreen": "Закрыть"
+  "closeFullscreen": "Закрыть",
+  "zoomIn": "Приблизить",
+  "zoomOut": "Отдалить",
+  "zoomReset": "Сбросить масштаб"
 }

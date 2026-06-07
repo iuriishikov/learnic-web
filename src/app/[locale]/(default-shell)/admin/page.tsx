@@ -1,4 +1,4 @@
-import { setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import {
   AdminDashboard,
@@ -8,6 +8,7 @@ import {
   getTopTeachersAction,
 } from '@/features/admin-dashboard';
 import { getCurrentUser } from '@/features/auth/server';
+import { RecentBlogPostsRail } from '@/features/blog';
 import { httpStatusForReason } from '@/shared/lib/http-error';
 
 
@@ -16,6 +17,7 @@ type AdminPageProps = {
 };
 
 const TOP_TEACHERS_LIMIT = 10;
+const RECENT_POSTS_LIMIT = 6;
 
 export default async function AdminPage({ params }: AdminPageProps) {
   const { locale } = await params;
@@ -55,6 +57,8 @@ export default async function AdminPage({ params }: AdminPageProps) {
   // Top teachers is a secondary rail — degrade to an empty list on failure.
   const teachers = teachersResult.ok ? teachersResult.data : [];
 
+  const t = await getTranslations('admin-dashboard');
+
   return (
     <AdminDashboard
       userName={user?.firstName ?? ''}
@@ -63,6 +67,19 @@ export default async function AdminPage({ params }: AdminPageProps) {
       initialDays={initialDays}
       initialMetrics={metricsResult.data}
       teachers={teachers}
+      recentPosts={
+        <RecentBlogPostsRail
+          limit={RECENT_POSTS_LIMIT}
+          labels={{
+            title: t('recentPosts.title'),
+            read: t('recentPosts.read'),
+            publish: t('recentPosts.publish'),
+            prevSlide: t('recentPosts.prevSlide'),
+            nextSlide: t('recentPosts.nextSlide'),
+            empty: t('recentPosts.empty'),
+          }}
+        />
+      }
     />
   );
 }

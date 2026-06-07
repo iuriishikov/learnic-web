@@ -4,7 +4,6 @@ import { notFound } from 'next/navigation';
 
 import { getPublicUserProfile, UserProfile } from '@/features/user-profile';
 import { buildPageMetadata } from '@/shared/lib/page-metadata';
-import { PageHeader } from '@/widgets/page-header';
 import { SiteFooter } from '@/widgets/site-footer';
 
 type PageProps = {
@@ -39,12 +38,11 @@ export default async function UserProfilePage({ params }: PageProps) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <PageHeader />
+    <>
       <main className="flex-1">
         <UserProfile profile={result.profile} />
       </main>
       <SiteFooter />
-    </div>
+    </>
   );
 }

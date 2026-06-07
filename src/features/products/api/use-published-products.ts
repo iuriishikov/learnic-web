@@ -33,31 +33,45 @@ export const publishedProductsKey = (
   page: number,
   perPage: number,
   q?: string,
+  tagIds: string[] = [],
 ) => {
   const trimmed = q?.trim() ?? '';
-  return trimmed.length >= SEARCH_QUERY_MIN_LEN
-    ? (['products', 'published', { page, perPage, q: trimmed }] as const)
-    : (['products', 'published', { page, perPage }] as const);
+  // Sort tag ids so selection order doesn't fragment the cache — the
+  // filter is an order-independent AND on the backend. ``q`` / ``tags``
+  // are added only when present so the no-filter key stays
+  // byte-identical to the legacy ``{ page, perPage }`` shape.
+  const tags = [...tagIds].sort();
+  const filters: {
+    page: number;
+    perPage: number;
+    q?: string;
+    tags?: string[];
+  } = { page, perPage };
+  if (trimmed.length >= SEARCH_QUERY_MIN_LEN) filters.q = trimmed;
+  if (tags.length > 0) filters.tags = tags;
+  return ['products', 'published', filters] as const;
 };
 
 export function usePublishedProducts(args: {
   page: number;
   perPage: number;
   q?: string;
+  tagIds?: string[];
   initialPage?: PublishedProductsPage;
 }) {
-  const { page, perPage, q, initialPage } = args;
+  const { page, perPage, q, tagIds = [], initialPage } = args;
   const trimmed = q?.trim() ?? '';
   const hasSearch = trimmed.length >= SEARCH_QUERY_MIN_LEN;
   const effectiveQ = hasSearch ? trimmed : undefined;
 
   return useQuery<PublishedProductsPage, Error>({
-    queryKey: publishedProductsKey(page, perPage, effectiveQ),
+    queryKey: publishedProductsKey(page, perPage, effectiveQ, tagIds),
     queryFn: async () => {
       const result = await getPublishedProductsAction({
         offset: (page - 1) * perPage,
         limit: perPage,
         q: effectiveQ,
+        tagIds,
       });
       if (!result.ok) throw new Error(result.reason);
       return { products: result.products, total: result.total };

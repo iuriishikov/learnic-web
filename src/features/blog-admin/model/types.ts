@@ -50,8 +50,14 @@ export type BlogPostSummary = {
   createdAt: string;
   updatedAt: string;
   publishedAt: string | null;
+  /** Optional cover image (presigned URL), or `null` when none is set. */
+  cover: BlogFile | null;
 };
 
 export type BlogPost = BlogPostSummary & {
+  /** Optional category label shown above the title (e.g. "Design"). */
+  topic: string | null;
+  /** Optional short description shown under the title on the public page. */
+  subtitle: string | null;
   blocks: BlogBlock[];
 };

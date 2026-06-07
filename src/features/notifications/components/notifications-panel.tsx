@@ -68,6 +68,17 @@ export function NotificationsPanel({
     (listQuery.isFetching && !listQuery.isFetchingNextPage) ||
     countersQuery.isFetching;
 
+  // "Load more" must follow the active tab. The list query fetches *all*
+  // notifications (the backend has no unread filter) and the unread tab
+  // filters client-side — so gating on `hasNextPage` alone keeps the button
+  // visible on the unread tab even when every remaining page is read (or
+  // when there are no unread items at all). Cap the unread tab by the unread
+  // counter: once every unread item is on screen, there is nothing to load.
+  const canLoadMore =
+    !hasError &&
+    listQuery.hasNextPage &&
+    (tab === 'all' || allItems.length < overallUnread);
+
   const handleRetry = useCallback(() => {
     if (listQuery.isError) listQuery.refetch();
     if (countersQuery.isError) countersQuery.refetch();
@@ -159,7 +170,7 @@ export function NotificationsPanel({
             </motion.ul>
           )}
 
-          {!hasError && listQuery.hasNextPage ? (
+          {canLoadMore ? (
             <div className="flex justify-center px-4 py-2">
               <Button
                 type="button"

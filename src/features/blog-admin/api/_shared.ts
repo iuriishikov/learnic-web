@@ -51,6 +51,7 @@ export type BlogPostSummaryWire = {
   created_at: string;
   updated_at: string;
   published_at: string | null;
+  cover: FileWire | null;
 };
 
 type BlogBlockWire =
@@ -71,6 +72,8 @@ type BlogBlockWire =
     };
 
 export type BlogPostWire = BlogPostSummaryWire & {
+  topic: string | null;
+  subtitle: string | null;
   blocks: BlogBlockWire[];
 };
 
@@ -97,6 +100,7 @@ export function mapSummary(wire: BlogPostSummaryWire): BlogPostSummary {
     createdAt: wire.created_at,
     updatedAt: wire.updated_at,
     publishedAt: wire.published_at,
+    cover: mapFile(wire.cover),
   };
 }
 
@@ -131,6 +135,8 @@ export function mapBlock(wire: BlogBlockWire): BlogBlock {
 export function mapPost(wire: BlogPostWire): BlogPost {
   return {
     ...mapSummary(wire),
+    topic: wire.topic,
+    subtitle: wire.subtitle,
     blocks: [...wire.blocks]
       .sort((a, b) => a.position - b.position)
       .map(mapBlock),

@@ -6,6 +6,8 @@
  */
 
 export const BLOG_POST_TITLE_MAX_LEN = 200;
+export const BLOG_POST_SUBTITLE_MAX_LEN = 300;
+export const BLOG_POST_TOPIC_MAX_LEN = 80;
 export const BLOG_POST_SLUG_MIN_LEN = 3;
 export const BLOG_POST_SLUG_MAX_LEN = 200;
 /** lowercase alphanum, single hyphens, no leading/trailing/double hyphen. */
@@ -17,3 +19,5 @@ export const BLOG_BLOCK_CAPTION_MAX_LEN = 280;
 
 export const BLOG_IMAGE_BLOCK_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 export const BLOG_VIDEO_BLOCK_MAX_BYTES = 1024 * 1024 * 1024; // 1 GB
+/** Post cover image cap — mirrors backend `BLOG_COVER_MAX_BYTES`. */
+export const BLOG_COVER_MAX_BYTES = 10 * 1024 * 1024; // 10 MB

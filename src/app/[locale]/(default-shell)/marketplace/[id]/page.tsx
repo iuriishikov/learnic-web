@@ -7,8 +7,6 @@ import { getProductById } from '@/features/products/server';
 import { getPublicUserProfile } from '@/features/user-profile';
 import { httpStatusForReason } from '@/shared/lib/http-error';
 import { buildPageMetadata } from '@/shared/lib/page-metadata';
-import { DefaultHeaderConfig } from '@/widgets/app-header';
-import { PageHeader } from '@/widgets/page-header';
 import { SiteFooter } from '@/widgets/site-footer';
 
 type PageProps = {
@@ -54,15 +52,7 @@ export default async function ProductLandingPage({ params }: PageProps) {
     authorProfile.ok ? authorProfile.profile.isVerified : false;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      {/*
-        The landing lives outside the (app)/(learn)/(teach) route groups, like
-        the marketplace index, so it doesn't inherit a HeaderConfig from a
-        parent layout. DefaultHeaderConfig contributes the mode-entry tabs for
-        the authenticated header on this public route.
-      */}
-      <DefaultHeaderConfig />
-      <PageHeader />
+    <>
       <main className="flex-1">
         <ProductInfoView
           product={product}
@@ -71,6 +61,6 @@ export default async function ProductLandingPage({ params }: PageProps) {
         />
       </main>
       <SiteFooter />
-    </div>
+    </>
   );
 }

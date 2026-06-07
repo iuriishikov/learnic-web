@@ -1,7 +1,6 @@
 'use client';
 
-import { Dialog as DialogPrimitive } from '@base-ui/react/dialog';
-import { ImageOffIcon, RotateCwIcon, XIcon } from 'lucide-react';
+import { ImageOffIcon, RotateCwIcon } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import NextImage, { type ImageProps as NextImageProps } from 'next/image';
 import { useTranslations } from 'next-intl';
@@ -14,6 +13,7 @@ import {
 
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
+import { ImageLightbox } from '@/shared/ui/image-lightbox';
 import { Skeleton } from '@/shared/ui/skeleton';
 
 export type ImageRoundness =
@@ -255,6 +255,9 @@ export const Image = forwardRef<HTMLDivElement, ImageProps>(function Image(
           alt={alt}
           caption={caption}
           closeLabel={t('closeFullscreen')}
+          zoomInLabel={t('zoomIn')}
+          zoomOutLabel={t('zoomOut')}
+          zoomResetLabel={t('zoomReset')}
         />
       ) : null}
     </>
@@ -357,71 +360,3 @@ function ImageErrorState({
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Lightbox                                                                   */
-/* -------------------------------------------------------------------------- */
-
-type ImageLightboxProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  src: string;
-  alt: string;
-  caption?: string;
-  closeLabel: string;
-};
-
-function ImageLightbox({
-  open,
-  onOpenChange,
-  src,
-  alt,
-  caption,
-  closeLabel,
-}: ImageLightboxProps) {
-  return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop
-          // Opacity-only fade — no scale, per the no-pop animation rule.
-          className="fixed inset-0 z-50 bg-black/85 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
-        />
-        <DialogPrimitive.Popup className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 p-4 outline-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 sm:p-8">
-          <DialogPrimitive.Close
-            render={
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-4 top-4 z-[1] bg-background/80 text-foreground shadow-sm ring-1 ring-border backdrop-blur-sm hover:bg-background sm:right-6 sm:top-6"
-              />
-            }
-          >
-            <XIcon aria-hidden />
-            <span className="sr-only">{closeLabel}</span>
-          </DialogPrimitive.Close>
-
-          <div className="flex w-full flex-1 items-center justify-center overflow-hidden">
-            {/* The lightbox image is a one-off render at native aspect ratio.
-                We bypass next/image here because we don't know the dimensions
-                in advance and don't want layout shift while we measure. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={src}
-              alt={alt}
-              draggable={false}
-              className="max-h-full max-w-full rounded-lg object-contain shadow-2xl"
-            />
-          </div>
-
-          <DialogPrimitive.Title className="sr-only">
-            {alt}
-          </DialogPrimitive.Title>
-          {caption ? (
-            <DialogPrimitive.Description className="max-w-3xl text-center text-sm text-white/90 sm:text-base">
-              {caption}
-            </DialogPrimitive.Description>
-          ) : null}
-        </DialogPrimitive.Popup>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
-  );
-}

@@ -20,6 +20,7 @@ export async function getPublishedProducts({
   offset = 0,
   limit = 20,
   q,
+  tagIds = [],
 }: {
   offset?: number;
   limit?: number;
@@ -31,6 +32,11 @@ export async function getPublishedProducts({
   // ``SEARCH_QUERY_MIN_LEN`` (2 chars) so we don't 422 on
   // single-character input.
   q?: string;
+  // Tag filter (AND): the catalog is restricted to products carrying
+  // **every** listed tag. Each id is sent as a repeated ``tag_ids``
+  // query param (``/products?tag_ids=…&tag_ids=…``) per the backend
+  // list-query contract. Combines with ``q``; empty = no tag filter.
+  tagIds?: string[];
 } = {}): Promise<GetPublishedProductsResult> {
   try {
     const params = new URLSearchParams({
@@ -39,6 +45,7 @@ export async function getPublishedProducts({
     });
     const trimmed = q?.trim() ?? '';
     if (trimmed.length >= 2) params.set('q', trimmed);
+    for (const tagId of tagIds) params.append('tag_ids', tagId);
     const res = await apiFetch(`/products?${params.toString()}`, {
       method: 'GET',
     });

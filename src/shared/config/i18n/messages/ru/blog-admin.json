@@ -75,6 +75,20 @@
       "error": "Не сохранено"
     }
   },
+  "cover": {
+    "add": "Добавить обложку",
+    "replace": "Заменить",
+    "remove": "Удалить",
+    "limit": "JPG, PNG, WEBP — до 10 МБ",
+    "uploading": "Загружаем…",
+    "alt": "Обложка поста"
+  },
+  "meta": {
+    "topicLabel": "Тема",
+    "topicPlaceholder": "Например: Дизайн",
+    "descriptionLabel": "Описание",
+    "descriptionPlaceholder": "Краткое описание под заголовком (необязательно)"
+  },
   "media": {
     "pick": "Выбрать файл",
     "replace": "Выбрать другой файл",

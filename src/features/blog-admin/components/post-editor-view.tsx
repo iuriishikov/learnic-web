@@ -42,6 +42,8 @@ import { useBlogErrorToast } from '../lib/use-blog-errors';
 import type { BlogBlock, BlogPost } from '../model/types';
 import { AddBlockMenu } from './add-block-menu';
 import { BlockCard } from './block-card';
+import { CoverSetting } from './cover-setting';
+import { MetaSetting } from './meta-setting';
 import { EditorHeader } from './editor-header';
 import type { MediaSubmit } from './media-upload-dialog';
 
@@ -308,7 +310,7 @@ export function PostEditorView({ initialPost }: PostEditorViewProps) {
   const itemIds = post.blocks.map((b) => b.id);
 
   return (
-    <div className="mx-auto flex w-full max-w-[760px] flex-col gap-6 px-4 pb-16 md:px-6">
+    <div className="mx-auto flex w-full max-w-[760px] flex-col gap-6 px-4 pt-6 pb-16 md:px-6 md:pt-8">
       <EditorHeader
         title={post.title}
         slug={post.slug}
@@ -320,7 +322,10 @@ export function PostEditorView({ initialPost }: PostEditorViewProps) {
         onSlugCommit={handleSlugCommit}
         onPublishToggle={handlePublishToggle}
         onDelete={handleDelete}
+        cover={<CoverSetting post={post} onChange={setPost} />}
       />
+
+      <MetaSetting post={post} onChange={setPost} />
 
       {post.blocks.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">

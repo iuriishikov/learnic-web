@@ -19,7 +19,6 @@ import {
 import type { AdminMetrics, AdminStats, TopTeacher } from '../model/types';
 import { OverviewPanel } from './overview-panel';
 import { QuickActions } from './quick-actions';
-import { RecentPosts } from './recent-posts';
 import { SideStats } from './side-stats';
 import { TimeRangeToggle } from './time-range-toggle';
 import { TopTeachers } from './top-teachers';
@@ -32,6 +31,11 @@ type AdminDashboardProps = {
   initialDays: number;
   initialMetrics: AdminMetrics;
   teachers: TopTeacher[];
+  /**
+   * Recent-posts rail, injected by the page so the blog feature stays
+   * out of this feature's import graph (no feature → feature coupling).
+   */
+  recentPosts: ReactNode;
 };
 
 const SECTION_VARIANTS: Variants = {
@@ -73,6 +77,7 @@ export function AdminDashboard({
   initialDays,
   initialMetrics,
   teachers,
+  recentPosts,
 }: AdminDashboardProps) {
   const t = useTranslations('admin-dashboard');
   const presets = useMemo(() => buildRangePresets(nowMs), [nowMs]);
@@ -132,9 +137,7 @@ export function AdminDashboard({
             <Reveal index={2}>
               <QuickActions />
             </Reveal>
-            <Reveal index={3}>
-              <RecentPosts />
-            </Reveal>
+            <Reveal index={3}>{recentPosts}</Reveal>
           </div>
           <Reveal index={4} className="lg:col-span-1">
             <TopTeachers teachers={teachers} />
