@@ -2,11 +2,16 @@
 
 import { apiFetch } from '@/shared/api/client';
 
-import type { CodeTab, LessonBlock } from '../model/draft';
+import type {
+  CodeTab,
+  FunctionGraphConfig,
+  LessonBlock,
+} from '../model/draft';
 import {
   fromBlockResponse,
   type LessonBlockResponse,
 } from '../lib/draft-wire';
+import { toConfigWire } from '../lib/function-graph-config';
 
 import {
   type BlockMutationResult,
@@ -72,6 +77,16 @@ export async function addCodeBlockAction(args: {
   });
 }
 
+export async function addFunctionGraphBlockAction(args: {
+  noteId: string;
+  lessonId: string;
+  config: FunctionGraphConfig;
+}): Promise<CreatedResult> {
+  return addBlock(args.noteId, args.lessonId, 'function-graph', {
+    config: toConfigWire(args.config),
+  });
+}
+
 export async function addSingleChoiceBlockAction(args: {
   noteId: string;
   lessonId: string;
@@ -114,6 +129,7 @@ async function addBlock(
     | 'katex'
     | 'rutube-video'
     | 'code'
+    | 'function-graph'
     | 'single-choice'
     | 'multi-choice'
     | 'text-input',
@@ -185,6 +201,16 @@ export async function updateCodeBlockAction(args: {
   });
 }
 
+export async function updateFunctionGraphBlockAction(args: {
+  noteId: string;
+  blockId: string;
+  config: FunctionGraphConfig;
+}): Promise<MutationResult> {
+  return patchBlock(args.noteId, args.blockId, 'function-graph', {
+    config: toConfigWire(args.config),
+  });
+}
+
 export async function updateSingleChoiceBlockAction(args: {
   noteId: string;
   blockId: string;
@@ -227,6 +253,7 @@ async function patchBlock(
     | 'katex'
     | 'rutube-video'
     | 'code'
+    | 'function-graph'
     | 'single-choice'
     | 'multi-choice'
     | 'text-input',

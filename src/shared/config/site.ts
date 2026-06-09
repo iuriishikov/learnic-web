@@ -11,6 +11,14 @@ export const SITE_URL =
  */
 export const CONTACT_EMAIL = process.env.CONTACT_EMAIL ?? 'hello@learnic.dev';
 
+/**
+ * URL of the product's Telegram channel. Read on the server and rendered
+ * into the landing hero announcement chip. Not a secret (it ships in the
+ * rendered page), but kept server-read so the address lives in one place.
+ */
+export const TELEGRAM_CHANNEL_URL =
+  process.env.TELEGRAM_CHANNEL_URL ?? 'https://t.me/learnic_ru';
+
 export const BRAND_COLOR = '#6C5CE7';
 
 export const TITLE_TEMPLATE = `%s | ${SITE_NAME}`;

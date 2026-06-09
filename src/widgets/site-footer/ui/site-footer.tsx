@@ -4,13 +4,18 @@ import { motion, useReducedMotion, type Variants } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
 import { Link } from '@/shared/config/i18n/navigation';
+import { cn } from '@/shared/lib/utils';
 import { Badge } from '@/shared/ui/badge';
 import { BrandMark } from '@/shared/ui/brand-mark';
 
 type FooterLink = { label: string; href: string; badge?: string };
 type FooterColumn = { heading: string; links: FooterLink[] };
 
-export function SiteFooter() {
+type SiteFooterProps = {
+  className?: string;
+};
+
+export function SiteFooter({ className }: SiteFooterProps) {
   const t = useTranslations('home.footer');
   const reduceMotion = useReducedMotion();
   const currentYear = new Date().getFullYear();
@@ -32,7 +37,7 @@ export function SiteFooter() {
       };
 
   return (
-    <footer className="w-full bg-background text-foreground">
+    <footer className={cn('w-full bg-background text-foreground', className)}>
       <motion.div
         initial="hidden"
         whileInView="show"

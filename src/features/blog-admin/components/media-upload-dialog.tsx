@@ -2,17 +2,12 @@
 
 import { CloudUploadIcon, XIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import {
-  useEffect,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type ReactElement,
-} from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 
 import { useObjectUrl } from '@/shared/hooks/use-object-url';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
+import { FileDropZone } from '@/shared/ui/file-drop-zone';
 import { Label } from '@/shared/ui/label';
 import {
   ResponsiveSheet,
@@ -39,7 +34,11 @@ export type MediaSubmit = {
 };
 
 type MediaUploadDialogProps = {
-  trigger: ReactElement;
+  /** Render-prop trigger (uncontrolled mode). Omit when controlling `open`. */
+  trigger?: ReactElement;
+  /** Controlled open state — pair with `onOpenChange`. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   kind: MediaKind;
   /** Edit mode: existing preview URL + text to prefill. */
   initialUrl?: string | null;
@@ -53,6 +52,8 @@ type MediaUploadDialogProps = {
 
 export function MediaUploadDialog({
   trigger,
+  open: openProp,
+  onOpenChange,
   kind,
   initialUrl,
   initialText = '',
@@ -62,11 +63,15 @@ export function MediaUploadDialog({
   onSubmit,
 }: MediaUploadDialogProps) {
   const t = useTranslations('blog-admin');
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = openProp ?? internalOpen;
+  const setOpen = (next: boolean) => {
+    onOpenChange?.(next);
+    if (openProp === undefined) setInternalOpen(next);
+  };
   const [file, setFile] = useState<File | null>(null);
   const [text, setText] = useState(initialText);
   const [error, setError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const previewUrl = useObjectUrl(file);
   const accept = kind === 'image' ? 'image/*' : 'video/*';
 
@@ -80,9 +85,8 @@ export function MediaUploadDialog({
     return () => window.clearTimeout(id);
   }, [open, initialText]);
 
-  function handlePick(event: ChangeEvent<HTMLInputElement>) {
-    const picked = event.target.files?.[0];
-    event.target.value = '';
+  function handleFiles(files: File[]) {
+    const picked = files[0];
     if (!picked) return;
     if (!picked.type.startsWith(`${kind}/`)) {
       setError(t('media.errors.wrongType'));
@@ -110,7 +114,7 @@ export function MediaUploadDialog({
 
   return (
     <ResponsiveSheet open={open} onOpenChange={setOpen}>
-      <ResponsiveSheetTrigger render={trigger} />
+      {trigger ? <ResponsiveSheetTrigger render={trigger} /> : null}
       <ResponsiveSheetContent>
         <div className="flex h-full min-h-0 flex-col">
           <ResponsiveSheetHeader>
@@ -151,35 +155,19 @@ export function MediaUploadDialog({
               />
             ) : null}
 
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              className={cn(
-                'flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 py-6 text-center transition-colors',
-                'hover:border-brand/40 hover:bg-muted/50',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30',
-              )}
-            >
-              <span className="flex size-10 items-center justify-center rounded-full bg-background text-muted-foreground ring-1 ring-foreground/10 [&>svg]:size-5">
-                <CloudUploadIcon />
-              </span>
-              <span className="text-sm font-medium text-foreground">
-                {file
+            <FileDropZone
+              accept={accept}
+              icon={<CloudUploadIcon className="size-5" />}
+              prompt={
+                file
                   ? file.name
                   : effectiveUrl
                     ? t('media.replace')
-                    : t('media.pick')}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {t(`media.${kind}.limit`)}
-              </span>
-            </button>
-            <input
-              ref={inputRef}
-              type="file"
-              accept={accept}
-              className="hidden"
-              onChange={handlePick}
+                    : t('media.pick')
+              }
+              hint={t(`media.${kind}.limit`)}
+              onFiles={handleFiles}
+              className="py-6"
             />
 
             <div className="flex flex-col gap-1.5">

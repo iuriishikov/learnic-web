@@ -1,7 +1,7 @@
 'use client';
 
 import { cva, type VariantProps } from 'class-variance-authority';
-import { AlertCircleIcon, BadgeCheckIcon } from 'lucide-react';
+import { AlertCircleIcon, CheckIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -64,27 +64,13 @@ export type AvatarUser = {
   avatar: ApiFile | null;
   /**
    * Whether the platform granted this user the public "verified" badge.
-   * Drives the brand checkmark overlay when `statusType="verified"`.
-   * Defaults to `false` when the caller doesn't carry the flag yet —
-   * the badge stays hidden in that case, which is the safe default.
+   * Verified users get the brand checkmark overlay instead of the online
+   * dot (see `showStatus`). Defaults to `false` when the caller doesn't
+   * carry the flag yet — the avatar then falls back to presence, which is
+   * the safe default.
    */
   isVerified?: boolean;
 };
-
-/**
- * Which optional status overlay the avatar renders.
- *
- * - `'online'`: subscribe to the user's live presence and show the green
- *   online dot when they are online. Default.
- * - `'verified'`: show the brand-coloured verified checkmark when the
- *   user carries `isVerified: true`. Static; no presence subscription.
- * - `null`: render no status overlay (e.g. guest / settings preview
- *   avatars where presence and verification are both irrelevant).
- *
- * Only one overlay can be shown at a time — presence and verification
- * compete for the same corner of the avatar.
- */
-export type AvatarStatusType = 'online' | 'verified' | null;
 
 type AvatarUserName = Pick<AvatarUser, 'fullName'>;
 
@@ -97,13 +83,18 @@ type UserAvatarProps = VariantProps<typeof userAvatarVariants> & {
    */
   showLoadErrorIndicator?: boolean;
   /**
-   * Which status overlay to show, if any. See {@link AvatarStatusType}.
-   * Defaults to `'online'` — the avatar auto-subscribes to presence and
-   * shows the online dot when the user is online. Pass `'verified'` to
-   * surface the brand checkmark for verified users instead, or `null`
-   * to render no overlay at all.
+   * Whether the avatar renders its status overlay. Defaults to `true`.
+   * The overlay resolves itself by priority — the two states compete for
+   * the same corner, so only one ever shows:
+   *
+   * 1. verified user → brand checkmark (static; no presence subscription),
+   * 2. unverified but online → green presence dot,
+   * 3. neither → nothing.
+   *
+   * Pass `false` to render no overlay at all (e.g. guest / settings
+   * preview avatars where presence and verification are both irrelevant).
    */
-  statusType?: AvatarStatusType;
+  showStatus?: boolean;
   /** Avatar silhouette. Defaults to `square` (rounded square) per design. */
   shape?: AvatarShape;
   /**
@@ -187,7 +178,7 @@ export function UserAvatar({
   size,
   className,
   showLoadErrorIndicator = true,
-  statusType = 'online',
+  showStatus = true,
   shape = 'square',
   previewFile,
   imageUrl,
@@ -205,10 +196,10 @@ export function UserAvatar({
 
   // Always call the hook (rules-of-hooks). The hook is a no-op for `null`
   // (returns `'unknown'` and never subscribes); we only pass the real id
-  // when the caller asked for the online overlay AND we actually have a
-  // user — verified-mode avatars don't need presence at all.
+  // when the status overlay is on AND the user isn't verified — verified
+  // avatars show the static checkmark and don't need presence at all.
   const presence = usePresence(
-    statusType === 'online' && user ? user.id : null,
+    showStatus && user && !user.isVerified ? user.id : null,
   );
   const isOnline = presence === 'online';
 
@@ -217,13 +208,13 @@ export function UserAvatar({
   const colorClass = user
     ? AVATAR_COLOR_CLASSES[pickAvatarColorIndex(user.id)]
     : 'bg-muted';
+  // Status cascade for the shared bottom-right corner: load-error wins,
+  // then the verified checkmark, then the online dot, then nothing.
   const showErrorBadge = showLoadErrorIndicator && isError;
-  const showOnlineBadge =
-    statusType === 'online' && isOnline && !showErrorBadge;
   const showVerifiedBadge =
-    statusType === 'verified' &&
-    Boolean(user?.isVerified) &&
-    !showErrorBadge;
+    showStatus && Boolean(user?.isVerified) && !showErrorBadge;
+  const showOnlineBadge =
+    showStatus && !showVerifiedBadge && isOnline && !showErrorBadge;
   const onlineLabel = t('presence.online');
   const verifiedLabel = t('verified.badge');
 
@@ -298,18 +289,26 @@ export function UserAvatar({
         />
       )}
       {showVerifiedBadge && (
-        <span
+        // Built on `AvatarBadge` so it shares the online dot's chrome (filled
+        // circle + `ring-background` cutout) — a solid brand disc with a bold
+        // check stays legible on busy photos, unlike an outline glyph. The
+        // base badge hides its icon at `sm`; the check is the whole point
+        // here, so re-show and re-scale it per size.
+        <AvatarBadge
           aria-label={verifiedLabel}
           title={verifiedLabel}
           data-slot="avatar-verified-badge"
           className={cn(
-            'absolute -right-0.5 -bottom-0.5 z-10 inline-flex items-center justify-center text-brand select-none',
+            'bg-brand text-brand-foreground',
+            dotBadgePosition,
             'group-data-[size=sm]/avatar:size-3 group-data-[size=default]/avatar:size-3.5 group-data-[size=lg]/avatar:size-4',
-            '[&>svg]:size-full [&>svg]:drop-shadow-[0_1px_2px_rgb(0_0_0/0.25)]',
+            'group-data-[size=sm]/avatar:[&>svg]:block group-data-[size=sm]/avatar:[&>svg]:size-2',
+            'group-data-[size=default]/avatar:[&>svg]:size-2.5',
+            'group-data-[size=lg]/avatar:[&>svg]:size-3',
           )}
         >
-          <BadgeCheckIcon strokeWidth={2.25} aria-hidden />
-        </span>
+          <CheckIcon strokeWidth={3.5} aria-hidden />
+        </AvatarBadge>
       )}
     </Avatar>
   );

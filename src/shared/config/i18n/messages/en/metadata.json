@@ -15,6 +15,10 @@
     "title": "Регистрация",
     "description": "Создайте аккаунт Learnic за минуту."
   },
+  "pricing": {
+    "title": "Тарифы",
+    "description": "Простые и прозрачные тарифы, которые растут вместе с вами. Попробуйте любой план бесплатно."
+  },
   "forgotPassword": {
     "title": "Восстановление пароля",
     "description": "Отправим ссылку для сброса пароля на ваш email."
@@ -34,6 +38,14 @@
   "marketplace": {
     "title": "Маркетплейс",
     "description": "All notes, lessons, and collections on a single page."
+  },
+  "myNotes": {
+    "title": "Моё обучение",
+    "description": "Конспекты, на которые вы записались."
+  },
+  "productReader": {
+    "title": "Просмотр конспекта",
+    "description": "Учебные материалы конспекта: модули, уроки и задания."
   },
   "profile": {
     "title": "Профиль",
@@ -96,11 +108,23 @@
     }
   },
   "test": {
-    "appHeader": { "title": "Test — App Header" },
-    "userAvatar": { "title": "Test — User Avatar" },
-    "headerWhite": { "title": "Test — Header White" },
-    "headerPurple": { "title": "Test — Header Purple" },
-    "teachButton": { "title": "Test — TeachButton variants" },
-    "userMenu": { "title": "Test — UserMenu" }
+    "appHeader": {
+      "title": "Test — App Header"
+    },
+    "userAvatar": {
+      "title": "Test — User Avatar"
+    },
+    "headerWhite": {
+      "title": "Test — Header White"
+    },
+    "headerPurple": {
+      "title": "Test — Header Purple"
+    },
+    "teachButton": {
+      "title": "Test — TeachButton variants"
+    },
+    "userMenu": {
+      "title": "Test — UserMenu"
+    }
   }
 }

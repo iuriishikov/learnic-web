@@ -1,11 +1,97 @@
 'use client';
 
-import { useSortable } from '@dnd-kit/sortable';
+import {
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVerticalIcon, Trash2Icon } from 'lucide-react';
 import type { CSSProperties, ReactNode } from 'react';
 
 import { cn } from '@/shared/lib/utils';
+
+export type EditorBlockDndProps = {
+  /** Stable `DndContext` id — keeps SSR/CSR aria ids in sync. */
+  id: string;
+  /** Sortable ids in render order — one per `EditorBlockShell` row inside. */
+  itemIds: string[];
+  /** Receives the full id list in its new order after a successful drop. */
+  onReorder: (orderedIds: string[]) => void;
+  /** When false, dragging is disabled (pair with the rows' `canEdit`). */
+  canEdit?: boolean;
+  /** Observe drag activity, e.g. to pause hover micro-interactions mid-drag. */
+  onDraggingChange?: (active: boolean) => void;
+  children: ReactNode;
+  className?: string;
+};
+
+/**
+ * The outer drag-to-reorder shell for an `EditorBlockList`: sensors,
+ * `DndContext`, vertical `SortableContext`, and the array-move bookkeeping.
+ * Hands the reordered id array to `onReorder` and deliberately owns no entity
+ * state — optimistic updates, persistence, and rollback stay with the caller.
+ */
+export function EditorBlockDnd({
+  id,
+  itemIds,
+  onReorder,
+  canEdit = true,
+  onDraggingChange,
+  children,
+  className,
+}: EditorBlockDndProps) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      // An unreachable activation distance keeps pointer-drag inert while
+      // editing is not allowed, without remounting the sensor stack.
+      activationConstraint: canEdit ? { distance: 6 } : { distance: 999_999 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    onDraggingChange?.(false);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = itemIds.indexOf(String(active.id));
+    const newIndex = itemIds.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    onReorder(arrayMove(itemIds, oldIndex, newIndex));
+  };
+
+  return (
+    <DndContext
+      id={id}
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={
+        onDraggingChange ? () => onDraggingChange(true) : undefined
+      }
+      onDragCancel={
+        onDraggingChange ? () => onDraggingChange(false) : undefined
+      }
+      onDragEnd={handleDragEnd}
+    >
+      <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+        <EditorBlockList className={className}>{children}</EditorBlockList>
+      </SortableContext>
+    </DndContext>
+  );
+}
 
 export type EditorBlockListProps = {
   children: ReactNode;

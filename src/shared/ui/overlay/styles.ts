@@ -36,7 +36,12 @@ export const overlaySizeWidthClass: Record<OverlaySize, string> = {
 // header / items / footer vertically and clip overflow at the outer container.
 
 export const overlayPopupChromeCls = cn(
-  "rounded-lg bg-popover text-popover-foreground shadow-lg ring-1 ring-foreground/10 origin-(--transform-origin) outline-none duration-150 ease-out",
+  // A solid `ring-border` (not a faint translucent ring) draws a crisp 1px edge
+  // on every side. `bg-popover` equals `bg-background` in light theme, so the
+  // popup would otherwise blend into a light surface on the sides the downward
+  // `shadow-lg` doesn't reinforce (top/left) and read as if its border were
+  // clipped — matching the trigger's solid `border-input` keeps the edge visible.
+  "rounded-lg bg-popover text-popover-foreground shadow-lg ring-1 ring-border origin-(--transform-origin) outline-none duration-150 ease-out",
   "data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
   "data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
 )

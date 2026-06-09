@@ -88,7 +88,7 @@ export function AvatarUploader() {
         user={avatarUser}
         size="lg"
         shape="circle"
-        statusType={null}
+        showStatus={false}
         previewFile={previewFile}
         className="size-16"
       />

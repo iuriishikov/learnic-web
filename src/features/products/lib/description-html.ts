@@ -14,3 +14,22 @@ export function hasDescriptionContent(value: string | null | undefined): boolean
 export function looksLikeHtml(value: string): boolean {
   return /<\w+[^>]*>/.test(value);
 }
+
+/**
+ * Plain-text excerpt of the description for the hero lead: tags stripped,
+ * the few entities our sanitizer emits decoded, whitespace collapsed. The
+ * consumer clamps visually (`line-clamp-*`), so no length cut here.
+ */
+export function descriptionExcerpt(value: string | null | undefined): string {
+  if (!value) return '';
+  return value
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}

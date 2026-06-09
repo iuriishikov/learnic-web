@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Learnic API",
-    "description": "HTTP API for the Learnic learning platform.\n\nThis document is the **single source of truth for the frontend**: every\nrequest body, response body, status code, and error shape that the SPA\nneeds is described here. Anything not in this schema is not part of the\npublic contract.\n\n## Authentication\n\nThe API authenticates browsers exclusively through HttpOnly cookies set\nby the auth flow — there is no `Authorization` header path:\n\n- `accessCookie` (`access_token`, path `/`) — sent on every protected\n  request. Lifetime is short; rotate via `POST /auth/refresh` when a\n  401 `InvalidToken` lands.\n- `refreshCookie` (`refresh_token`, path `/auth/refresh`) — used only\n  by `POST /auth/refresh` and `POST /auth/logout`.\n- `signupSessionCookie` (`signup_session`, path `/auth`) — installed by\n  `POST /auth/register` and polled by\n  `GET /auth/email-verification/wait` to auto-login the registration\n  tab once the user clicks the verification link.\n\nBrowsers handle these cookies automatically; SPAs only need\n`fetch(..., { credentials: \"include\" })` (or the equivalent in their\nHTTP client). Mobile / non-browser clients should persist the\n`Set-Cookie` values and replay them.\n\n## Active sessions\n\nEvery refresh-token family (one per device-login) is denormalised\nwith the IP, raw `User-Agent`, and a parsed short device label\ncaptured at issue/rotation time. Endpoints:\n\n- `GET /auth/sessions` — list every active session for the current\n  user. The session matching the caller's own refresh cookie is\n  flagged with `is_current = true` so the SPA can render it as\n  'this device' and warn before letting the user revoke it.\n- `DELETE /auth/sessions/{session_id}` — revoke a specific session.\n  When the targeted session is the caller's own, auth cookies are\n  cleared on the response and the in-flight access JTI is added to\n  the denylist; other devices keep their cookies but their next\n  refresh fails with `InvalidToken`. Cross-user or unknown ids\n  return HTTP 404 `EntityNotFound` without leaking which case\n  applies.\n\n`POST /auth/logout` and `POST /auth/logout-all` continue to work as\nthe \"sign out this device\" / \"sign out everywhere\" coarse-grained\nflows; the `/auth/sessions` endpoints are the per-device alternative\nfor surfacing a security-settings UI.\n\n## Error responses\n\nEvery error this API can produce is documented per-operation under the\nappropriate status code and follows one of three shapes:\n\n- **422 `FieldError`** — value-object invariant violated. Body is\n  `{\"error\": \"<ErrorClassName>\", ...public_attrs}` where extras carry\n  context (`field`, `limit`, `reason`, ...). Typed via\n  `FieldErrorResponseModel`.\n- **404 `EntityNotFound`** — body is\n  `{\"error\": \"EntityNotFound\", \"entity_id\": \"<uuid>\"}`.\n- **401 / 403 / 409 named errors** — body is\n  `{\"error\": \"<ClassNameWithoutErrorSuffix>\"}` (e.g.\n  `\"InvalidCredentials\"`, `\"InvalidToken\"`, `\"EmailAlreadyRegistered\"`,\n  `\"EmailNotVerified\"`).\n\nValidation failures from Pydantic (request body type/length) come back\nas the standard FastAPI 422 envelope (`{\"detail\": [...]}`); domain VO\nviolations come back as the `FieldError` shape above. Both share the\nsame status code; clients should branch on the response body.\n\n## WebSocket channels\n\nOpenAPI 3 does not model WebSockets, so this section is the contract\nfor the project's WS endpoints. They share authentication and\nclose-code conventions but differ in direction and payload shape.\nNone of them appear under `paths` in this schema; treat the prose\nbelow as authoritative.\n\n### Authentication and close codes\n\nAll channels reuse the standard `accessCookie` HttpOnly cookie —\nbrowsers send it on the upgrade handshake automatically. The server\nvalidates the cookie *before* `accept`, so authentication failures are\ndelivered as a close frame, not as a message. Close codes used by the\nWS layer:\n\n- `4401` — missing or denied access cookie.\n- `4403` — authenticated, but not authorised (e.g. not the product\n  author).\n- `4404` — target resource does not exist.\n\nThere is no server-side event buffering or replay. On reconnect the\nclient refetches initial state via REST and re-subscribes — events\nemitted while disconnected are lost by design.\n\n### `WS /products/{product_id}/events` — unified product deltas\n\nRead-only push of every per-product delta — product metadata,\ncover, status, webinar defaults, Q&A, collaboration lifecycle,\nrole catalogue, **and** note-content edits (modules, lessons,\nblocks, releases, draft reset) when the product is a note.\nSubscribers must hold `read_product` on the target product —\nthe product owner (short-circuited as having every permission)\nand any active collaborator whose grants transitively include\n`read_product` (every editor / manager permission does).\nNon-authorised callers get `4403`. Webinar products see product\nevents only; note-content `kind` values are emitted exclusively\nfor products that carry the `has_note_content` capability.\nCohorts (and their schedules / sessions) are intentionally not\ncovered yet.\n\nBootstrap by fetching every REST resource the SPA renders from\nthe channel before opening the socket: `GET /products/{id}`,\n`GET /products/{id}/qa` (if Q&A is shown),\n`GET /products/{id}/collaborations` (if the team tab is shown),\nand — for notes only —\n`GET /products/{id}/content/draft` and\n`GET /products/{id}/content/releases`.\n\n**Server → client envelope.** Both event families share one shape;\n`kind` is the discriminator declared on each member of either\nthe `ProductPayload` or `ContentPayload` union (one dataclass\nper kind).\n\n```json\n{\n  \"kind\": \"<Payload.KIND>\",\n  \"product_id\": \"<UUID>\",\n  \"actor_id\": \"<UUID>\",\n  \"payload\": { ... },\n  \"occurred_at\": \"<ISO 8601>\"\n}\n```\n\n**Product `kind` values** (`ProductPayload` union):\n\n- Metadata: `name_changed`, `description_changed`,\n  `duration_changed`, `price_changed`.\n- Cover: `cover_changed`, `cover_removed`.\n- Status: `published`, `archived`, `unarchived`, `deleted`.\n- Visibility: `visibility_changed`.\n- Q&A: `qa_added`, `qa_question_changed`, `qa_answer_changed`,\n  `qa_reordered`, `qa_deleted`.\n- Collaboration: `collaboration_invited`,\n  `collaboration_accepted`, `collaboration_declined`,\n  `collaboration_revoked`, `collaboration_grants_updated`.\n- Role catalogue: `role_created`, `role_updated`, `role_deleted`.\n- Tags: `tags_changed`.\n- Gifts: `gift_issued`, `gift_accepted`, `gift_declined`,\n  `gift_revoked`.\n\n`payload` carries id-level fields plus the new value when trivial\n(e.g. `name_changed` → `{\"name\": \"...\"}`); for non-trivial changes\nthe client should refetch the affected resource via REST.\n`price_changed` carries `{\"amount\": <int>}` — the new price in\nminor units (kopecks for RUB); currency is implicit (account\ncurrency, RUB-only at this phase). The SPA can apply it in place\nwithout a REST refetch.\n`visibility_changed` carries `{\"visibility\": \"public\" | \"private\"}`\n— the product's new enrollment visibility (orthogonal to lifecycle\n`status`; `private` stays catalog-visible but is invite-only, i.e.\nself-enroll is refused). Owner-only mutation via\n`PATCH /products/{id}/visibility`; the SPA can apply it in place\nwithout a REST refetch.\n\n`collaboration_*` events carry\n`{\"collaboration_id\": \"<UUID>\", \"collaborator_id\": \"<UUID | absent>\",\n\"invited_email\": \"<string | absent>\"}`. `collaboration_id` is\nalways present; `collaborator_id` is set on\n`collaboration_invited` for by-user invites, on every\n`collaboration_accepted`, and on `collaboration_revoked` /\n`collaboration_grants_updated` when the affected row carries one;\n`invited_email` appears only on `collaboration_invited` for\nby-email invites that have not yet been accepted. SPA action per\nkind:\n\n- `collaboration_invited` — append the row to the collaborators\n  list (refetch by id from\n  `GET /products/{product_id}/collaborations` when the row is\n  not already in cache).\n- `collaboration_accepted` — flip the row to active; if the\n  row was a by-email invite (`collaborator_id` was previously\n  absent) refetch the collaborator profile.\n- `collaboration_declined` — flip the row to declined (or\n  remove from the open list, depending on the SPA's filter);\n  no email is sent.\n- `collaboration_revoked` — remove / grey out the row; when\n  `payload.collaborator_id` matches the current user, also\n  refetch `…/collaborations/me/permissions` to drop UI gating.\n- `collaboration_grants_updated` — when\n  `payload.collaborator_id` matches the current user, refetch\n  `…/collaborations/me/permissions`.\n\n`role_*` events carry the full role projection on\n`role_created` / `role_updated` (same shape as `RoleSchema` from\n`GET /roles/{id}` — `oid`, `product_id`, `name`, `description`,\n`position`, `permissions[]`, `created_by`, `created_at`,\n`updated_at`) so the SPA can splice or replace the row in its\ncatalogue without an extra REST round-trip. `role_deleted`\ncarries only `{\"role_id\": \"<UUID>\"}` — the SPA drops the row by\nid. Crucially, `role_updated` doubles as a permission-change\nsignal for every collaborator that holds this role: the SPA must\nrecompute their effective permissions (drop the role from the\nlocal cache, re-derive any UI gating) when the event arrives.\n\n`tags_changed` fires on `PUT /products/{product_id}/tags` and\ncarries `{\"tags\": [{\"oid\": \"<UUID>\", \"name\": \"<string>\",\n\"color\": \"<string>\"}, ...]}` — the full ordered post-mutation\ntag list. The SPA replaces the cached `product.tags` array\nverbatim; there are no per-item add/remove deltas because the\nproduct tag set is always rewritten in one shot. Order in the\npayload mirrors storage (`product_tags.position` ascending).\n\n`gift_*` events track the product's gift lifecycle so a\ncollaborator watching the editor's \"Gifts\" tab sees it update\nlive. `gift_issued` fires on both the by-user\n(`POST /products/{product_id}/gifts/by-user`) and by-email\n(`…/gifts/by-email`) invite paths; `gift_accepted` /\n`gift_declined` when the recipient resolves the invite;\n`gift_revoked` when a manager cancels a still-pending gift. Each\ncarries only `{\"gift_id\": \"<UUID>\"}`; the SPA refetches the\npermission-gated list (`GET /products/{product_id}/gifts`)\nrather than applying in place. Unlike `collaboration_invited`,\nthe invitee's email is deliberately NOT on the wire so it never\nreaches a collaborator who only has editor access. Expiry of\nstale pending invites is swept by a daily cron and is NOT\nbroadcast — the SPA discovers purged invites on its next refetch.\n\n**Content `kind` values** (`ContentPayload` union — notes only):\n\n- Module: `module_added`, `module_renamed`,\n  `module_description_updated`, `modules_reordered`, `module_deleted`.\n- Lesson: `lesson_added`, `lesson_renamed`, `lesson_moved`,\n  `lessons_reordered`, `lesson_deleted`.\n- Block: `block_added`, `block_updated`, `block_deleted`,\n  `blocks_reordered`.\n- Release: `release_created`, `draft_reset`.\n\n`payload` is rich enough for the SPA to apply every content `kind`\nin place via `setQueryData` without a follow-up REST round-trip.\nContainer events (`module_added`, `lesson_added`, `block_added`,\n`block_updated`) carry a full snapshot of the affected entity in\nthe same shape as the corresponding `GET /products/{id}/content/draft`\nsub-tree — the SPA reuses its existing draft types to splice it in.\nConcretely:\n\n- `module_added` → `{\"module\": {\"oid\", \"title\", \"description\",\n  \"position\", \"lessons\": []}}`. New modules always have an empty\n  `lessons` list; the field is included so the SPA can splice the\n  module into its draft cache without first synthesizing the empty\n  array.\n- `lesson_added` → `{\"module_id\", \"lesson\": {\"oid\", \"title\",\n  \"position\", \"blocks\": []}}`. `module_id` is the parent; `lesson`\n  matches `NoteDraftLessonSchema`.\n- `lesson_moved` → `{\"lesson_id\", \"from_module_id\", \"to_module_id\",\n  \"position\"}`. `from_module_id` is the lesson's previous module so\n  the SPA can locate the lesson in its draft cache without a tree\n  scan.\n- `block_added` → `{\"lesson_id\", \"block\": <LessonBlockSchema>}`.\n  The block snapshot is the discriminated union over `type` —\n  `html` / `katex` / `code` / `rutube_video` /\n  `single_choice` / `multi_choice` / `text_input` /\n  `file` / `video_file` / `photo_collage` — same field set\n  the REST draft endpoint returns for that block type. The SPA\n  appends `block` to the parent lesson's `blocks` array. File-backed\n  variants carry `file_id` (UUID or `null` if the referenced file\n  was purged) plus an optional `title`; `photo_collage` additionally\n  carries an `items` array of `{file_id, caption}` entries.\n- `block_updated` → `{\"block\": <LessonBlockSchema>}`. Full\n  post-mutation snapshot; the SPA replaces the block by `oid`.\n- `module_renamed`, `module_description_updated`,\n  `modules_reordered`, `module_deleted`,\n  `lesson_renamed`, `lessons_reordered`, `lesson_deleted`,\n  `block_deleted`, `blocks_reordered` all carry the small\n  id-level fields needed to patch the cache (titles, ordered\n  id arrays, the deleted entity's id).\n- `release_created`, `draft_reset` carry `{\"release_id\", \"ordinal\",\n  \"version\", \"kind\"}` — refetch `GET /products/{id}/content/releases`\n  for the full release record (notes, released_by, released_at).\n\nServer-side, the two `kind` families originate from independent\npublish/subscribe buses (`ProductEventBus`, `ContentEventBus`)\nthat the WS endpoint fans into a single stream. Cross-family\nordering is not guaranteed — each `kind` drives an independent\nslice of the SPA cache, so the SPA must not rely on one family's\nevent arriving before another's. Client → server messages are not\ninterpreted yet.\n\n### `WS /products/{product_id}/cursors` — live editor cursors\n\nBidirectional push of \"where is each editor / viewer right now\"\ndeltas for one product. Used by the SPA to render other users'\ncursors on the editor surface (field labels, lesson titles, block\ninputs, …) and to optionally raise their \"what they're doing\"\nstatus (`editing`, `typing`, `viewing`, `commenting`, …) next to\nthe avatar. The server stays semantically dumb: ``field_id`` and\n``action`` are opaque strings; the SPA owns the taxonomy.\n\nAuthorisation reuses `read_product` — every collaborator whose\ngrants transitively include `READ_PRODUCT` (owners + every editor\n/ manager) can subscribe; non-authorised callers get `4403`. The\nproduct must exist (`4404` otherwise) and the access cookie must\nvalidate (`4401` otherwise) before `accept`.\n\n**Lifecycle and replay policy.** No replay. Immediately after\n`accept`, the server pushes a `snapshot` message with every other\nuser's current cursor (the caller's own cursor is omitted). After\nthat, the channel is bidirectional:\n\n- The client publishes its own `cursor_at` / `cursor_left`\n  messages as the editing user focuses / blurs / types.\n- The server fans out other users' deltas (`cursor_at` /\n  `cursor_left`) and emits `user_gone` when a user's last\n  connection for the product closes.\n- Stale cursors (no `cursor_at` from a user for at least 30 s)\n  are pruned lazily — the next `snapshot` filters them out. The\n  SPA carries its own ~15 s eviction timer per cursor and never\n  needs to wait for server-side staleness.\n\nOn reconnect, re-open the socket and replay the current\n`cursor_at`; the new `snapshot` will hydrate everyone else.\n\n**Client → server** (JSON):\n\n- `{\"type\": \"cursor_at\", \"field_id\": \"<str ≤256>\",\n  \"action\": \"<str ≤64>\" | null}` — caller's cursor is now at\n  `field_id`. Any subsequent `cursor_at` from the same client\n  overwrites the previous entry. `field_id` and `action` are\n  opaque to the server; the server only enforces length caps.\n  Send periodic refreshes (every ~10 s) while the field stays\n  focused so the lazy-staleness window doesn't trip on a quiet\n  editor.\n- `{\"type\": \"cursor_left\", \"field_id\": \"<str>\"}` — caller is no\n  longer at `field_id`. The server forwards `cursor_left` only\n  when its stored entry actually matches both the caller's\n  connection and `field_id`; a stale \"leave\" for a field the\n  caller already moved off of is a no-op (the originator silently\n  drops it).\n\n**Server → client** (JSON):\n\n- `{\"type\": \"snapshot\", \"cursors\": [{\"user_id\", \"field_id\",\n  \"action\", \"updated_at\"}]}` — sent exactly once, right after\n  `accept`. Contains every other live cursor for the product;\n  empty list is valid.\n- `{\"type\": \"cursor_at\", \"user_id\", \"field_id\", \"action\",\n  \"updated_at\"}` — another user's new or refreshed cursor.\n  Replace any previous entry for `user_id` in the SPA store.\n- `{\"type\": \"cursor_left\", \"user_id\", \"field_id\"}` — another\n  user explicitly left `field_id`. Drop the entry from the SPA\n  store.\n- `{\"type\": \"user_gone\", \"user_id\"}` — another user's last\n  connection for this product closed. Drop every entry for\n  `user_id`.\n\n`updated_at` is ISO 8601 UTC. The server never echoes the\ncaller's own deltas back, so the SPA can publish optimistically\nand treat its local copy as the source of truth for its own\ncursor.\n\nField-id and action taxonomies are SPA-owned and intentionally\nopaque to the server. The current SPA convention uses dotted,\nlowercase keys (`product.title`, `module.<id>.title`,\n`lesson.<id>.title`, `block.<id>.body`, `block.<id>.option.<idx>`,\n`block.<id>.tab.<idx>.code`, …) and a small action set\n(`editing`, `typing`, `viewing`, `commenting`). New keys / actions\ndo not require backend changes.\n\n### `WS /users/me/notifications` — per-user notification deltas\n\nRead-only push of notification-panel deltas — new card created,\nsingle card flipped to read, all-read sweep — to the connecting\nuser. The recipient is derived from the access cookie, so the\nclient opens exactly one socket and never specifies a user id.\n\nBootstrap by fetching `GET /users/me/notifications` (and\n`GET /users/me/notifications/counters` for the bell badge) before\nopening the socket. No replay buffer; on reconnect the client\nrefetches initial state and re-subscribes.\n\n**Authentication.** Standard `accessCookie` HttpOnly cookie sent\nby the browser on the WS handshake. Failure closes with `4401`\nbefore `accept`.\n\n**Server → client envelopes.** The discriminator is `kind`:\n\n```json\n{\n  \"kind\": \"created\",\n  \"notification\": {\n    \"oid\": \"<UUID>\",\n    \"kind\": \"<NotificationKind value>\",\n    \"category\": \"<NotificationCategory value>\",\n    \"actor\": { \"oid\": \"<UUID>\", \"full_name\": \"<Last First Patronymic>\" },\n    \"created_at\": \"<ISO 8601>\",\n    \"read_at\": null,\n    \"details\": { \"type\": \"...\", ... }\n  }\n}\n```\n\n```json\n{\n  \"kind\": \"updated\",\n  \"notification\": { ... same shape as `created.notification` ... }\n}\n```\n\n```json\n{ \"kind\": \"read\", \"notification_id\": \"<UUID>\" }\n```\n\n```json\n{ \"kind\": \"read_all\" }\n```\n\n**`kind` values** (drawn from `NotificationEventKind`):\n\n- `created` — a fresh notification was persisted; the panel\n  prepends the hydrated `notification` view to its list and\n  bumps the matching tab counter.\n- `updated` — the embedded snapshot of an existing notification\n  changed (currently fired when the collaboration referenced by\n  an `invite_sent` card transitions to `active` / `declined` /\n  `revoked`); the panel replaces the card by `notification.oid`.\n  No new row is created and `created_at` is unchanged — only the\n  `details.collaboration` snapshot reflects the new state.\n- `read` — a single card was flipped to read; the panel removes\n  its blue dot by `notification_id`.\n- `read_all` — every unread card of the caller was flipped; the\n  panel clears all blue dots and zeroes the unread counters.\n\n**Notification `kind` values** (drawn from `NotificationKind`,\ninside the `created` / `updated` envelopes):\n\n- `invite_sent` — a collaborator was invited; the panel renders\n  the card with Accept / Decline buttons that call the in-app\n  endpoints (`POST /collaborations/{id}/accept` /\n  `POST /collaborations/{id}/decline`). The card's\n  `details.collaboration` snapshot is the single source of\n  truth for the resolved / unresolved UI state — the SPA does\n  not need to remember the local \"I just clicked Accept\"\n  status across reloads.\n- `invite_accepted` — an invitee accepted; the inviter's panel\n  shows the new collaborator's avatar + name.\n- `invite_declined` — an invitee declined; the inviter's panel\n  shows the decliner's avatar + name and an optional Re-invite\n  CTA when the recipient still holds `MANAGE_COLLABORATORS`.\n- `access_revoked` — a collaborator's active access was revoked;\n  the recipient's panel shows the read-only \"access revoked\"\n  card with the revoker's avatar + name.\n- `new_login` — a successful login landed on the user's account;\n  the recipient's panel shows a security card with the device\n  label / User-Agent / IP captured at the HTTP boundary. No\n  actor — the card uses a security-shield avatar and reads\n  \"New login from <device>\". Belongs to the `security` tab.\n\n**`details.collaboration` snapshot.** Both `invite_sent` and\n`invite_accepted` carry an embedded snapshot of the underlying\n`product_collaboration` row at read time:\n\n```json\n{\n  \"status\": \"pending_invite | active | declined | revoked\",\n  \"accepted_at\": \"<ISO 8601 | null>\",\n  \"declined_at\": \"<ISO 8601 | null>\",\n  \"revoked_at\": \"<ISO 8601 | null>\",\n  \"invite_expires_at\": \"<ISO 8601 | null>\"\n}\n```\n\nThe SPA uses `status` as the single source of truth for the\nAccept / Decline UI state — a reload (or an `updated` event)\npicks up the latest values, so the client never needs to\nremember whether the invitation was already resolved. `null`\non the whole object means the collaboration row could not be\nhydrated — treat the invite as unavailable.\n\n`payload`-style data is carried inside `details`; the\n`details.type` field discriminates the body shape. Client →\nserver messages are not interpreted yet — silence is read as\n\"may break in future\" by SPA teams, so do not send anything.\n\n### `WS /users/me/confirm-events` — email-confirmation deltas\n\nRead-only push of email-confirmation events to initiator tabs that\nare waiting on a single-token confirmation. Used by `/verify-email`\nduring signup so the registration tab learns in real time when the\nuser clicks the verification link on another device, and by future\nprofile flows that wait on email-confirmed actions (change-email,\ndelete-account, ...).\n\n**Authentication.** Accepts EITHER `accessCookie` (logged-in users\non profile / danger-zone flows) OR `signupSessionCookie` (the\nregistration tab that doesn't hold an access cookie yet). Failure\ncloses with `4401` before `accept`. The channel is keyed by the\nresolved `user_id` regardless of which cookie validated.\n\n**Lifecycle.** No replay buffer. Open the socket *before* the\ninitiator action so a fast confirm cannot land between submit and\nsubscribe. On reconnect the client should refetch state via REST\n(e.g. `GET /auth/email-verification/wait` for signup) — events\nemitted while disconnected are lost by design.\n\n**Bootstrap.** None for client-state hydration; the socket reflects\ndeltas, not state. For signup specifically, the legacy\n`GET /auth/email-verification/wait` long-poll endpoint stays as the\nauthoritative source of \"is this tab now logged in?\" — it's the only\nHTTP call that can install auth cookies on the original tab. Use the\nWS push as the *trigger* to call `/wait` once instead of polling.\n\n**Server → client envelope.**\n\n```json\n{\n  \"kind\": \"<ConfirmEventKind value>\",\n  \"purpose\": \"<EmailTokenPurpose value>\"\n}\n```\n\n**`kind` values** (drawn from `ConfirmEventKind`):\n\n- `confirmed` — a single-token email confirmation was consumed and\n  committed for the channel's user. `purpose` says which action\n  fired (`verify` for email-verification at registration; future\n  values mirror new `EmailTokenPurpose` entries). The SPA filters by\n  `purpose` and reacts: redirect, finalize signup, refresh a profile\n  field, etc.\n\nClient → server messages are not interpreted — silence is read as\n\"may break in future\" by SPA teams, so do not send anything.\n\n### `WS /presence/ws` — bidirectional presence\n\nHolding the socket open marks the connecting user online; closing it\nmarks them offline. No application-level keep-alive is required —\nthe server refreshes connection freshness internally on a fixed\ninterval.\n\n**Client → server** (JSON):\n\n- `{\"type\": \"subscribe\",   \"user_ids\": [\"<uuid>\", ...]}` — start\n  receiving deltas for the listed user ids.\n- `{\"type\": \"unsubscribe\", \"user_ids\": [\"<uuid>\", ...]}` — stop\n  receiving deltas for the listed user ids.\n\n**Server → client** (JSON):\n\n- `{\"type\": \"snapshot\",  \"presences\": [{\"user_id\": \"<uuid>\",\n  \"status\": \"online\" | \"offline\"}, ...]}` — sent right after each\n  `subscribe`, with the current state of the just-added ids.\n- `{\"type\": \"presence\",  \"user_id\": \"<uuid>\", \"status\": \"online\" |\n  \"offline\"}` — delta pushed when a subscribed user's status\n  changes.\n\nSubscriptions are scoped to a single connection. Reconnects must\nreplay the desired `subscribe` list.\n\n## Money / minor units\n\nEvery money amount the API emits or accepts is in **minor units of\nthe wallet's currency**:\n\n- For `RUB` (currently the only supported currency), 1 RUB = 100\n  kopecks. A wallet showing `150_00` holds 150 RUB.\n- Floats are never used over the wire. The server represents every\n  amount as a JSON integer; the SPA does the same on the way back.\n- Negative amounts appear only on signed-`delta` ledger entries\n  (debits). Balances (`available`, `pending`) and request bodies\n  (`amount`) are always non-negative integers.\n\nThe minor-unit convention is documented end-to-end so a generated\nSDK can apply the same rule wherever a money field appears.\n\n## Wallets and orders\n\nA wallet is a money holder pinned to one (user, currency) pair.\nEvery registered user has a `RUB` wallet from sign-up (older users\nwere backfilled at migration time).\n\n**Purchase flow.** `POST /products/{id}/purchase` debits the\ncaller's `available` balance by the product's price and creates an\n`Order` referencing two freeze rows: one carrying the author's\nshare, one carrying the platform's commission. Both stay in\n`frozen` state until their `unfreeze_at` passes (typically 14 days,\nconfigurable via `WALLET_SALE_HOLD_TTL_SECONDS` for dev). A\nperiodic worker tick releases ripe freezes into the corresponding\n`available` balance.\n\n**Refund flow.** While both freezes are still `frozen`, the buyer\ncan `POST /users/me/orders/{id}/refund`: the freezes flip to\n`cancelled`, the price returns to the buyer's `available`, and the\nledger gets a `refund` row plus two `cancel_freeze` informational\nrows. Once either freeze has been released, the window is closed\nand the SPA should redirect the user to support.\n\n**Ledger.** `GET /users/me/wallet/ledger` returns every money\nevent that touched the wallet (`purchase`, `refund`, `freeze`,\n`release`, `cancel_freeze`, `topup`, `adjustment`) with a signed\n`delta`. Informational events (`freeze`, `cancel_freeze`) carry\n`delta = 0` because the money is on the freeze row, not on\n`available`. Summing `delta` over all entries of a wallet equals\n`available` — an invariant that supports self-checking and audit.",
+    "description": "HTTP API for the Learnic learning platform.\n\nThis document is the **single source of truth for the frontend**: every\nrequest body, response body, status code, and error shape that the SPA\nneeds is described here. Anything not in this schema is not part of the\npublic contract.\n\n## Authentication\n\nThe API authenticates browsers exclusively through HttpOnly cookies set\nby the auth flow — there is no `Authorization` header path:\n\n- `accessCookie` (`access_token`, path `/`) — sent on every protected\n  request. Lifetime is short; rotate via `POST /auth/refresh` when a\n  401 `InvalidToken` lands.\n- `refreshCookie` (`refresh_token`, path `/auth/refresh`) — used only\n  by `POST /auth/refresh` and `POST /auth/logout`.\n- `signupSessionCookie` (`signup_session`, path `/auth`) — installed by\n  `POST /auth/register` and polled by\n  `GET /auth/email-verification/wait` to auto-login the registration\n  tab once the user clicks the verification link.\n\nBrowsers handle these cookies automatically; SPAs only need\n`fetch(..., { credentials: \"include\" })` (or the equivalent in their\nHTTP client). Mobile / non-browser clients should persist the\n`Set-Cookie` values and replay them.\n\n## Active sessions\n\nEvery refresh-token family (one per device-login) is denormalised\nwith the IP, raw `User-Agent`, and a parsed short device label\ncaptured at issue/rotation time. Endpoints:\n\n- `GET /auth/sessions` — list every active session for the current\n  user. The session matching the caller's own refresh cookie is\n  flagged with `is_current = true` so the SPA can render it as\n  'this device' and warn before letting the user revoke it.\n- `DELETE /auth/sessions/{session_id}` — revoke a specific session.\n  When the targeted session is the caller's own, auth cookies are\n  cleared on the response and the in-flight access JTI is added to\n  the denylist; other devices keep their cookies but their next\n  refresh fails with `InvalidToken`. Cross-user or unknown ids\n  return HTTP 404 `EntityNotFound` without leaking which case\n  applies.\n\n`POST /auth/logout` and `POST /auth/logout-all` continue to work as\nthe \"sign out this device\" / \"sign out everywhere\" coarse-grained\nflows; the `/auth/sessions` endpoints are the per-device alternative\nfor surfacing a security-settings UI.\n\n## Error responses\n\nEvery error this API can produce is documented per-operation under the\nappropriate status code and follows one of three shapes:\n\n- **422 `FieldError`** — value-object invariant violated. Body is\n  `{\"error\": \"<ErrorClassName>\", ...public_attrs}` where extras carry\n  context (`field`, `limit`, `reason`, ...). Typed via\n  `FieldErrorResponseModel`.\n- **404 `EntityNotFound`** — body is\n  `{\"error\": \"EntityNotFound\", \"entity_id\": \"<uuid>\"}`.\n- **401 / 403 / 409 named errors** — body is\n  `{\"error\": \"<ClassNameWithoutErrorSuffix>\"}` (e.g.\n  `\"InvalidCredentials\"`, `\"InvalidToken\"`, `\"EmailAlreadyRegistered\"`,\n  `\"EmailNotVerified\"`).\n\nValidation failures from Pydantic (request body type/length) come back\nas the standard FastAPI 422 envelope (`{\"detail\": [...]}`); domain VO\nviolations come back as the `FieldError` shape above. Both share the\nsame status code; clients should branch on the response body.\n\n## WebSocket channels\n\nOpenAPI 3 does not model WebSockets, so this section is the contract\nfor the project's WS endpoints. They share authentication and\nclose-code conventions but differ in direction and payload shape.\nNone of them appear under `paths` in this schema; treat the prose\nbelow as authoritative.\n\n### Authentication and close codes\n\nAll channels reuse the standard `accessCookie` HttpOnly cookie —\nbrowsers send it on the upgrade handshake automatically. The server\nvalidates the cookie *before* `accept`, so authentication failures are\ndelivered as a close frame, not as a message. Close codes used by the\nWS layer:\n\n- `4401` — missing or denied access cookie.\n- `4403` — authenticated, but not authorised (e.g. not the product\n  author).\n- `4404` — target resource does not exist.\n\nThere is no server-side event buffering or replay. On reconnect the\nclient refetches initial state via REST and re-subscribes — events\nemitted while disconnected are lost by design.\n\n### `WS /products/{product_id}/events` — unified product deltas\n\nRead-only push of every per-product delta — product metadata,\ncover, status, webinar defaults, Q&A, collaboration lifecycle,\nrole catalogue, **and** note-content edits (modules, lessons,\nblocks, releases, draft reset) when the product is a note.\nSubscribers must hold `read_product` on the target product —\nthe product owner (short-circuited as having every permission)\nand any active collaborator whose grants transitively include\n`read_product` (every editor / manager permission does).\nNon-authorised callers get `4403`. Webinar products see product\nevents only; note-content `kind` values are emitted exclusively\nfor products that carry the `has_note_content` capability.\nCohorts (and their schedules / sessions) are intentionally not\ncovered yet.\n\nBootstrap by fetching every REST resource the SPA renders from\nthe channel before opening the socket: `GET /products/{id}`,\n`GET /products/{id}/qa` (if Q&A is shown),\n`GET /products/{id}/collaborations` (if the team tab is shown),\nand — for notes only —\n`GET /products/{id}/content/draft` and\n`GET /products/{id}/content/releases`.\n\n**Server → client envelope.** Both event families share one shape;\n`kind` is the discriminator declared on each member of either\nthe `ProductPayload` or `ContentPayload` union (one dataclass\nper kind).\n\n```json\n{\n  \"kind\": \"<Payload.KIND>\",\n  \"product_id\": \"<UUID>\",\n  \"actor_id\": \"<UUID>\",\n  \"payload\": { ... },\n  \"occurred_at\": \"<ISO 8601>\"\n}\n```\n\n**Product `kind` values** (`ProductPayload` union):\n\n- Metadata: `name_changed`, `description_changed`,\n  `duration_changed`, `price_changed`.\n- Cover: `cover_changed`, `cover_removed`.\n- Status: `published`, `archived`, `unarchived`, `deleted`.\n- Visibility: `visibility_changed`.\n- Q&A: `qa_added`, `qa_question_changed`, `qa_answer_changed`,\n  `qa_reordered`, `qa_deleted`.\n- Collaboration: `collaboration_invited`,\n  `collaboration_accepted`, `collaboration_declined`,\n  `collaboration_revoked`, `collaboration_grants_updated`.\n- Role catalogue: `role_created`, `role_updated`, `role_deleted`.\n- Tags: `tags_changed`.\n- Gifts: `gift_issued`, `gift_accepted`, `gift_declined`,\n  `gift_revoked`.\n\n`payload` carries id-level fields plus the new value when trivial\n(e.g. `name_changed` → `{\"name\": \"...\"}`); for non-trivial changes\nthe client should refetch the affected resource via REST.\n`price_changed` carries `{\"amount\": <int>}` — the new price in\nminor units (kopecks for RUB); currency is implicit (account\ncurrency, RUB-only at this phase). The SPA can apply it in place\nwithout a REST refetch.\n`visibility_changed` carries `{\"visibility\": \"public\" | \"private\"}`\n— the product's new enrollment visibility (orthogonal to lifecycle\n`status`; `private` stays catalog-visible but is invite-only, i.e.\nself-enroll is refused). Owner-only mutation via\n`PATCH /products/{id}/visibility`; the SPA can apply it in place\nwithout a REST refetch.\n\n`collaboration_*` events carry\n`{\"collaboration_id\": \"<UUID>\", \"collaborator_id\": \"<UUID | absent>\",\n\"invited_email\": \"<string | absent>\"}`. `collaboration_id` is\nalways present; `collaborator_id` is set on\n`collaboration_invited` for by-user invites, on every\n`collaboration_accepted`, and on `collaboration_revoked` /\n`collaboration_grants_updated` when the affected row carries one;\n`invited_email` appears only on `collaboration_invited` for\nby-email invites that have not yet been accepted. SPA action per\nkind:\n\n- `collaboration_invited` — append the row to the collaborators\n  list (refetch by id from\n  `GET /products/{product_id}/collaborations` when the row is\n  not already in cache).\n- `collaboration_accepted` — flip the row to active; if the\n  row was a by-email invite (`collaborator_id` was previously\n  absent) refetch the collaborator profile.\n- `collaboration_declined` — flip the row to declined (or\n  remove from the open list, depending on the SPA's filter);\n  no email is sent.\n- `collaboration_revoked` — remove / grey out the row; when\n  `payload.collaborator_id` matches the current user, also\n  refetch `…/collaborations/me/permissions` to drop UI gating.\n- `collaboration_grants_updated` — when\n  `payload.collaborator_id` matches the current user, refetch\n  `…/collaborations/me/permissions`.\n\n`role_*` events carry the full role projection on\n`role_created` / `role_updated` (same shape as `RoleSchema` from\n`GET /roles/{id}` — `oid`, `product_id`, `name`, `description`,\n`position`, `permissions[]`, `created_by`, `created_at`,\n`updated_at`) so the SPA can splice or replace the row in its\ncatalogue without an extra REST round-trip. `role_deleted`\ncarries only `{\"role_id\": \"<UUID>\"}` — the SPA drops the row by\nid. Crucially, `role_updated` doubles as a permission-change\nsignal for every collaborator that holds this role: the SPA must\nrecompute their effective permissions (drop the role from the\nlocal cache, re-derive any UI gating) when the event arrives.\n\n`tags_changed` fires on `PUT /products/{product_id}/tags` and\ncarries `{\"tags\": [{\"oid\": \"<UUID>\", \"name\": \"<string>\",\n\"color\": \"<string>\"}, ...]}` — the full ordered post-mutation\ntag list. The SPA replaces the cached `product.tags` array\nverbatim; there are no per-item add/remove deltas because the\nproduct tag set is always rewritten in one shot. Order in the\npayload mirrors storage (`product_tags.position` ascending).\n\n`gift_*` events track the product's gift lifecycle so a\ncollaborator watching the editor's \"Gifts\" tab sees it update\nlive. `gift_issued` fires on both the by-user\n(`POST /products/{product_id}/gifts/by-user`) and by-email\n(`…/gifts/by-email`) invite paths; `gift_accepted` /\n`gift_declined` when the recipient resolves the invite;\n`gift_revoked` when a manager cancels a still-pending gift. Each\ncarries only `{\"gift_id\": \"<UUID>\"}`; the SPA refetches the\npermission-gated list (`GET /products/{product_id}/gifts`)\nrather than applying in place. Unlike `collaboration_invited`,\nthe invitee's email is deliberately NOT on the wire so it never\nreaches a collaborator who only has editor access. Expiry of\nstale pending invites is swept by a daily cron and is NOT\nbroadcast — the SPA discovers purged invites on its next refetch.\n\n**Content `kind` values** (`ContentPayload` union — notes only):\n\n- Module: `module_added`, `module_renamed`,\n  `module_description_updated`, `modules_reordered`, `module_deleted`.\n- Lesson: `lesson_added`, `lesson_renamed`, `lesson_moved`,\n  `lessons_reordered`, `lesson_deleted`.\n- Block: `block_added`, `block_updated`, `block_deleted`,\n  `blocks_reordered`.\n- Release: `release_created`, `draft_reset`.\n\n`payload` is rich enough for the SPA to apply every content `kind`\nin place via `setQueryData` without a follow-up REST round-trip.\nContainer events (`module_added`, `lesson_added`, `block_added`,\n`block_updated`) carry a full snapshot of the affected entity in\nthe same shape as the corresponding `GET /products/{id}/content/draft`\nsub-tree — the SPA reuses its existing draft types to splice it in.\nConcretely:\n\n- `module_added` → `{\"module\": {\"oid\", \"title\", \"description\",\n  \"position\", \"lessons\": []}}`. New modules always have an empty\n  `lessons` list; the field is included so the SPA can splice the\n  module into its draft cache without first synthesizing the empty\n  array.\n- `lesson_added` → `{\"module_id\", \"lesson\": {\"oid\", \"title\",\n  \"position\", \"blocks\": []}}`. `module_id` is the parent; `lesson`\n  matches `NoteDraftLessonSchema`.\n- `lesson_moved` → `{\"lesson_id\", \"from_module_id\", \"to_module_id\",\n  \"position\"}`. `from_module_id` is the lesson's previous module so\n  the SPA can locate the lesson in its draft cache without a tree\n  scan.\n- `block_added` → `{\"lesson_id\", \"block\": <LessonBlockSchema>}`.\n  The block snapshot is the discriminated union over `type` —\n  `html` / `katex` / `code` / `rutube_video` /\n  `single_choice` / `multi_choice` / `text_input` /\n  `file` / `video_file` / `photo_collage` — same field set\n  the REST draft endpoint returns for that block type. The SPA\n  appends `block` to the parent lesson's `blocks` array. File-backed\n  variants carry `file_id` (UUID or `null` if the referenced file\n  was purged) plus an optional `title`; `photo_collage` additionally\n  carries an `items` array of `{file_id, caption}` entries.\n- `block_updated` → `{\"block\": <LessonBlockSchema>}`. Full\n  post-mutation snapshot; the SPA replaces the block by `oid`.\n- `module_renamed`, `module_description_updated`,\n  `modules_reordered`, `module_deleted`,\n  `lesson_renamed`, `lessons_reordered`, `lesson_deleted`,\n  `block_deleted`, `blocks_reordered` all carry the small\n  id-level fields needed to patch the cache (titles, ordered\n  id arrays, the deleted entity's id).\n- `release_created`, `draft_reset` carry `{\"release_id\", \"ordinal\",\n  \"version\", \"kind\"}` — refetch `GET /products/{id}/content/releases`\n  for the full release record (notes, released_by, released_at).\n\nServer-side, the two `kind` families originate from independent\npublish/subscribe buses (`ProductEventBus`, `ContentEventBus`)\nthat the WS endpoint fans into a single stream. Cross-family\nordering is not guaranteed — each `kind` drives an independent\nslice of the SPA cache, so the SPA must not rely on one family's\nevent arriving before another's. Client → server messages are not\ninterpreted yet.\n\n### `WS /products/{product_id}/cursors` — live editor cursors\n\nBidirectional push of \"where is each editor / viewer right now\"\ndeltas for one product. Used by the SPA to render other users'\ncursors on the editor surface (field labels, lesson titles, block\ninputs, …) and to optionally raise their \"what they're doing\"\nstatus (`editing`, `typing`, `viewing`, `commenting`, …) next to\nthe avatar. The server stays semantically dumb: ``field_id`` and\n``action`` are opaque strings; the SPA owns the taxonomy.\n\nAuthorisation reuses `read_product` — every collaborator whose\ngrants transitively include `READ_PRODUCT` (owners + every editor\n/ manager) can subscribe; non-authorised callers get `4403`. The\nproduct must exist (`4404` otherwise) and the access cookie must\nvalidate (`4401` otherwise) before `accept`.\n\n**Lifecycle and replay policy.** No replay. Immediately after\n`accept`, the server pushes a `snapshot` message with every other\nuser's current cursor (the caller's own cursor is omitted). After\nthat, the channel is bidirectional:\n\n- The client publishes its own `cursor_at` / `cursor_left`\n  messages as the editing user focuses / blurs / types.\n- The server fans out other users' deltas (`cursor_at` /\n  `cursor_left`) and emits `user_gone` when a user's last\n  connection for the product closes.\n- Stale cursors (no `cursor_at` from a user for at least 30 s)\n  are pruned lazily — the next `snapshot` filters them out. The\n  SPA carries its own ~15 s eviction timer per cursor and never\n  needs to wait for server-side staleness.\n\nOn reconnect, re-open the socket and replay the current\n`cursor_at`; the new `snapshot` will hydrate everyone else.\n\n**Client → server** (JSON):\n\n- `{\"type\": \"cursor_at\", \"field_id\": \"<str ≤256>\",\n  \"action\": \"<str ≤64>\" | null}` — caller's cursor is now at\n  `field_id`. Any subsequent `cursor_at` from the same client\n  overwrites the previous entry. `field_id` and `action` are\n  opaque to the server; the server only enforces length caps.\n  Send periodic refreshes (every ~10 s) while the field stays\n  focused so the lazy-staleness window doesn't trip on a quiet\n  editor.\n- `{\"type\": \"cursor_left\", \"field_id\": \"<str>\"}` — caller is no\n  longer at `field_id`. The server forwards `cursor_left` only\n  when its stored entry actually matches both the caller's\n  connection and `field_id`; a stale \"leave\" for a field the\n  caller already moved off of is a no-op (the originator silently\n  drops it).\n\n**Server → client** (JSON):\n\n- `{\"type\": \"snapshot\", \"cursors\": [{\"user_id\", \"field_id\",\n  \"action\", \"updated_at\"}]}` — sent exactly once, right after\n  `accept`. Contains every other live cursor for the product;\n  empty list is valid.\n- `{\"type\": \"cursor_at\", \"user_id\", \"field_id\", \"action\",\n  \"updated_at\"}` — another user's new or refreshed cursor.\n  Replace any previous entry for `user_id` in the SPA store.\n- `{\"type\": \"cursor_left\", \"user_id\", \"field_id\"}` — another\n  user explicitly left `field_id`. Drop the entry from the SPA\n  store.\n- `{\"type\": \"user_gone\", \"user_id\"}` — another user's last\n  connection for this product closed. Drop every entry for\n  `user_id`.\n\n`updated_at` is ISO 8601 UTC. The server never echoes the\ncaller's own deltas back, so the SPA can publish optimistically\nand treat its local copy as the source of truth for its own\ncursor.\n\nField-id and action taxonomies are SPA-owned and intentionally\nopaque to the server. The current SPA convention uses dotted,\nlowercase keys (`product.title`, `module.<id>.title`,\n`lesson.<id>.title`, `block.<id>.body`, `block.<id>.option.<idx>`,\n`block.<id>.tab.<idx>.code`, …) and a small action set\n(`editing`, `typing`, `viewing`, `commenting`). New keys / actions\ndo not require backend changes.\n\n### `WS /users/me/notifications` — per-user notification deltas\n\nRead-only push of notification-panel deltas — new card created,\nsingle card flipped to read, all-read sweep — to the connecting\nuser. The recipient is derived from the access cookie, so the\nclient opens exactly one socket and never specifies a user id.\n\nBootstrap by fetching `GET /users/me/notifications` (and\n`GET /users/me/notifications/counters` for the bell badge) before\nopening the socket. No replay buffer; on reconnect the client\nrefetches initial state and re-subscribes.\n\n**Authentication.** Standard `accessCookie` HttpOnly cookie sent\nby the browser on the WS handshake. Failure closes with `4401`\nbefore `accept`.\n\n**Server → client envelopes.** The discriminator is `kind`:\n\n```json\n{\n  \"kind\": \"created\",\n  \"notification\": {\n    \"oid\": \"<UUID>\",\n    \"kind\": \"<NotificationKind value>\",\n    \"category\": \"<NotificationCategory value>\",\n    \"actor\": { \"oid\": \"<UUID>\", \"full_name\": \"<Last First Patronymic>\" },\n    \"created_at\": \"<ISO 8601>\",\n    \"read_at\": null,\n    \"details\": { \"type\": \"...\", ... }\n  }\n}\n```\n\n```json\n{\n  \"kind\": \"updated\",\n  \"notification\": { ... same shape as `created.notification` ... }\n}\n```\n\n```json\n{ \"kind\": \"read\", \"notification_id\": \"<UUID>\" }\n```\n\n```json\n{ \"kind\": \"read_all\" }\n```\n\n**`kind` values** (drawn from `NotificationEventKind`):\n\n- `created` — a fresh notification was persisted; the panel\n  prepends the hydrated `notification` view to its list and\n  bumps the matching tab counter.\n- `updated` — the embedded snapshot of an existing notification\n  changed (currently fired when the collaboration referenced by\n  an `invite_sent` card transitions to `active` / `declined` /\n  `revoked`); the panel replaces the card by `notification.oid`.\n  No new row is created and `created_at` is unchanged — only the\n  `details.collaboration` snapshot reflects the new state.\n- `read` — a single card was flipped to read; the panel removes\n  its blue dot by `notification_id`.\n- `read_all` — every unread card of the caller was flipped; the\n  panel clears all blue dots and zeroes the unread counters.\n\n**Notification `kind` values** (drawn from `NotificationKind`,\ninside the `created` / `updated` envelopes):\n\n- `invite_sent` — a collaborator was invited; the panel renders\n  the card with Accept / Decline buttons that call the in-app\n  endpoints (`POST /collaborations/{id}/accept` /\n  `POST /collaborations/{id}/decline`). The card's\n  `details.collaboration` snapshot is the single source of\n  truth for the resolved / unresolved UI state — the SPA does\n  not need to remember the local \"I just clicked Accept\"\n  status across reloads.\n- `invite_accepted` — an invitee accepted; the inviter's panel\n  shows the new collaborator's avatar + name.\n- `invite_declined` — an invitee declined; the inviter's panel\n  shows the decliner's avatar + name and an optional Re-invite\n  CTA when the recipient still holds `MANAGE_COLLABORATORS`.\n- `access_revoked` — a collaborator's active access was revoked;\n  the recipient's panel shows the read-only \"access revoked\"\n  card with the revoker's avatar + name.\n- `new_login` — a successful login landed on the user's account;\n  the recipient's panel shows a security card with the device\n  label / User-Agent / IP captured at the HTTP boundary. No\n  actor — the card uses a security-shield avatar and reads\n  \"New login from <device>\". Belongs to the `security` tab.\n\n**`details.collaboration` snapshot.** Both `invite_sent` and\n`invite_accepted` carry an embedded snapshot of the underlying\n`product_collaboration` row at read time:\n\n```json\n{\n  \"status\": \"pending_invite | active | declined | revoked\",\n  \"accepted_at\": \"<ISO 8601 | null>\",\n  \"declined_at\": \"<ISO 8601 | null>\",\n  \"revoked_at\": \"<ISO 8601 | null>\",\n  \"invite_expires_at\": \"<ISO 8601 | null>\"\n}\n```\n\nThe SPA uses `status` as the single source of truth for the\nAccept / Decline UI state — a reload (or an `updated` event)\npicks up the latest values, so the client never needs to\nremember whether the invitation was already resolved. `null`\non the whole object means the collaboration row could not be\nhydrated — treat the invite as unavailable.\n\n`payload`-style data is carried inside `details`; the\n`details.type` field discriminates the body shape. Client →\nserver messages are not interpreted yet — silence is read as\n\"may break in future\" by SPA teams, so do not send anything.\n\n### `WS /users/me/confirm-events` — email-confirmation deltas\n\nRead-only push of email-confirmation events to initiator tabs that\nare waiting on a single-token confirmation. Used by `/verify-email`\nduring signup so the registration tab learns in real time when the\nuser clicks the verification link on another device, and by future\nprofile flows that wait on email-confirmed actions (change-email,\ndelete-account, ...).\n\n**Authentication.** Accepts EITHER `accessCookie` (logged-in users\non profile / danger-zone flows) OR `signupSessionCookie` (the\nregistration tab that doesn't hold an access cookie yet). Failure\ncloses with `4401` before `accept`. The channel is keyed by the\nresolved `user_id` regardless of which cookie validated.\n\n**Lifecycle.** No replay buffer. Open the socket *before* the\ninitiator action so a fast confirm cannot land between submit and\nsubscribe. On reconnect the client should refetch state via REST\n(e.g. `GET /auth/email-verification/wait` for signup) — events\nemitted while disconnected are lost by design.\n\n**Bootstrap.** None for client-state hydration; the socket reflects\ndeltas, not state. For signup specifically, the legacy\n`GET /auth/email-verification/wait` long-poll endpoint stays as the\nauthoritative source of \"is this tab now logged in?\" — it's the only\nHTTP call that can install auth cookies on the original tab. Use the\nWS push as the *trigger* to call `/wait` once instead of polling.\n\n**Server → client envelope.**\n\n```json\n{\n  \"kind\": \"<ConfirmEventKind value>\",\n  \"purpose\": \"<EmailTokenPurpose value>\"\n}\n```\n\n**`kind` values** (drawn from `ConfirmEventKind`):\n\n- `confirmed` — a single-token email confirmation was consumed and\n  committed for the channel's user. `purpose` says which action\n  fired (`verify` for email-verification at registration; future\n  values mirror new `EmailTokenPurpose` entries). The SPA filters by\n  `purpose` and reacts: redirect, finalize signup, refresh a profile\n  field, etc.\n\nClient → server messages are not interpreted — silence is read as\n\"may break in future\" by SPA teams, so do not send anything.\n\n### `WS /users/me/storage` — live storage-quota meter\n\nRead-only push of the caller's storage-quota pool — plan code,\nbyte cap, used and remaining bytes — so a quota meter updates the\nmoment an upload, replace, delete, or reconcile eviction commits.\nThe quota owner is derived from the access cookie; there is no\npath parameter. A collaborator who needs the *note author's* pool\n(the one their uploads are charged against) uses\n`GET /notes/{note_id}/storage-remaining` instead — this channel\nalways shows the connecting user's own pool.\n\n**No REST bootstrap is needed.** The server pushes a full\n`snapshot` envelope immediately after the handshake, and again on\nevery reconnect. No replay buffer; the post-reconnect `snapshot`\nalready reflects everything missed while offline.\n\n**Authentication.** Standard `accessCookie` HttpOnly cookie sent\nby the browser on the WS handshake. Failure closes with `4401`\nbefore `accept`.\n\n**Server → client envelopes.** The discriminator is `kind`; both\nkinds carry the identical FULL snapshot of the pool (never a\ndelta), with field names mirroring `NoteStorageRemainingSchema`:\n\n```json\n{\n  \"kind\": \"snapshot\",\n  \"plan_code\": \"FREE\",\n  \"storage_bytes_max\": 2147483648,\n  \"storage_bytes_used\": 1572864000,\n  \"storage_bytes_remaining\": 574619648,\n  \"occurred_at\": \"<ISO 8601>\"\n}\n```\n\n```json\n{ \"kind\": \"usage_changed\", ... same fields as `snapshot` ... }\n```\n\n**`kind` values** (drawn from `StorageQuotaEventKind`):\n\n- `snapshot` — sent once right after `accept` (and after every\n  reconnect); the client replaces its meter state wholesale.\n- `usage_changed` — a quota-changing operation committed (file /\n  video / collage block added, replaced, or removed; lesson,\n  module, or note deleted; reconcile-job eviction). Apply exactly\n  like `snapshot`.\n\nEvery envelope is self-contained — apply directly, no refetch is\never required. Publish order across concurrent commits is not\nguaranteed: keep the envelope with the newest `occurred_at` and\ndrop older ones. `storage_bytes_remaining` is clamped to `0` —\nan over-quota pool (e.g. after a plan downgrade) reports `0`\nfree, never a negative number.\n\nClient → server messages are not interpreted — silence is read as\n\"may break in future\" by SPA teams, so do not send anything.\n\n### `WS /notes/{note_id}/storage` — live per-note storage panel\n\nRead-only push for the editor's storage card: how many bytes THIS\nnote's files occupy (`note_storage_bytes_used`) plus the note\nauthor's pool (cap / used / remaining — same fields as\n`WS /users/me/storage`). Quota is anchored on the note author, so\ncollaborators and the author watching the same note see identical\nnumbers. Events fire on every committed mutation of the AUTHOR'S\npool — an upload into a sibling note moves\n`storage_bytes_remaining` here too.\n\n**No REST bootstrap is needed.** A full `snapshot` envelope is\npushed right after the handshake and again on every reconnect.\nThe REST twin with the same shape is\n`GET /notes/{note_id}/storage` (operation `getNoteStorage`).\n\n**Authentication and authorization.** Standard `accessCookie` on\nthe handshake; the actor must hold `EDIT_LESSONS` on the note —\nthe same gate as the upload commands. Close codes: `4401`\n(missing/denied cookie), `4404` (no such note), `4403` (actor\nlacks `EDIT_LESSONS`) — all before `accept`.\n\n**Server → client envelopes.** The discriminator is `kind`; both\nkinds carry the identical FULL snapshot (never a delta):\n\n```json\n{\n  \"kind\": \"snapshot\",\n  \"plan_code\": \"FREE\",\n  \"note_storage_bytes_used\": 367001600,\n  \"storage_bytes_max\": 2147483648,\n  \"storage_bytes_used\": 1879048192,\n  \"storage_bytes_remaining\": 268435456,\n  \"occurred_at\": \"<ISO 8601>\"\n}\n```\n\n```json\n{ \"kind\": \"usage_changed\", ... same fields as `snapshot` ... }\n```\n\n**`kind` values** (drawn from `StorageQuotaEventKind`):\n\n- `snapshot` — sent once right after `accept` (and after every\n  reconnect); the client replaces its card state wholesale.\n- `usage_changed` — a quota-changing operation committed anywhere\n  in the author's pool. Apply exactly like `snapshot`.\n\n`note_storage_bytes_used` counts files referenced from this\nnote's blocks only (file / video-file / photo-collage),\ndeduplicated, soft-deleted excluded, cover not counted — so\n`note_storage_bytes_used <= storage_bytes_used` always holds.\nSame staleness rule as the per-user channel: keep the envelope\nwith the newest `occurred_at`, drop older ones.\n\nClient → server messages are not interpreted — silence is read as\n\"may break in future\" by SPA teams, so do not send anything.\n\n### `WS /presence/ws` — bidirectional presence\n\nHolding the socket open marks the connecting user online; closing it\nmarks them offline. No application-level keep-alive is required —\nthe server refreshes connection freshness internally on a fixed\ninterval.\n\n**Client → server** (JSON):\n\n- `{\"type\": \"subscribe\",   \"user_ids\": [\"<uuid>\", ...]}` — start\n  receiving deltas for the listed user ids.\n- `{\"type\": \"unsubscribe\", \"user_ids\": [\"<uuid>\", ...]}` — stop\n  receiving deltas for the listed user ids.\n\n**Server → client** (JSON):\n\n- `{\"type\": \"snapshot\",  \"presences\": [{\"user_id\": \"<uuid>\",\n  \"status\": \"online\" | \"offline\"}, ...]}` — sent right after each\n  `subscribe`, with the current state of the just-added ids.\n- `{\"type\": \"presence\",  \"user_id\": \"<uuid>\", \"status\": \"online\" |\n  \"offline\"}` — delta pushed when a subscribed user's status\n  changes.\n\nSubscriptions are scoped to a single connection. Reconnects must\nreplay the desired `subscribe` list.\n\n## Money / minor units\n\nEvery money amount the API emits or accepts is in **minor units of\nthe wallet's currency**:\n\n- For `RUB` (currently the only supported currency), 1 RUB = 100\n  kopecks. A wallet showing `150_00` holds 150 RUB.\n- Floats are never used over the wire. The server represents every\n  amount as a JSON integer; the SPA does the same on the way back.\n- Negative amounts appear only on signed-`delta` ledger entries\n  (debits). Balances (`available`, `pending`) and request bodies\n  (`amount`) are always non-negative integers.\n\nThe minor-unit convention is documented end-to-end so a generated\nSDK can apply the same rule wherever a money field appears.\n\n## Wallets and orders\n\nA wallet is a money holder pinned to one (user, currency) pair.\nEvery registered user has a `RUB` wallet from sign-up (older users\nwere backfilled at migration time).\n\n**Purchase flow.** `POST /products/{id}/purchase` debits the\ncaller's `available` balance by the product's price and creates an\n`Order` referencing two freeze rows: one carrying the author's\nshare, one carrying the platform's commission. Both stay in\n`frozen` state until their `unfreeze_at` passes (typically 14 days,\nconfigurable via `WALLET_SALE_HOLD_TTL_SECONDS` for dev). A\nperiodic worker tick releases ripe freezes into the corresponding\n`available` balance.\n\n**Refund flow.** While both freezes are still `frozen`, the buyer\ncan `POST /users/me/orders/{id}/refund`: the freezes flip to\n`cancelled`, the price returns to the buyer's `available`, and the\nledger gets a `refund` row plus two `cancel_freeze` informational\nrows. Once either freeze has been released, the window is closed\nand the SPA should redirect the user to support.\n\n**Ledger.** `GET /users/me/wallet/ledger` returns every money\nevent that touched the wallet (`purchase`, `refund`, `freeze`,\n`release`, `cancel_freeze`, `topup`, `adjustment`) with a signed\n`delta`. Informational events (`freeze`, `cancel_freeze`) carry\n`delta = 0` because the money is on the freeze row, not on\n`available`. Summing `delta` over all entries of a wallet equals\n`available` — an invariant that supports self-checking and audit.",
     "version": "0.1.0"
   },
   "paths": {
@@ -7253,6 +7253,171 @@
         ]
       }
     },
+    "/users/me/enrollments/{enrollment_id}/releases": {
+      "get": {
+        "tags": [
+          "Enrollments"
+        ],
+        "summary": "List releases the caller can switch their enrollment to",
+        "description": "List the releases of the note the caller's enrollment belongs to.\n\nCaller-scoped sibling of ``GET /notes/{note_id}/releases`` (which is\nauthor/collaborator-only). The actor must own the enrollment; the\nresponse is the full release list (newest first) so the SPA can offer\nthe student a release switcher and self-re-pin to any of them via\n``PATCH /users/me/enrollments/{enrollment_id}/release``.\n\nArgs:\n    enrollment_id: The caller's own enrollment UUID.\n\nReturns:\n    ``200 OK`` with `list[NoteReleaseSummarySchema]`, newest first.\n\nRaises:\n    InvalidTokenError: HTTP 401.\n    EntityNotFoundError: HTTP 404 — the enrollment does not exist\n        or does not belong to the caller.",
+        "operationId": "listMyEnrollmentReleases",
+        "security": [
+          {
+            "accessCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "enrollment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Target enrollment UUID.",
+              "examples": [
+                "e5f60718-2b34-4d2c-9d11-9d4f0a44b6c8"
+              ],
+              "title": "Enrollment Id"
+            },
+            "description": "Target enrollment UUID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NoteReleaseSummarySchema"
+                  },
+                  "title": "Response Listmyenrollmentreleases"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimpleErrorResponseModel"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntityNotFoundResponseModel"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldErrorResponseModel"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/users/me/enrollments/{enrollment_id}/release": {
+      "patch": {
+        "tags": [
+          "Enrollments"
+        ],
+        "summary": "Re-pin the caller's own enrollment to a different release",
+        "description": "Move the caller's OWN enrollment to a different release.\n\nThe student-facing counterpart of the author-only\n``PATCH /notes/{note_id}/enrollments/{enrollment_id}/release``. No\nproduct permission is needed — the actor must simply own the\nenrollment (a mismatch reads as ``EntityNotFound``, not 403). The\ntarget release must belong to the same note, and only ACTIVE\nenrollments may be re-pinned. This is how an enrolled student\nupgrades to the latest release (or steps back to an older one);\nstrict pinning means it never happens automatically.\n\nArgs:\n    payload: Body carrying the target ``release_id``.\n    enrollment_id: The caller's own enrollment UUID.\n\nReturns:\n    ``204 No Content`` on success.\n\nRaises:\n    InvalidTokenError: HTTP 401.\n    EntityNotFoundError: HTTP 404 — the enrollment does not exist /\n        is not the caller's, or the target release is missing or\n        belongs to a different note.\n    EnrollmentDoesNotSupportError: HTTP 409 — enrollment kind has\n        no release pin (only ``note`` kind does today).\n    CannotRepinRevokedEnrollmentError: HTTP 409 — enrollment is\n        REVOKED.",
+        "operationId": "repinMyEnrollment",
+        "security": [
+          {
+            "accessCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "enrollment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Target enrollment UUID.",
+              "examples": [
+                "e5f60718-2b34-4d2c-9d11-9d4f0a44b6c8"
+              ],
+              "title": "Enrollment Id"
+            },
+            "description": "Target enrollment UUID."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RePinEnrollmentSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimpleErrorResponseModel"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntityNotFoundResponseModel"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldErrorResponseModel"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldErrorResponseModel"
+                }
+              }
+            },
+            "description": "Conflict"
+          }
+        }
+      }
+    },
     "/notes/{note_id}/modules": {
       "post": {
         "tags": [
@@ -12281,6 +12446,84 @@
         }
       }
     },
+    "/notes/{note_id}/release-blocks/answers": {
+      "get": {
+        "tags": [
+          "NoteContent"
+        ],
+        "summary": "List the current student's saved answers for a note",
+        "description": "Return the caller's saved submissions for this note.\n\nScoped to the release the caller is pinned to (their active\nenrollment), so the answers line up with the content returned by\n``GET /notes/{note_id}/content``. A signed-in caller who is not\nactively enrolled (or for whom the product is not a note) simply\nhas no saved answers — the endpoint returns an empty list rather\nthan an error, so the SPA can call it unconditionally on load.\n\nArgs:\n    request: Source of the access cookie.\n    interactor: Injected handler.\n    auth: Injected authenticator.\n    note_id: Note product UUID.\n\nReturns:\n    A list of :class:`SavedBlockAnswerSchema` (possibly empty) —\n    one entry per interactive block the caller has answered, each\n    carrying the saved submission and its correctness verdict.\n\nRaises:\n    InvalidTokenError: HTTP 401 — missing or denied access cookie.",
+        "operationId": "listMyBlockAnswers",
+        "security": [
+          {
+            "accessCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "note_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Target note product's UUID.",
+              "examples": [
+                "3f2c8e64-7b3a-4d2c-9d11-9d4f0a44b6c8"
+              ],
+              "title": "Note Id"
+            },
+            "description": "Target note product's UUID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SavedBlockAnswerSchema"
+                  },
+                  "title": "Response Listmyblockanswers"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimpleErrorResponseModel"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntityNotFoundResponseModel"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/presence/{user_id}": {
       "get": {
         "tags": [
@@ -12900,13 +13143,8 @@
           "Tags"
         ],
         "summary": "Return the most-used tags across published products",
-        "description": "Return top-``limit`` tags ordered by usage count.\n\nBacks the marketplace filter chip row — replaces the previous\n\"sample 500 products + aggregate in the SPA\" workaround with a\nsingle SQL aggregate against ``product_tags`` joined to\n``products`` (only ``PUBLISHED`` rows are counted; drafts and\narchives are invisible to the marketplace anyway). Tagged tags\nthat no published product carries are omitted; ties on usage\ncount are broken by name ascending so the chip order is stable.\n\nArgs:\n    request: Source of the access-token cookie.\n    interactor: Injected popular-tags query handler.\n    auth: Injected authenticator.\n    limit: Cap on the returned slice. Validated against\n        ``_POPULAR_LIMIT_MAX`` so a misbehaving client cannot\n        ask for the entire tag pool through this endpoint.\n\nReturns:\n    :class:`TagListSchema` of at most ``limit`` :class:`TagSchema`\n    items, ordered by usage count descending.\n\nRaises:\n    InvalidTokenError: Missing or denied access cookie; HTTP 401.",
+        "description": "Return top-``limit`` tags ordered by usage count.\n\nPublic (unauthenticated). Backs the public marketplace filter\nchip row and the \"find note\" menu in the anonymous site header —\nboth render before login, so this slice must be reachable without\nan access cookie. A single SQL aggregate against\n``product_tags`` joined to ``products`` (only ``PUBLISHED`` rows\nare counted; drafts and archives are invisible to the marketplace\nanyway). The data is non-sensitive — tag names and colours already\nsurface on every public product card. Tags that no published\nproduct carries are omitted; ties on usage count are broken by\nname ascending so the chip order is stable.\n\nArgs:\n    interactor: Injected popular-tags query handler.\n    limit: Cap on the returned slice. Validated against\n        ``_POPULAR_LIMIT_MAX`` so a misbehaving client cannot\n        ask for the entire tag pool through this endpoint.\n\nReturns:\n    :class:`TagListSchema` of at most ``limit`` :class:`TagSchema`\n    items, ordered by usage count descending.",
         "operationId": "getPopularTags",
-        "security": [
-          {
-            "accessCookie": []
-          }
-        ],
         "parameters": [
           {
             "name": "limit",
@@ -12934,35 +13172,15 @@
               }
             }
           },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SimpleErrorResponseModel"
-                }
-              }
-            },
-            "description": "Unauthorized"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EntityNotFoundResponseModel"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FieldErrorResponseModel"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Unprocessable Content"
+            }
           }
         }
       }
@@ -15692,6 +15910,90 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/NoteStorageRemainingSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimpleErrorResponseModel"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntityNotFoundResponseModel"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldErrorResponseModel"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimpleErrorResponseModel"
+                }
+              }
+            },
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/notes/{note_id}/storage": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "This note's storage usage plus the author's pool headroom",
+        "description": "Report this note's usage and the author's pool in one read.\n\nQuota is anchored on the product author, not the actor. A\ncollaborator and the author calling this endpoint on the same\nnote get the same numbers — they share one quota pool. The\nactor must hold ``EDIT_LESSONS`` on the note (same gate as\nthe file-block upload commands).\n\nArgs:\n    request: Source of the access cookie.\n    interactor: Injected query handler.\n    auth: Injected authenticator.\n    note_id: UUID of the note product to read for.\n\nReturns:\n    ``200 OK`` with :class:`NoteStorageSchema`.\n\nRaises:\n    InvalidTokenError: HTTP 401 — missing or denied access cookie.\n    EntityNotFoundError: HTTP 404 — no such note.\n    InsufficientPermissionsError: HTTP 403 — actor lacks\n        ``EDIT_LESSONS`` on the note.\n    FieldError: HTTP 422 — malformed input (unlikely for a\n        UUID path param, mapped for completeness).",
+        "operationId": "getNoteStorage",
+        "security": [
+          {
+            "accessCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "note_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Target note product's UUID.",
+              "examples": [
+                "3f2c8e64-7b3a-4d2c-9d11-9d4f0a44b6c8"
+              ],
+              "title": "Note Id"
+            },
+            "description": "Target note product's UUID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteStorageSchema"
                 }
               }
             }
@@ -20899,6 +21201,72 @@
           }
         ]
       },
+      "NoteStorageSchema": {
+        "properties": {
+          "plan_code": {
+            "type": "string",
+            "title": "Plan Code",
+            "description": "Plan code of the **note author** — the quota owner.",
+            "examples": [
+              "FREE",
+              "BETA"
+            ]
+          },
+          "note_storage_bytes_used": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Note Storage Bytes Used",
+            "description": "Bytes occupied by files referenced from THIS note's blocks only (file / video-file / photo-collage; deduplicated, soft-deleted excluded, cover not counted). Always <= ``storage_bytes_used``.",
+            "examples": [
+              367001600
+            ]
+          },
+          "storage_bytes_max": {
+            "type": "integer",
+            "title": "Storage Bytes Max",
+            "description": "Plan cap in bytes for the note author's storage pool.",
+            "examples": [
+              2147483648
+            ]
+          },
+          "storage_bytes_used": {
+            "type": "integer",
+            "title": "Storage Bytes Used",
+            "description": "Bytes currently used across **all** of the note author's products (not just this note). Files referenced by multiple blocks count once.",
+            "examples": [
+              1879048192
+            ]
+          },
+          "storage_bytes_remaining": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Storage Bytes Remaining",
+            "description": "How many more bytes can be uploaded before the author's quota is hit. Computed as ``max(0, storage_bytes_max - storage_bytes_used)``. **Informational** — re-validated under an advisory lock when an actual upload is attempted.",
+            "examples": [
+              268435456
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_code",
+          "note_storage_bytes_used",
+          "storage_bytes_max",
+          "storage_bytes_used",
+          "storage_bytes_remaining"
+        ],
+        "title": "NoteStorageSchema",
+        "description": "Response for ``GET /notes/{note_id}/storage``.\n\nThe editor's storage card in one read: how many bytes THIS\nnote's files occupy plus the author's whole-pool numbers. The\npool fields match ``NoteStorageRemainingSchema`` exactly; the\nlive counterpart with the same shape is\n``WS /notes/{note_id}/storage`` (see ``## WebSocket\nchannels``), which pushes a ``snapshot`` on connect — poll-free\nSPAs can skip this endpoint entirely.",
+        "examples": [
+          {
+            "note_storage_bytes_used": 367001600,
+            "plan_code": "FREE",
+            "storage_bytes_max": 2147483648,
+            "storage_bytes_remaining": 268435456,
+            "storage_bytes_used": 1879048192
+          }
+        ]
+      },
       "NotificationCategory": {
         "type": "string",
         "enum": [
@@ -22788,6 +23156,62 @@
         ],
         "title": "RutubeVideoBlockSchema",
         "description": "Rutube-embed lesson-block projection (read-only).\n\nThere is no shared \"video\" schema — provider-specific embeds\nhave provider-specific shapes (id format, embed URL template).\nAdding a new provider means adding a new ``<Provider>VideoBlockSchema``\nand extending the discriminated union below.\n\n``embed_url`` is computed server-side as\n``https://rutube.ru/play/embed/{external_id}/`` so the\nfrontend can drop it into an ``<iframe>`` without knowing\nthe template."
+      },
+      "SavedBlockAnswerSchema": {
+        "properties": {
+          "block_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Block Id",
+            "description": "Release-side block UUID the submission belongs to."
+          },
+          "is_correct": {
+            "type": "boolean",
+            "title": "Is Correct",
+            "description": "Whether the saved submission matched the answer key."
+          },
+          "submission": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CheckSingleChoicePayload"
+              },
+              {
+                "$ref": "#/components/schemas/CheckMultiChoicePayload"
+              },
+              {
+                "$ref": "#/components/schemas/CheckTextInputPayload"
+              }
+            ],
+            "title": "Submission",
+            "description": "The student's saved submission, same discriminated shape as the `POST .../check` request body.",
+            "discriminator": {
+              "propertyName": "type",
+              "mapping": {
+                "multi_choice": "#/components/schemas/CheckMultiChoicePayload",
+                "single_choice": "#/components/schemas/CheckSingleChoicePayload",
+                "text_input": "#/components/schemas/CheckTextInputPayload"
+              }
+            }
+          }
+        },
+        "type": "object",
+        "required": [
+          "block_id",
+          "is_correct",
+          "submission"
+        ],
+        "title": "SavedBlockAnswerSchema",
+        "description": "One persisted learner submission for an interactive block.\n\nReturned by ``GET /notes/{note_id}/release-blocks/answers`` so the\nSPA can restore the student's selection together with the\ncorrect/incorrect verdict on reload. ``submission`` reuses the\ncheck-payload union shape (single / multi / text).",
+        "examples": [
+          {
+            "block_id": "d1e2f3a4-5b6c-4d7e-8f90-1a2b3c4d5e6f",
+            "is_correct": true,
+            "submission": {
+              "option_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+              "type": "single_choice"
+            }
+          }
+        ]
       },
       "ScopeType": {
         "type": "string",
@@ -24931,7 +25355,7 @@
     },
     {
       "name": "Billing",
-      "description": "Caller-scoped subscription read — current plan, plan limits, and aggregate storage usage. Plans live in code (`learnic/entities/billing/plan.py`); the DB carries only `(user_id, plan_code, ...)` grant rows. Absence of an active grant means the caller is on the in-code default plan (`FREE`). Quota enforcement on file-backed block creation surfaces as HTTP 413 `StorageQuotaExceeded` — the response body carries `plan_code`, `used_bytes`, `attempted_bytes`, and `limit_bytes` so the SPA can render an actionable message."
+      "description": "Caller-scoped subscription read — current plan, plan limits, and aggregate storage usage. Plans live in code (`learnic/entities/billing/plan.py`); the DB carries only `(user_id, plan_code, ...)` grant rows. Absence of an active grant means the caller is on the in-code default plan (`FREE`). Quota enforcement on file-backed block creation surfaces as HTTP 413 `StorageQuotaExceeded` — the response body carries `plan_code`, `used_bytes`, `attempted_bytes`, and `limit_bytes` so the SPA can render an actionable message. A live quota meter is pushed over `WS /users/me/storage` — see `## WebSocket channels`."
     },
     {
       "name": "UserSocialLinks",

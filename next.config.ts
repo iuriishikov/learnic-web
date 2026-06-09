@@ -19,6 +19,13 @@ const nextConfig: NextConfig = {
       // `presentation/http/common/upload_limits.py` on the backend.
       bodySizeLimit: '1100mb',
     },
+    // Next 16: with a middleware/proxy present (`src/middleware.ts`,
+    // next-intl), the server buffers every request body and truncates
+    // it at 10 MB by default — a truncated multipart upload then dies
+    // in the Server Action parser with "Unexpected end of form". Must
+    // match `serverActions.bodySizeLimit` above, or uploads > 10 MB
+    // never reach the action at all.
+    proxyClientMaxBodySize: '1100mb',
   },
   async rewrites() {
     // Proxy backend WebSockets through Next.js so they're same-origin in the
@@ -37,12 +44,20 @@ const nextConfig: NextConfig = {
         destination: `${API_URL}/products/:productId/cursors`,
       },
       {
+        source: '/api/notes/:noteId/storage',
+        destination: `${API_URL}/notes/:noteId/storage`,
+      },
+      {
         source: '/api/users/me/confirm-events',
         destination: `${API_URL}/users/me/confirm-events`,
       },
       {
         source: '/api/users/me/notifications/ws',
         destination: `${API_URL}/users/me/notifications`,
+      },
+      {
+        source: '/api/users/me/storage',
+        destination: `${API_URL}/users/me/storage`,
       },
     ];
   },

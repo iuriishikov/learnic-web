@@ -2,27 +2,37 @@
 
 import { useTranslations } from 'next-intl';
 
-import { Link } from '@/shared/config/i18n/navigation';
+import { useNotify } from '@/shared/lib/notify';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 
 type ProfileMessageButtonProps = {
-  userId: string;
   className?: string;
 };
 
+/**
+ * Honest placeholder — direct messages have no backend yet, so the CTA
+ * announces "in development" via a toast instead of navigating to a dead
+ * chat route. Wire it back to `/users/{id}/chat` once messaging ships.
+ */
 export function ProfileMessageButton({
-  userId,
   className,
 }: ProfileMessageButtonProps) {
   const t = useTranslations('user-profile.actions');
+  const notify = useNotify();
+
+  const onWriteMessage = () => {
+    notify.info(t('writeMessageSoonTitle'), {
+      description: t('writeMessageSoonDescription'),
+    });
+  };
 
   return (
     <Button
+      type="button"
       size="lg"
       variant="default"
-      nativeButton={false}
-      render={<Link href={`/users/${userId}/chat`} />}
+      onClick={onWriteMessage}
       className={cn('h-10 px-4 text-sm font-semibold', className)}
     >
       {t('writeMessage')}

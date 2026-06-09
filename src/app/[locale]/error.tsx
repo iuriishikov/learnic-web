@@ -28,12 +28,11 @@ export default function LocaleErrorPage({ error }: ErrorPageProps) {
       {/*
         Contribute the three mode-entry tabs to the locale-root
         HeaderConfigProvider so the AppHeader on the error page
-        still feels navigable. ``[locale]/(app)/(learn)`` /
-        ``(teach)`` layouts would normally set their own
-        ``HeaderConfig``, but on a thrown error the closest
-        ``error.tsx`` boundary replaces the page subtree — those
-        layout configs unmount and we'd be left with the empty
-        ``DEFAULT_CONFIG`` without this.
+        still feels navigable. ``DefaultHeaderConfig`` is normally
+        mounted by the ``(app)`` / ``(default-shell)`` layouts, but
+        on a thrown error the closest ``error.tsx`` boundary
+        replaces that subtree — the config unmounts and we'd be
+        left with the empty ``DEFAULT_CONFIG`` without this.
       */}
       <DefaultHeaderConfig />
       <PageHeader />

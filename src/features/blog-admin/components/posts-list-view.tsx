@@ -38,6 +38,7 @@ import { publishPostAction, unpublishPostAction } from '../api/lifecycle';
 import { useBlogErrorToast } from '../lib/use-blog-errors';
 import type { BlogPostStatus, BlogPostSummary } from '../model/types';
 import { CreatePostDialog } from './create-post-dialog';
+import { DeletePostDialog } from './delete-post-dialog';
 import { StatusBadge } from './status-badge';
 
 type StatusFilter = 'all' | BlogPostStatus;
@@ -166,6 +167,7 @@ function PostRow({ post, index }: { post: BlogPostSummary; index: number }) {
   const errorToast = useBlogErrorToast();
   const reduce = useReducedMotion();
   const [busy, setBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   async function runLifecycle(action: 'publish' | 'unpublish') {
     setBusy(true);
@@ -182,10 +184,10 @@ function PostRow({ post, index }: { post: BlogPostSummary; index: number }) {
   }
 
   async function runDelete() {
-    if (!window.confirm(t('list.confirmDelete', { title: post.title }))) return;
     setBusy(true);
     const result = await deletePostAction(post.id);
     setBusy(false);
+    setConfirmOpen(false);
     if (!result.ok) {
       errorToast(result.reason);
       return;
@@ -265,12 +267,23 @@ function PostRow({ post, index }: { post: BlogPostSummary; index: number }) {
             </DropdownMenuItem>
           ) : null}
           <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onClick={runDelete}>
+          <DropdownMenuItem
+            variant="destructive"
+            onClick={() => setConfirmOpen(true)}
+          >
             <Trash2Icon data-icon="inline-start" />
             {t('list.delete')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <DeletePostDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        postTitle={post.title}
+        busy={busy}
+        onConfirm={runDelete}
+      />
     </motion.li>
   );
 }

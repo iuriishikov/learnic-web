@@ -18,6 +18,8 @@ import { useTheme } from 'next-themes';
 import { useState, useSyncExternalStore, useTransition } from 'react';
 
 import { logoutAction, type User } from '@/features/auth';
+import { StorageQuotaIndicator, useStorageQuotaWs } from '@/features/billing';
+import { useHasReleasedProducts } from '@/features/products';
 import { useAuth } from '@/shared/auth';
 import { Link, useRouter, usePathname } from '@/shared/config/i18n/navigation';
 import {
@@ -88,6 +90,19 @@ export function UserMenu({ user }: UserMenuProps) {
   const { theme, setTheme } = useTheme();
   const [isSigningOut, startSignOut] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Storage is a creator-only concern, so the meter shows iff the user
+  // has released at least one product of their own (`GET /users/{id}/
+  // products` is PUBLISHED + author-scoped; a note publishes solely via
+  // its first release). Defaults to `false` while the probe is in flight
+  // so the meter never flashes for a learner. Gating the WS `enabled`
+  // here means non-creators never even open the socket.
+  const { data: hasReleasedProducts = false } = useHasReleasedProducts(
+    user.oid,
+  );
+  // Lives here (always mounted) rather than inside MenuContent — the
+  // dropdown unmounts on close, which would reopen the socket on every
+  // open. One persistent connection; the meter renders instantly.
+  const storageQuota = useStorageQuotaWs(hasReleasedProducts);
 
   const matchesPrefix = (prefix: string) =>
     pathname === prefix || pathname.startsWith(`${prefix}/`);
@@ -159,6 +174,14 @@ export function UserMenu({ user }: UserMenuProps) {
             secondary={user.email}
           />
           <MenuSeparator />
+
+          {/* Live storage-quota meter (WS /users/me/storage). Shown only
+              to users who have released a product of their own; within
+              that group it renders nothing — and no divider — until the
+              first snapshot lands. */}
+          {hasReleasedProducts ? (
+            <StorageQuotaIndicator quota={storageQuota} />
+          ) : null}
 
           <MenuGroup>
             <MenuItem

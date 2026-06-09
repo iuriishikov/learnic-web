@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { PlayCircleIcon } from 'lucide-react';
 
+import { TELEGRAM_CHANNEL_URL } from '@/shared/config/site';
 import { Button } from '@/shared/ui/button';
 import { GridBackdrop } from '@/shared/ui/grid-backdrop';
 import { Separator } from '@/shared/ui/separator';
@@ -20,7 +21,8 @@ export async function LandingHero() {
             announcement={{
               badge: t('featureBadge'),
               linkText: t('featureLinkText'),
-              href: '#',
+              href: TELEGRAM_CHANNEL_URL,
+              external: true,
             }}
           />
 

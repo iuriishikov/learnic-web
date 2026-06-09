@@ -10,6 +10,7 @@ import {
 } from 'react';
 
 import { PRODUCT_TAGS_MAX, TagsInput } from '@/features/product-tags';
+import { useDebouncedFlush } from '@/shared/hooks/use-debounced-flush';
 import { TextInput } from '@/shared/ui/input-extended';
 import {
   NumberField,
@@ -149,10 +150,15 @@ function NameField({
 
   // Save on every keystroke, debounced. Empty / whitespace-only values are
   // skipped — the title is required.
-  const flush = useDebouncedCommit(title, (value) => {
-    const trimmed = value.trim();
-    if (!trimmed) return;
-    update.mutate({ value: trimmed });
+  const { schedule } = useDebouncedFlush({
+    key: productId,
+    serverValue: title,
+    onChange: (value: string) => {
+      const trimmed = value.trim();
+      if (!trimmed) return;
+      update.mutate({ value: trimmed });
+    },
+    delayMs: SAVE_DEBOUNCE_MS,
   });
 
   return (
@@ -162,7 +168,7 @@ function NameField({
       key={productId}
       ref={inputRef}
       defaultValue={title}
-      onChange={(event) => flush(event.target.value)}
+      onChange={(event) => schedule(event.target.value)}
       placeholder={t('namePlaceholder')}
       maxLength={200}
       disabled={readOnly}
@@ -189,9 +195,14 @@ function DescriptionEditor({
   const t = useTranslations('teach-products.editor.description');
   const update = useChangeProductDescriptionMutation(productId);
 
-  const flush = useDebouncedCommit(description, (value) => {
-    if (!value.trim()) return;
-    update.mutate({ value });
+  const { schedule } = useDebouncedFlush({
+    key: productId,
+    serverValue: description,
+    onChange: (value: string) => {
+      if (!value.trim()) return;
+      update.mutate({ value });
+    },
+    delayMs: SAVE_DEBOUNCE_MS,
   });
 
   return (
@@ -202,7 +213,7 @@ function DescriptionEditor({
         // navigates between products without unmounting the section.
         key={productId}
         defaultValue={description}
-        onChange={readOnly ? undefined : flush}
+        onChange={readOnly ? undefined : schedule}
         editable={!readOnly}
         placeholder={t('placeholder')}
         editorClassName="min-h-[260px]"
@@ -284,58 +295,3 @@ function HoursStepper({
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Description debounce                                                       */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Buffers high-frequency edits and flushes them at most once per
- * `SAVE_DEBOUNCE_MS`. Pending edits are flushed on unmount and whenever the
- * server-side value (`serverValue`) is replaced — the latter prevents a stale
- * client edit from clobbering a remote update that arrived while the user was
- * mid-typing.
- */
-function useDebouncedCommit(
-  serverValue: string,
-  commit: (value: string) => void,
-) {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingRef = useRef<string | null>(null);
-  const commitRef = useRef(commit);
-  const serverValueRef = useRef(serverValue);
-
-  useEffect(() => {
-    commitRef.current = commit;
-  }, [commit]);
-
-  useEffect(() => {
-    serverValueRef.current = serverValue;
-  }, [serverValue]);
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-      const value = pendingRef.current;
-      pendingRef.current = null;
-      if (value !== null && value !== serverValueRef.current) {
-        commitRef.current(value);
-      }
-    };
-  }, []);
-
-  return useCallback((next: string) => {
-    pendingRef.current = next;
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      timerRef.current = null;
-      const value = pendingRef.current;
-      pendingRef.current = null;
-      if (value !== null && value !== serverValueRef.current) {
-        commitRef.current(value);
-      }
-    }, SAVE_DEBOUNCE_MS);
-  }, []);
-}

@@ -3,5 +3,9 @@
     "label": "Ваш тариф",
     "storageUsage": "Использовано хранилища",
     "expiresAt": "Действует до {date}"
+  },
+  "storage": {
+    "label": "Хранилище",
+    "caption": "{used} из {max} · осталось {remaining}"
   }
 }

@@ -9,7 +9,8 @@
   "filter": {
     "all": "Все",
     "notes": "Конспекты",
-    "webinars": "Вебинары"
+    "webinars": "Вебинары",
+    "ariaLabel": "Фильтр продуктов по типу"
   },
   "create": {
     "chooseTitle": "Что создаём?",
@@ -141,6 +142,8 @@
         "katexDescription": "Математическая формула в синтаксисе LaTeX",
         "code": "Код",
         "codeDescription": "Сниппет с подсветкой синтаксиса и копированием",
+        "functionGraph": "График функции",
+        "functionGraphDescription": "Интерактивный график функций с осями и параметрами",
         "singleChoice": "Один вариант",
         "singleChoiceDescription": "Список вариантов, ученик выбирает один правильный",
         "multiChoice": "Несколько вариантов",
@@ -259,6 +262,50 @@
     "code": {
       "empty": "Нажмите, чтобы добавить код"
     },
+    "functionGraph": {
+      "interactive": "Интерактивный (пан, зум, слайдеры)",
+      "viewport": "Область видимости",
+      "bounds": {
+        "xMin": "x min",
+        "xMax": "x max",
+        "yMin": "y min",
+        "yMax": "y max"
+      },
+      "objects": "Объекты",
+      "addObject": "Добавить объект",
+      "objectKind": "Тип объекта",
+      "expression": "Выражение",
+      "xExpr": "x(t)",
+      "yExpr": "y(t)",
+      "color": "Цвет",
+      "colorAuto": "Авто",
+      "removeObject": "Удалить объект",
+      "showObject": "Показать",
+      "hideObject": "Скрыть",
+      "kind": {
+        "function": "Функция y = f(x)",
+        "parametric": "Параметрическая",
+        "implicit": "Неявная",
+        "point": "Точка",
+        "segment": "Отрезок",
+        "verticalLine": "Вертикаль"
+      },
+      "parameters": "Параметры",
+      "addParameter": "Добавить параметр",
+      "paramName": "Имя параметра",
+      "removeParameter": "Удалить параметр",
+      "param": {
+        "min": "мин",
+        "max": "макс",
+        "step": "шаг",
+        "value": "знач"
+      },
+      "invalidExpression": "Некоторые выражения не удалось отобразить",
+      "unavailable": "График недоступен",
+      "resetView": "Сбросить вид",
+      "zoomIn": "Приблизить",
+      "zoomOut": "Отдалить"
+    },
     "tree": {
       "heading": "Структура конспекта",
       "addModule": "Добавить модуль",
@@ -316,6 +363,14 @@
     },
     "sidebar": {
       "resizeAriaLabel": "Изменить ширину панели"
+    },
+    "storage": {
+      "title": "Хранилище",
+      "noteUsed": "Файлы конспекта занимают {noteUsed}",
+      "poolRemaining": "Доступно ещё {remaining} из {max}",
+      "dismiss": "Скрыть",
+      "close": "Закрыть",
+      "upgrade": "Улучшить тариф"
     },
     "cover": {
       "replace": "Перевыбрать обложку",

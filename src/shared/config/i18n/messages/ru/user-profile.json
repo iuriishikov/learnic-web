@@ -6,7 +6,9 @@
   },
   "actions": {
     "viewPortfolio": "Открыть портфолио",
-    "writeMessage": "Написать"
+    "writeMessage": "Написать",
+    "writeMessageSoonTitle": "Пока в разработке",
+    "writeMessageSoonDescription": "Личные сообщения скоро появятся."
   },
   "menu": {
     "trigger": "Ещё действия",

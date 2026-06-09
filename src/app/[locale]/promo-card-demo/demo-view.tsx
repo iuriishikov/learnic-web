@@ -14,6 +14,7 @@ import {
 } from '@/shared/ui/avatar';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
+import { CircularProgress } from '@/shared/ui/circular-progress';
 import {
   PromoCard,
   resetPromoCardDismissal,
@@ -31,66 +32,6 @@ const KEY_PLAYGROUND = 'demo-playground';
 // ────────────────────────────────────────────────────────────────────────────
 // Visual helpers — only the demo needs these; the PromoCard primitive is
 // fully agnostic about what you put into its `visual` slot.
-
-function CircularProgress({
-  value,
-  size = 80,
-  strokeWidth = 10,
-}: {
-  value: number;
-  size?: number;
-  strokeWidth?: number;
-}) {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - Math.min(Math.max(value, 0), 100) / 100);
-
-  return (
-    <div
-      className="relative inline-flex shrink-0 items-center justify-center"
-      style={{ width: size, height: size }}
-      role="progressbar"
-      aria-valuenow={value}
-      aria-valuemin={0}
-      aria-valuemax={100}
-    >
-      <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        className="-rotate-90"
-        aria-hidden
-      >
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-          fill="none"
-          className="text-muted"
-        />
-        <motion.circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          fill="none"
-          className="text-brand"
-          strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-        />
-      </svg>
-      <span className="absolute text-sm font-bold text-foreground tabular-nums">
-        {value}%
-      </span>
-    </div>
-  );
-}
 
 function PeopleGroup({ size = 'default' }: { size?: 'sm' | 'default' | 'lg' }) {
   const people: Array<{ initials: string; tone: string }> = [

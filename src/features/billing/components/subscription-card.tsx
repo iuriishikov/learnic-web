@@ -3,24 +3,11 @@
 import { CrownIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { formatBytes } from '@/shared/lib/format-bytes';
 import { cn } from '@/shared/lib/utils';
 import { Skeleton } from '@/shared/ui/skeleton';
 
 import { useMySubscription } from '../api/use-my-subscription';
-
-function _formatBytes(bytes: number, locale = 'ru-RU'): string {
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ['KB', 'MB', 'GB', 'TB'];
-  let value = bytes / 1024;
-  let unitIdx = 0;
-  while (value >= 1024 && unitIdx < units.length - 1) {
-    value /= 1024;
-    unitIdx += 1;
-  }
-  return `${value.toLocaleString(locale, {
-    maximumFractionDigits: 1,
-  })} ${units[unitIdx]}`;
-}
 
 export type SubscriptionCardProps = {
   className?: string;
@@ -77,7 +64,7 @@ export function SubscriptionCard({ className }: SubscriptionCardProps) {
             {t('storageUsage')}
           </span>
           <span className="tabular-nums text-muted-foreground">
-            {_formatBytes(used)} / {_formatBytes(limit)}
+            {formatBytes(used)} / {formatBytes(limit)}
           </span>
         </div>
         <div

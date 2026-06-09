@@ -35,7 +35,27 @@ export { ProductEditorView } from './components/product-editor-view';
 export { ProductEditorSkeleton } from './components/product-editor-skeleton';
 export { ProductInfoView } from './components/product-info-view';
 export { ProductInfoSkeleton } from './components/product-info-skeleton';
+export { ProductReaderView } from './components/product-reader-view';
+export { ProductReaderSkeleton } from './components/product-reader-skeleton';
+export { MyLearningView } from './components/my-learning-view';
+export { MyLearningSkeleton } from './components/my-learning-skeleton';
+export { enrollIntoProductAction } from './api/enrollment-action';
+export type { EnrollIntoProductResult } from './api/enrollment';
+export type {
+  Enrollment,
+  EnrollmentKind,
+  EnrollmentStatus,
+  NoteEnrollmentDetails,
+  EnrolledProduct,
+} from './model/enrollment';
+export type {
+  PublicLesson,
+  PublicLessonBlock,
+  PublicModule,
+  PublicNoteContent,
+} from './model/public-content';
 export { getProductByIdAction } from './api/get-product-by-id-action';
+export { useHasReleasedProducts } from './api/use-has-released-products';
 export {
   useProductPermissions,
   type ProductCapabilities,

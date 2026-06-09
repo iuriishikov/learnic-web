@@ -3,8 +3,6 @@
 import {
   ChevronRightIcon,
   FileTextIcon,
-  FolderIcon,
-  ListTreeIcon,
   RotateCwIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
@@ -22,16 +20,17 @@ import {
 import type { PublicNoteContent, PublicModule } from '../model/public-content';
 import type { Product } from '../model/types';
 
-import { InfoCard } from './product-info-card';
+import { InfoSection } from './product-info-section';
 
 /**
  * Note curriculum preview for the public product landing — the module →
- * lesson tree read from the published release (answer keys stripped). It's the
+ * lesson tree read from the published release (answer keys stripped), styled
+ * as the editorial numbered "table of contents" («Спотлайт» layout). It's the
  * `note` entry in the per-type section registry (`product-info-sections.tsx`).
  *
  * Secondary content: a load failure is surfaced inline (retry), and a missing
- * release / non-note (`not-found`) or an empty tree renders nothing so the
- * landing stays clean — never a page-level error.
+ * release / non-note (`not-found`) or an empty tree drops the whole section so
+ * the landing stays clean — never a page-level error.
  */
 export function ProductNoteStructure({ product }: { product: Product }) {
   const t = useTranslations('marketplace.detail.structure');
@@ -52,20 +51,7 @@ export function ProductNoteStructure({ product }: { product: Product }) {
   if (query.data && query.data.modules.length === 0) return null;
 
   return (
-    <InfoCard
-      title={t('title')}
-      icon={ListTreeIcon}
-      action={
-        query.data && query.data.modules.length > 0 ? (
-          <span className="text-xs text-muted-foreground">
-            {t('summary', {
-              modules: query.data.modules.length,
-              lessons: countLessons(query.data),
-            })}
-          </span>
-        ) : null
-      }
-    >
+    <InfoSection eyebrow={t('title')}>
       {query.isPending ? (
         <StructureSkeleton />
       ) : query.isError ? (
@@ -74,13 +60,21 @@ export function ProductNoteStructure({ product }: { product: Product }) {
           isRetrying={query.isFetching}
         />
       ) : (
-        <ul className="flex flex-col gap-2">
-          {query.data.modules.map((module, index) => (
-            <ModuleRow key={module.id} module={module} index={index} />
-          ))}
-        </ul>
+        <div>
+          <p className="mb-6 text-sm text-muted-foreground">
+            {t('summary', {
+              modules: query.data.modules.length,
+              lessons: countLessons(query.data),
+            })}
+          </p>
+          <ul className="divide-y divide-border border-y border-border">
+            {query.data.modules.map((module, index) => (
+              <ModuleRow key={module.id} module={module} index={index} />
+            ))}
+          </ul>
+        </div>
       )}
-    </InfoCard>
+    </InfoSection>
   );
 }
 
@@ -103,30 +97,26 @@ function ModuleRow({
   const hasLessons = module.lessons.length > 0;
 
   return (
-    <li className="overflow-hidden rounded-xl border border-border bg-background">
+    <li>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-label={open ? t('collapse') : t('expand')}
-        className="flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors hover:bg-muted/40"
+        className="group/module flex w-full items-center gap-4 py-4 text-left"
       >
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-semibold text-muted-foreground">
-          {index + 1}
+        <span className="w-10 shrink-0 text-2xl font-semibold tabular-nums text-muted-foreground/50 md:text-3xl">
+          {String(index + 1).padStart(2, '0')}
         </span>
-        <FolderIcon
-          className="size-4 shrink-0 text-muted-foreground"
-          aria-hidden
-        />
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+        <span className="min-w-0 flex-1 text-base font-medium text-foreground transition-colors group-hover/module:text-brand md:text-lg">
           {module.title}
         </span>
-        <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
+        <span className="shrink-0 whitespace-nowrap text-sm text-muted-foreground">
           {t('moduleLessons', { count: module.lessons.length })}
         </span>
         <ChevronRightIcon
           className={cn(
-            'size-4 shrink-0 text-muted-foreground transition-transform duration-150',
+            'size-4 shrink-0 text-muted-foreground transition-transform duration-200',
             open && 'rotate-90',
           )}
           aria-hidden
@@ -143,17 +133,17 @@ function ModuleRow({
             }
             exit={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
             transition={{
-              duration: reduceMotion ? 0 : 0.18,
+              duration: reduceMotion ? 0 : 0.2,
               ease: [0.32, 0.72, 0, 1],
             }}
             style={{ overflow: 'hidden' }}
           >
             {hasLessons ? (
-              <ul className="flex flex-col border-t border-border">
+              <ul className="mb-3 ml-[1.4rem] flex flex-col border-l border-border pl-6">
                 {module.lessons.map((lesson) => (
                   <li
                     key={lesson.id}
-                    className="flex items-center gap-2.5 px-4 py-2.5 pl-6 text-sm"
+                    className="flex items-center gap-2.5 py-2.5 text-sm"
                   >
                     <FileTextIcon
                       className="size-3.5 shrink-0 text-muted-foreground"
@@ -171,7 +161,7 @@ function ModuleRow({
                 ))}
               </ul>
             ) : (
-              <p className="border-t border-border px-6 py-3 text-sm text-muted-foreground">
+              <p className="mb-3 ml-[1.4rem] border-l border-border py-2.5 pl-6 text-sm text-muted-foreground">
                 {t('lessonsEmpty')}
               </p>
             )}
@@ -184,10 +174,16 @@ function ModuleRow({
 
 function StructureSkeleton() {
   return (
-    <div className="flex flex-col gap-2">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <Skeleton key={i} className="h-12 w-full rounded-xl" />
-      ))}
+    <div className="flex flex-col gap-6">
+      <Skeleton className="h-4 w-40" />
+      <div className="flex flex-col gap-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4">
+            <Skeleton className="h-8 w-10 shrink-0" />
+            <Skeleton className="h-5 w-full" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

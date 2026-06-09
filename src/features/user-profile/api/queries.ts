@@ -18,20 +18,7 @@ import { toApiFile, type FileResponse } from '@/shared/types/user';
 
 import type { PublicProfileProduct, PublicUserProfile } from '../model/types';
 
-type UserSchemaResponse = {
-  oid: string;
-  full_name: string;
-  email: string;
-  description: string | null;
-  avatar: FileResponse | null;
-  cover: FileResponse | null;
-  // Optional in the openapi snapshot but present on the live backend.
-  // Surface them when provided; treat absence as "field not set".
-  is_verified?: boolean;
-  website_url?: string | null;
-  portfolio_url?: string | null;
-  public_email?: string | null;
-};
+import { fetchUser } from './_shared';
 
 type ProductSchemaResponse = {
   oid: string;
@@ -42,13 +29,17 @@ type ProductSchemaResponse = {
   total_duration_in_hours: number | null;
   author: { oid: string; full_name: string; email: string };
   cover: FileResponse | null;
+  /** Not in the spec's `required` list — guard against absence. */
+  tags?: { oid: string; name: string; color: string }[];
   published_at: string | null;
   created_at: string;
   updated_at: string;
 };
 
-function durationLabel(hours: number | null): string {
-  if (hours == null) return '—';
+function durationLabel(hours: number | null): string | null {
+  // Unset / non-positive → null so the card hides the stat entirely
+  // rather than rendering a "—" placeholder.
+  if (hours == null || hours <= 0) return null;
   // Russian short hour suffix; matches the rest of the catalog UI.
   return `${hours} ч`;
 }
@@ -58,27 +49,17 @@ function toProduct(raw: ProductSchemaResponse): PublicProfileProduct {
     id: raw.oid,
     type: raw.type,
     title: raw.name,
+    description: raw.description,
     durationLabel: durationLabel(raw.total_duration_in_hours),
     dueLabel: null,
     accent: softAccentFromSeed(raw.oid) as ProductShowcaseAccent,
     cover: raw.cover !== null ? toApiFile(raw.cover) : null,
+    tags: (raw.tags ?? []).map((tag) => ({
+      id: tag.oid,
+      name: tag.name,
+      color: tag.color,
+    })),
   };
-}
-
-type FetchUserResult =
-  | { ok: true; user: UserSchemaResponse }
-  | { ok: false; reason: 'not-found' | 'network' | 'unknown' };
-
-async function fetchUser(id: string): Promise<FetchUserResult> {
-  let res: Response;
-  try {
-    res = await apiFetch(`/users/${encodeURIComponent(id)}`, { method: 'GET' });
-  } catch {
-    return { ok: false, reason: 'network' };
-  }
-  if (res.status === 404) return { ok: false, reason: 'not-found' };
-  if (!res.ok) return { ok: false, reason: 'unknown' };
-  return { ok: true, user: (await res.json()) as UserSchemaResponse };
 }
 
 async function fetchSocials(id: string): Promise<SocialLink[]> {

@@ -40,10 +40,13 @@ import {
   useState,
 } from 'react';
 
+import { useObjectUrl } from '@/shared/hooks/use-object-url';
+import { formatBytes } from '@/shared/lib/format-bytes';
 import { useNotify } from '@/shared/lib/notify';
 import { notifyResourceLimit } from '@/shared/ui/resource-limit-dialog';
 import { Button } from '@/shared/ui/button';
 import { FileCard } from '@/shared/ui/file-card';
+import { FileDropZone } from '@/shared/ui/file-drop-zone';
 import { Image } from '@/shared/ui/image';
 import { VideoPlayer } from '@/shared/ui/video-player';
 import {
@@ -173,35 +176,6 @@ function failureToastKey(reason: string): string {
   }
 }
 
-function formatBytes(bytes: number, locale = 'ru-RU'): string {
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ['KB', 'MB', 'GB', 'TB'];
-  let value = bytes / 1024;
-  let unitIdx = 0;
-  while (value >= 1024 && unitIdx < units.length - 1) {
-    value /= 1024;
-    unitIdx += 1;
-  }
-  return `${value.toLocaleString(locale, {
-    maximumFractionDigits: 1,
-  })} ${units[unitIdx]}`;
-}
-
-/** Manage an object-URL preview for a `File`, revoking it on change/unmount. */
-function useObjectUrl(file: File | null): string | null {
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    if (!file) {
-      setUrl(null);
-      return;
-    }
-    const next = URL.createObjectURL(file);
-    setUrl(next);
-    return () => URL.revokeObjectURL(next);
-  }, [file]);
-  return url;
-}
-
 /** Pair each `File` with a stable preview URL; revoke on remove/unmount. */
 function useObjectUrls(files: ReadonlyArray<File>): ReadonlyArray<string> {
   // Track URLs by File identity so we don't recreate (and rev/re-create) for
@@ -229,120 +203,6 @@ function useObjectUrls(files: ReadonlyArray<File>): ReadonlyArray<string> {
     map.current = next;
     return files.map((f) => next.get(f) ?? '');
   }, [files]);
-}
-
-/* -------------------------------------------------------------------------- */
-/* DropZone — drag-and-drop affordance + native picker                        */
-/* -------------------------------------------------------------------------- */
-
-type DropZoneProps = {
-  accept?: string;
-  multiple?: boolean;
-  disabled?: boolean;
-  /** Lucide icon node for the empty state. */
-  icon: ReactNode;
-  /** Bold prompt above the secondary hint. */
-  prompt: string;
-  /** Smaller hint with the format / size constraint. */
-  hint?: string;
-  onFiles: (files: File[]) => void;
-};
-
-function DropZone({
-  accept,
-  multiple,
-  disabled,
-  icon,
-  prompt,
-  hint,
-  onFiles,
-}: DropZoneProps) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const [dragOver, setDragOver] = useState(false);
-  const reduceMotion = useReducedMotion();
-
-  const openPicker = () => {
-    if (disabled) return;
-    inputRef.current?.click();
-  };
-
-  const handlePick = (list: FileList | null) => {
-    if (!list) return;
-    const arr = Array.from(list);
-    if (arr.length === 0) return;
-    onFiles(arr);
-    // Reset native value so picking the same path again still fires change.
-    if (inputRef.current) inputRef.current.value = '';
-  };
-
-  const onDragOver = (e: DragEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    if (!disabled) setDragOver(true);
-  };
-
-  const onDragLeave = (e: DragEvent<HTMLButtonElement>) => {
-    // Ignore enters into children — only flip off when leaving the host.
-    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
-    setDragOver(false);
-  };
-
-  const onDrop = (e: DragEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    setDragOver(false);
-    if (disabled) return;
-    handlePick(e.dataTransfer.files);
-  };
-
-  return (
-    <>
-      <input
-        ref={inputRef}
-        type="file"
-        accept={accept}
-        multiple={multiple}
-        disabled={disabled}
-        className="sr-only"
-        onChange={(e) => handlePick(e.target.files)}
-      />
-      <motion.button
-        type="button"
-        onClick={openPicker}
-        onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
-        onDrop={onDrop}
-        disabled={disabled}
-        whileHover={reduceMotion || disabled ? undefined : { scale: 1.005 }}
-        whileTap={reduceMotion || disabled ? undefined : { scale: 0.995 }}
-        animate={{ scale: dragOver && !reduceMotion ? 1.01 : 1 }}
-        transition={{ duration: 0.15 }}
-        aria-label={prompt}
-        className={cn(
-          'group flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-          disabled && 'cursor-not-allowed opacity-60',
-          !disabled && dragOver
-            ? 'border-brand bg-brand/5'
-            : 'border-border bg-muted/10 hover:border-brand/50 hover:bg-muted/20',
-        )}
-      >
-        <span
-          aria-hidden
-          className={cn(
-            'flex size-12 items-center justify-center rounded-full bg-foreground/[0.04] text-foreground/80 ring-1 ring-foreground/10 transition-colors',
-            !disabled && dragOver && 'bg-brand/10 text-brand ring-brand/30',
-          )}
-        >
-          {icon}
-        </span>
-        <div className="flex flex-col gap-0.5">
-          <span className="text-sm font-medium text-foreground">{prompt}</span>
-          {hint ? (
-            <span className="text-xs text-muted-foreground">{hint}</span>
-          ) : null}
-        </div>
-      </motion.button>
-    </>
-  );
 }
 
 /* -------------------------------------------------------------------------- */
@@ -544,7 +404,7 @@ export function AddFileBlockDialog({
     >
       <div className="flex flex-col gap-5">
         {file == null ? (
-          <DropZone
+          <FileDropZone
             icon={<UploadCloudIcon className="size-6" />}
             prompt={t('dropPrompt')}
             hint={t('dropHint', { maxMb: FILE_BLOCK_MAX_MB })}
@@ -664,7 +524,7 @@ export function AddVideoFileBlockDialog({
     >
       <div className="flex flex-col gap-5">
         {file == null ? (
-          <DropZone
+          <FileDropZone
             icon={<VideoIcon className="size-6" />}
             accept="video/*"
             prompt={t('dropPrompt')}

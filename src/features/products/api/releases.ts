@@ -83,6 +83,54 @@ export async function listNoteReleasesAction(
   return { ok: true, releases: raw.map(fromReleaseResponse) };
 }
 
+/**
+ * Releases an enrolled student can switch their OWN enrollment to
+ * (`GET /users/me/enrollments/{enrollment_id}/releases`). Caller-scoped —
+ * the student does not need `READ_PRODUCT`; a missing or foreign enrollment
+ * comes back as `not-found`.
+ */
+export async function listMyEnrollmentReleasesAction(
+  enrollmentId: string,
+): Promise<ListReleasesResult> {
+  let res: Response;
+  try {
+    res = await apiFetch(
+      `/users/me/enrollments/${encodeURIComponent(enrollmentId)}/releases`,
+      { method: 'GET' },
+    );
+  } catch {
+    return { ok: false, reason: 'network' };
+  }
+  if (res.status === 401) return { ok: false, reason: 'unauthorized' };
+  if (res.status === 403) return { ok: false, reason: 'forbidden' };
+  if (res.status === 404) return { ok: false, reason: 'not-found' };
+  if (!res.ok) return { ok: false, reason: 'unknown' };
+  const raw = (await res.json()) as ReleaseSummaryResponse[];
+  return { ok: true, releases: raw.map(fromReleaseResponse) };
+}
+
+/**
+ * Re-pin the current user's own enrollment to a different release
+ * (`PATCH /users/me/enrollments/{enrollment_id}/release`). The student-side
+ * counterpart of the author re-pin: no `MANAGE_RELEASES` needed, only
+ * ownership of the enrollment. A revoked enrollment yields a 409 `conflict`.
+ */
+export async function repinMyEnrollmentAction(args: {
+  enrollmentId: string;
+  releaseId: string;
+}): Promise<MutationResult> {
+  let res: Response;
+  try {
+    res = await apiFetch(
+      `/users/me/enrollments/${encodeURIComponent(args.enrollmentId)}/release`,
+      { method: 'PATCH', body: { release_id: args.releaseId } },
+    );
+  } catch {
+    return { ok: false, reason: 'network' };
+  }
+  return mapMutationStatus(res.status) ?? { ok: false, reason: 'unknown' };
+}
+
 export type CreateReleaseResult =
   | { ok: true; release: NoteReleaseSummary }
   | {

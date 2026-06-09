@@ -30,11 +30,10 @@ import {
   type ChangeEvent as ReactChangeEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   useCallback,
-  useEffect,
-  useRef,
   useState,
 } from 'react';
 
+import { useDebouncedFlush } from '@/shared/hooks/use-debounced-flush';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { TextInput } from '@/shared/ui/input-extended';
@@ -272,18 +271,18 @@ function SortableQARow({
     zIndex: isDragging ? 10 : undefined,
   };
 
-  const flushQuestion = useDebouncedCommit(
-    entry.id,
-    entry.question,
-    onChangeQuestion,
-    QUESTION_DEBOUNCE_MS,
-  );
-  const flushAnswer = useDebouncedCommit(
-    entry.id,
-    entry.answer,
-    onChangeAnswer,
-    ANSWER_DEBOUNCE_MS,
-  );
+  const { schedule: flushQuestion } = useDebouncedFlush({
+    key: entry.id,
+    serverValue: entry.question,
+    onChange: onChangeQuestion,
+    delayMs: QUESTION_DEBOUNCE_MS,
+  });
+  const { schedule: flushAnswer } = useDebouncedFlush({
+    key: entry.id,
+    serverValue: entry.answer,
+    onChange: onChangeAnswer,
+    delayMs: ANSWER_DEBOUNCE_MS,
+  });
 
   return (
     <li
@@ -464,58 +463,3 @@ function AnswerField({
   );
 }
 
-/**
- * Per-field debounce that flushes pending writes:
- *   - on unmount (don't lose typing on tab switch)
- *   - when the row id changes (component reused for a different entry)
- *   - when the server-side value changes (don't re-send the same string)
- */
-function useDebouncedCommit(
-  rowId: string,
-  serverValue: string,
-  commit: (value: string) => void,
-  delayMs: number,
-) {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingRef = useRef<string | null>(null);
-  const commitRef = useRef(commit);
-  const serverValueRef = useRef(serverValue);
-
-  useEffect(() => {
-    commitRef.current = commit;
-  }, [commit]);
-
-  useEffect(() => {
-    serverValueRef.current = serverValue;
-  }, [serverValue]);
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-      const value = pendingRef.current;
-      pendingRef.current = null;
-      if (value !== null && value !== serverValueRef.current) {
-        commitRef.current(value);
-      }
-    };
-  }, [rowId]);
-
-  return useCallback(
-    (next: string) => {
-      pendingRef.current = next;
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => {
-        timerRef.current = null;
-        const value = pendingRef.current;
-        pendingRef.current = null;
-        if (value !== null && value !== serverValueRef.current) {
-          commitRef.current(value);
-        }
-      }, delayMs);
-    },
-    [delayMs],
-  );
-}

@@ -7,6 +7,9 @@
     "myNotes": "My notes",
     "community": "Сообщество"
   },
+  "subHeader": {
+    "ariaLabel": "Разделы обучения"
+  },
   "teachButton": {
     "label": "Преподавать"
   }

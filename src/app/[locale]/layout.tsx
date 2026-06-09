@@ -89,9 +89,8 @@ export default async function LocaleLayout({
                 live at the root locale layout so public-shell
                 routes (landing, marketplace, etc.) can contribute
                 ``HeaderConfig`` the same way ``(app)`` does. The
-                (learn) and (teach) layouts still mount their own
-                ``HeaderConfig`` children — the last mount wins,
-                matching the pre-lift behaviour.
+                header config is always ``DefaultHeaderConfig`` —
+                route groups contribute only ``SubHeaderConfig``.
               */}
               <HeaderConfigProvider>
                 <SubHeaderConfigProvider>

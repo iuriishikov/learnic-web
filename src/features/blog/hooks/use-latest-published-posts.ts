@@ -15,10 +15,18 @@ export const latestBlogPostsKey = (limit: number) =>
  * full body (for the excerpt — Variant B), and flattens to card props.
  * A failed per-post fetch degrades that card to "no excerpt" rather than
  * failing the whole query.
+ *
+ * Pass ``{ enabled: false }`` to defer the fetch until a surface actually
+ * needs it — e.g. the site-header "find note" menu only loads the featured
+ * post once the dropdown is first opened, not on every landing-page paint.
  */
-export function useLatestPublishedPosts(limit: number) {
+export function useLatestPublishedPosts(
+  limit: number,
+  options?: { enabled?: boolean },
+) {
   return useQuery<BlogPostCardData[], Error>({
     queryKey: latestBlogPostsKey(limit),
+    enabled: options?.enabled ?? true,
     queryFn: async () => {
       const listed = await listPublishedPostsAction({ limit });
       if (!listed.ok) throw new Error(listed.reason);

@@ -37,7 +37,6 @@ export function DemoAuthorRow({ onDark = false }: { onDark?: boolean }) {
             isVerified: DEMO_PRODUCT.author.isVerified,
           }}
           size="sm"
-          statusType={DEMO_PRODUCT.author.isVerified ? 'verified' : null}
         />
         <span className={cn('font-medium', onDark ? 'text-white' : 'text-foreground')}>
           {DEMO_PRODUCT.author.fullName}
@@ -66,16 +65,14 @@ export function DemoDescription() {
 
 export function DemoFaq() {
   return (
-    <Accordion className="gap-0 border-y border-border">
+    <Accordion className="border-y border-border">
       {DEMO_FAQ.map((entry) => (
         <AccordionItem key={entry.id} value={entry.id}>
-          <AccordionTrigger className="py-4 text-base font-medium text-foreground hover:no-underline">
+          <AccordionTrigger className="py-4 text-base">
             {entry.q}
           </AccordionTrigger>
           <AccordionContent>
-            <p className="text-base leading-relaxed text-muted-foreground">
-              {entry.a}
-            </p>
+            <p>{entry.a}</p>
           </AccordionContent>
         </AccordionItem>
       ))}

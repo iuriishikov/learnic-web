@@ -6,13 +6,13 @@ import type { AppHeaderNavItem } from './app-header';
 import { HeaderConfig } from './header-config';
 
 /**
- * Default nav for routes outside the `(learn)` / `(teach)` shells
- * (landing, marketplace, etc.) — three mode-entry tabs that let an
+ * The app-wide header nav — three mode-entry tabs that let an
  * authenticated user jump into the catalog, into their learning
- * area, or into the teaching studio. The `(learn)` and `(teach)`
- * layouts still mount their own `HeaderConfig` deeper in the tree;
- * the last mounted config wins, so navigating into one of those
- * shells overrides these defaults without any cleanup needed here.
+ * area, or into the teaching studio. Mounted once by the shared
+ * `(shell)` layout that wraps both the auth-gated `(app)` group and
+ * the public `(default-shell)` group, so the header is identical
+ * everywhere. Route groups never override it — shell-specific
+ * navigation goes into `SubHeaderConfig` instead.
  */
 export function DefaultHeaderConfig() {
   const t = useTranslations('default-shell');

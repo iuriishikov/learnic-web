@@ -16,6 +16,8 @@ import type {
   CodeBlock,
   CodeBlockLanguage,
   CodeTab,
+  FunctionGraphBlock,
+  FunctionGraphConfig,
   NoteDraft,
   DraftLesson,
   DraftModule,
@@ -29,6 +31,7 @@ import {
   addCodeBlockAction,
   addCollageItemAction,
   addFileBlockAction,
+  addFunctionGraphBlockAction,
   addHtmlBlockAction,
   addKatexBlockAction,
   addMultiChoiceBlockAction,
@@ -41,6 +44,7 @@ import {
   reorderCollageItemsAction,
   reorderLessonBlocksAction,
   updateCodeBlockAction,
+  updateFunctionGraphBlockAction,
   updateCollageItemCaptionAction,
   updateCollageTitleAction,
   updateFileBlockAction,
@@ -84,6 +88,16 @@ const CHOICE_BLANK_OPTIONS: ChoiceOptionDraftInput[] = [
 ];
 
 const TEXT_INPUT_BLANK_ACCEPTED: string[] = [''];
+
+// A fresh graph opens interactive, with a sensible viewport and one
+// empty function row the author fills in.
+const FUNCTION_GRAPH_BLANK_CONFIG: FunctionGraphConfig = {
+  interactive: true,
+  viewport: { xMin: -5, xMax: 5, yMin: -3, yMax: 3 },
+  axes: { showX: true, showY: true, showGrid: true, xLabel: null, yLabel: null },
+  parameters: [],
+  objects: [{ kind: 'function', expr: '', visible: true }],
+};
 
 type MutationContext = {
   previous?: NoteDraft;
@@ -559,6 +573,7 @@ export type AddableBlockType =
   | 'html'
   | 'katex'
   | 'code'
+  | 'function_graph'
   | 'single_choice'
   | 'multi_choice'
   | 'text_input';
@@ -573,6 +588,14 @@ function _buildOptimisticBlock(
   }
   if (type === 'code') {
     return { type: 'code', id: newId, position, tabs: CODE_BLANK_TABS };
+  }
+  if (type === 'function_graph') {
+    return {
+      type: 'function_graph',
+      id: newId,
+      position,
+      config: FUNCTION_GRAPH_BLANK_CONFIG,
+    };
   }
   if (type === 'katex') {
     return {
@@ -647,6 +670,15 @@ export function useAddBlockMutation(noteId: string) {
           noteId,
           lessonId,
           source: KATEX_BLANK_SOURCE,
+        });
+        if (!result.ok) failMutation(result);
+        return { id: result.id, tempId: '' };
+      }
+      if (type === 'function_graph') {
+        const result = await addFunctionGraphBlockAction({
+          noteId,
+          lessonId,
+          config: FUNCTION_GRAPH_BLANK_CONFIG,
         });
         if (!result.ok) failMutation(result);
         return { id: result.id, tempId: '' };
@@ -798,6 +830,49 @@ export function useUpdateKatexBlockMutation(noteId: string) {
             blocks: l.blocks.map((b) =>
               b.id === blockId && b.type === 'katex'
                 ? ({ ...b, source } satisfies KatexBlock)
+                : b,
+            ),
+          })),
+        })),
+      }));
+      return ctx;
+    },
+    onError: (_err, _vars, ctx) => {
+      restore(qc, noteId, ctx);
+      fail('updateBlockFailed');
+    },
+  });
+}
+
+export function useUpdateFunctionGraphBlockMutation(noteId: string) {
+  const qc = useQueryClient();
+  const fail = useFailureToast();
+  return useMutation<
+    void,
+    Error,
+    { blockId: string; config: FunctionGraphConfig },
+    MutationContext
+  >({
+    mutationFn: async ({ blockId, config }) => {
+      const result = await updateFunctionGraphBlockAction({
+        noteId,
+        blockId,
+        config,
+      });
+      if (!result.ok) failMutation(result);
+    },
+    onMutate: async ({ blockId, config }) => {
+      await qc.cancelQueries({ queryKey: noteDraftKey(noteId) });
+      const ctx = snapshot(qc, noteId);
+      setDraft(qc, noteId, (draft) => ({
+        ...draft,
+        modules: draft.modules.map((m) => ({
+          ...m,
+          lessons: m.lessons.map((l) => ({
+            ...l,
+            blocks: l.blocks.map((b) =>
+              b.id === blockId && b.type === 'function_graph'
+                ? ({ ...b, config } satisfies FunctionGraphBlock)
                 : b,
             ),
           })),

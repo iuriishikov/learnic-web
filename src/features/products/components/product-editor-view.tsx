@@ -33,6 +33,7 @@ import {
   EditorCursorsLayer,
   type ResolveCursorUser,
 } from '@/features/cursors-presence';
+import { useAuth } from '@/shared/auth';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import type { CollabUser } from '@/shared/ui/collaboration-cursor';
@@ -48,6 +49,7 @@ import { Skeleton } from '@/shared/ui/skeleton';
 
 import type {
   CodeTab,
+  FunctionGraphConfig,
   NoteDraft,
   DraftLesson,
   DraftModule,
@@ -63,6 +65,7 @@ import {
   NoteDraftError,
   useNoteDraft,
 } from '../api/use-note-draft';
+import { useNoteStorageWs } from '../api/use-note-storage-ws';
 import { useProductEventsWs } from '../api/use-product-events-ws';
 import {
   useAddBlockMutation,
@@ -78,6 +81,7 @@ import {
   useReorderLessonsMutation,
   useReorderModulesMutation,
   useUpdateCodeBlockMutation,
+  useUpdateFunctionGraphBlockMutation,
   useUpdateHtmlBlockMutation,
   useUpdateKatexBlockMutation,
   useUpdateMultiChoiceBlockMutation,
@@ -106,6 +110,7 @@ import { ProductCover } from './product-cover';
 import { ProductDescriptionSection } from './product-description-section';
 import { ProductQASection } from './product-qa-section';
 import { ProductSettingsSection } from './product-settings-section';
+import { NoteStorageCard } from './note-storage-card';
 import { ProductTeamSection } from './product-team-section';
 import { TeamInviteDialog } from './team/team-invite-dialog';
 
@@ -163,6 +168,14 @@ export function ProductEditorView({
   // socket. The backend gates content events on the product's
   // `has_note_content` capability.
   useProductEventsWs(product.id, true);
+  // Live per-note storage plaque feed (`WS /notes/{id}/storage`). Only
+  // notes have a file pool; gate the socket on the note capability so we
+  // don't open a channel the backend would immediately close for webinars.
+  const noteStorage = useNoteStorageWs(product.id, isNote);
+  // The storage card's "upgrade plan" CTA is author-only: quota is
+  // anchored on the author's pool, so a collaborator can't upgrade it.
+  const currentUserId = useAuth().user?.oid ?? null;
+  const isAuthor = currentUserId === product.author.id;
 
   // Mutations
   const addModule = useAddModuleMutation(product.id);
@@ -178,6 +191,9 @@ export function ProductEditorView({
   const updateHtmlBlock = useUpdateHtmlBlockMutation(product.id);
   const updateKatexBlock = useUpdateKatexBlockMutation(product.id);
   const updateCodeBlock = useUpdateCodeBlockMutation(product.id);
+  const updateFunctionGraphBlock = useUpdateFunctionGraphBlockMutation(
+    product.id,
+  );
   const updateSingleChoiceBlock = useUpdateSingleChoiceBlockMutation(
     product.id,
   );
@@ -380,6 +396,13 @@ export function ProductEditorView({
       updateKatexBlock.mutate({ blockId, source });
     },
     [updateKatexBlock],
+  );
+
+  const handleUpdateFunctionGraphBlock = useCallback(
+    (blockId: string, config: FunctionGraphConfig) => {
+      updateFunctionGraphBlock.mutate({ blockId, config });
+    },
+    [updateFunctionGraphBlock],
   );
 
   const handleUpdateCodeBlock = useCallback(
@@ -721,6 +744,14 @@ export function ProductEditorView({
           >
             <div className="h-full w-px rounded-full bg-border/0 transition-colors group-hover/resize:bg-border group-focus-visible/resize:bg-brand" />
           </div>
+
+          {/* Live storage plaque — desktop sidebar only. The mobile/tablet
+              editor has no sidebar, so the card has no surface there. */}
+          {noteStorage ? (
+            <div className="mt-4 pr-3">
+              <NoteStorageCard quota={noteStorage} isAuthor={isAuthor} />
+            </div>
+          ) : null}
         </aside>
 
         {/* Main content */}
@@ -784,6 +815,7 @@ export function ProductEditorView({
                   onUpdateHtml={handleUpdateHtmlBlock}
                   onUpdateKatex={handleUpdateKatexBlock}
                   onUpdateCode={handleUpdateCodeBlock}
+                  onUpdateFunctionGraph={handleUpdateFunctionGraphBlock}
                   onUpdateSingleChoice={handleUpdateSingleChoiceBlock}
                   onUpdateMultiChoice={handleUpdateMultiChoiceBlock}
                   onUpdateTextInput={handleUpdateTextInputBlock}
@@ -1051,6 +1083,10 @@ type ContentSectionProps = {
   onUpdateHtml: (blockId: string, html: string) => void;
   onUpdateKatex: (blockId: string, source: string) => void;
   onUpdateCode: (blockId: string, tabs: CodeTab[]) => void;
+  onUpdateFunctionGraph: (
+    blockId: string,
+    config: FunctionGraphConfig,
+  ) => void;
   onUpdateSingleChoice: (
     blockId: string,
     options: ChoiceOptionDraftInput[],
@@ -1076,6 +1112,7 @@ function ContentSection({
   onUpdateHtml,
   onUpdateKatex,
   onUpdateCode,
+  onUpdateFunctionGraph,
   onUpdateSingleChoice,
   onUpdateMultiChoice,
   onUpdateTextInput,
@@ -1219,6 +1256,7 @@ function ContentSection({
         onUpdateHtml={onUpdateHtml}
         onUpdateKatex={onUpdateKatex}
         onUpdateCode={onUpdateCode}
+        onUpdateFunctionGraph={onUpdateFunctionGraph}
         onUpdateSingleChoice={onUpdateSingleChoice}
         onUpdateMultiChoice={onUpdateMultiChoice}
         onUpdateTextInput={onUpdateTextInput}

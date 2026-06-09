@@ -52,10 +52,12 @@ export function ProfileProductsList({ products }: ProfileProductsListProps) {
             type={product.type}
             typeLabel={t(`type.${product.type}`)}
             title={product.title}
+            description={product.description}
             durationLabel={product.durationLabel}
             dueLabel={product.dueLabel ?? undefined}
             accent={product.accent}
             coverUrl={product.cover?.url ?? null}
+            tags={product.tags}
             onClick={() => router.push(`/products/${product.id}`)}
           />
         </motion.li>

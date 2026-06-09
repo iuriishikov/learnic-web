@@ -10,14 +10,9 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import {
-  useRef,
-  useState,
-  type ChangeEvent,
-  type DragEvent,
-  type FormEvent,
-} from 'react';
+import { useState, type FormEvent } from 'react';
 
+import { formatBytes } from '@/shared/lib/format-bytes';
 import { cn } from '@/shared/lib/utils';
 import { useNotify } from '@/shared/lib/notify';
 import { Button } from '@/shared/ui/button';
@@ -29,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
+import { FileDropZone } from '@/shared/ui/file-drop-zone';
 import { Label } from '@/shared/ui/label';
 import { Textarea } from '@/shared/ui/textarea';
 
@@ -62,12 +58,6 @@ type Attachment = {
   file: File;
 };
 
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 function attachmentKey(file: File): string {
   return `${file.name}-${file.size}-${file.lastModified}`;
 }
@@ -81,11 +71,9 @@ export function ProfileReportDialog({
   const tCategories = useTranslations('user-profile.report.categories');
   const notify = useNotify();
   const reduce = useReducedMotion();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [category, setCategory] = useState<Category | null>(null);
   const [reason, setReason] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [dragging, setDragging] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const trimmedLength = reason.trim().length;
@@ -102,7 +90,6 @@ export function ProfileReportDialog({
     setCategory(null);
     setReason('');
     setAttachments([]);
-    setDragging(false);
   };
 
   const handleOpenChange = (next: boolean) => {
@@ -144,34 +131,6 @@ export function ProfileReportDialog({
 
   const removeAttachment = (id: string) => {
     setAttachments((prev) => prev.filter((a) => a.id !== id));
-  };
-
-  const onFileInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) addFiles(event.target.files);
-    event.target.value = '';
-  };
-
-  const onDrop = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setDragging(false);
-    if (submitting) return;
-    if (event.dataTransfer.files) addFiles(event.dataTransfer.files);
-  };
-
-  const onDragOver = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    if (submitting) return;
-    setDragging(true);
-  };
-
-  const onDragLeave = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setDragging(false);
-  };
-
-  const openFilePicker = () => {
-    if (submitting) return;
-    fileInputRef.current?.click();
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -312,63 +271,18 @@ export function ProfileReportDialog({
               ) : null}
             </div>
 
-            <input
-              ref={fileInputRef}
-              id="profile-report-attach"
-              type="file"
+            <FileDropZone
+              inputId="profile-report-attach"
               multiple
               accept={ACCEPTED_TYPES}
-              className="sr-only"
-              onChange={onFileInputChange}
               disabled={submitting}
+              icon={<UploadCloudIcon className="size-5" />}
+              prompt={t('attachDropzone')}
+              description={t('attachAction')}
+              hint={t('attachHint', { maxFiles: MAX_FILES, maxSize: MAX_FILE_SIZE_MB })}
+              onFiles={addFiles}
+              className="py-6"
             />
-
-            <div
-              role="button"
-              tabIndex={submitting ? -1 : 0}
-              onClick={openFilePicker}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  openFilePicker();
-                }
-              }}
-              onDragOver={onDragOver}
-              onDragLeave={onDragLeave}
-              onDrop={onDrop}
-              aria-disabled={submitting || undefined}
-              data-dragging={dragging ? 'true' : undefined}
-              className={cn(
-                'group/dropzone relative flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed bg-muted/20 px-4 py-6 text-center transition-all outline-none',
-                'border-input hover:border-ring/60 hover:bg-muted/40',
-                'focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30',
-                'data-[dragging=true]:border-brand data-[dragging=true]:bg-brand/5 data-[dragging=true]:scale-[1.005]',
-                'aria-disabled:cursor-not-allowed aria-disabled:opacity-60',
-                'cursor-pointer',
-              )}
-            >
-              <span
-                aria-hidden
-                className={cn(
-                  'flex size-11 items-center justify-center rounded-full bg-background text-muted-foreground ring-1 ring-border transition-colors',
-                  'group-hover/dropzone:text-foreground',
-                  'group-data-[dragging=true]/dropzone:bg-brand/10 group-data-[dragging=true]/dropzone:text-brand group-data-[dragging=true]/dropzone:ring-brand/30',
-                )}
-              >
-                <UploadCloudIcon className="size-5" />
-              </span>
-              <div className="flex flex-col items-center gap-0.5">
-                <p className="text-sm font-medium text-foreground">
-                  {t('attachDropzone')}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {t('attachAction')}
-                </p>
-              </div>
-              <p className="text-[11px] leading-snug text-muted-foreground/80">
-                {t('attachHint', { maxFiles: MAX_FILES, maxSize: MAX_FILE_SIZE_MB })}
-              </p>
-            </div>
 
             <AnimatePresence initial={false}>
               {attachments.length > 0 ? (

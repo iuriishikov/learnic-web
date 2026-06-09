@@ -9,4 +9,8 @@ export {
 export { BlogPostView } from './components/blog-post-view';
 export { BlogPostViewSkeleton } from './components/blog-post-view-skeleton';
 export { getPublishedPostAction } from './api/posts';
-export type { PublishedPost } from './model/types';
+export {
+  useLatestPublishedPosts,
+  latestBlogPostsKey,
+} from './hooks/use-latest-published-posts';
+export type { PublishedPost, BlogPostCardData } from './model/types';

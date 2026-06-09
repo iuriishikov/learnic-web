@@ -16,11 +16,23 @@ import { toApiFile, type FileResponse } from '@/shared/types/user';
 
 import type {
   CodeBlockLanguage,
+  CodeBlock,
+  FileBlock,
+  FunctionGraphBlock,
+  HtmlBlock,
+  KatexBlock,
   NoteDraft,
   DraftLesson,
   DraftModule,
   LessonBlock,
+  PhotoCollageBlock,
+  RutubeVideoBlock,
+  VideoFileBlock,
 } from '../model/draft';
+import {
+  fromConfigWire,
+  type FunctionGraphConfigWire,
+} from './function-graph-config';
 
 export type HtmlBlockResponse = {
   type: 'html';
@@ -118,6 +130,13 @@ export type PhotoCollageBlockResponse = {
   title: string | null;
 };
 
+export type FunctionGraphBlockResponse = {
+  type: 'function_graph';
+  oid: string;
+  position: number;
+  config: FunctionGraphConfigWire;
+};
+
 export type LessonBlockResponse =
   | HtmlBlockResponse
   | KatexBlockResponse
@@ -128,7 +147,8 @@ export type LessonBlockResponse =
   | TextInputBlockResponse
   | FileBlockResponse
   | VideoFileBlockResponse
-  | PhotoCollageBlockResponse;
+  | PhotoCollageBlockResponse
+  | FunctionGraphBlockResponse;
 
 export type DraftLessonResponse = {
   oid: string;
@@ -185,29 +205,6 @@ export function fromLessonResponse(raw: DraftLessonResponse): DraftLesson {
 }
 
 export function fromBlockResponse(raw: LessonBlockResponse): LessonBlock {
-  if (raw.type === 'html') {
-    return { type: 'html', id: raw.oid, position: raw.position, html: raw.html };
-  }
-  if (raw.type === 'katex') {
-    return {
-      type: 'katex',
-      id: raw.oid,
-      position: raw.position,
-      source: raw.source,
-    };
-  }
-  if (raw.type === 'code') {
-    return {
-      type: 'code',
-      id: raw.oid,
-      position: raw.position,
-      tabs: raw.tabs.map((t) => ({
-        label: t.label,
-        source: t.source,
-        language: t.language,
-      })),
-    };
-  }
   if (raw.type === 'single_choice') {
     return {
       type: 'single_choice',
@@ -234,6 +231,61 @@ export function fromBlockResponse(raw: LessonBlockResponse): LessonBlock {
       acceptedAnswers: [...raw.accepted_answers],
       caseSensitive: raw.case_sensitive,
       trimWhitespace: raw.trim_whitespace,
+    };
+  }
+  return fromSharedBlockResponse(raw);
+}
+
+// The seven non-interactive block types (html, katex, rutube_video, code,
+// file, video_file, photo_collage) carry identical payloads on the draft
+// AND public-release wires. The mappers below are the single source of
+// truth for that shared shape, reused by `content-wire.ts` for the
+// learner-facing tree — only the interactive choice/text blocks differ
+// (the public wire strips answer keys), so those are mapped separately by
+// each caller.
+
+export type SharedBlockResponse =
+  | HtmlBlockResponse
+  | KatexBlockResponse
+  | RutubeVideoBlockResponse
+  | CodeBlockResponse
+  | FileBlockResponse
+  | VideoFileBlockResponse
+  | PhotoCollageBlockResponse
+  | FunctionGraphBlockResponse;
+
+export type SharedBlock =
+  | HtmlBlock
+  | KatexBlock
+  | RutubeVideoBlock
+  | CodeBlock
+  | FileBlock
+  | VideoFileBlock
+  | PhotoCollageBlock
+  | FunctionGraphBlock;
+
+export function fromSharedBlockResponse(raw: SharedBlockResponse): SharedBlock {
+  if (raw.type === 'html') {
+    return { type: 'html', id: raw.oid, position: raw.position, html: raw.html };
+  }
+  if (raw.type === 'katex') {
+    return {
+      type: 'katex',
+      id: raw.oid,
+      position: raw.position,
+      source: raw.source,
+    };
+  }
+  if (raw.type === 'code') {
+    return {
+      type: 'code',
+      id: raw.oid,
+      position: raw.position,
+      tabs: raw.tabs.map((t) => ({
+        label: t.label,
+        source: t.source,
+        language: t.language,
+      })),
     };
   }
   if (raw.type === 'file') {
@@ -265,6 +317,14 @@ export function fromBlockResponse(raw: LessonBlockResponse): LessonBlock {
         caption: it.caption,
       })),
       title: raw.title,
+    };
+  }
+  if (raw.type === 'function_graph') {
+    return {
+      type: 'function_graph',
+      id: raw.oid,
+      position: raw.position,
+      config: fromConfigWire(raw.config),
     };
   }
   return {

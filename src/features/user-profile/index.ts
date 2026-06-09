@@ -10,3 +10,10 @@ export type {
   PublicUserProfile,
   PublicProfileProduct,
 } from './model/types';
+
+export {
+  getUserPreview,
+  type GetUserPreviewResult,
+} from './api/preview';
+export { getUserPreviewAction } from './api/get-user-preview-action';
+export type { UserPreview } from './model/preview';

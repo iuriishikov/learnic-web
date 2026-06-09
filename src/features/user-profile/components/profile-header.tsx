@@ -80,7 +80,6 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
           >
             <UserAvatar
               shape="circle"
-              statusType={profile.isVerified ? 'verified' : null}
               user={{
                 id: profile.id,
                 fullName: profile.fullName,
@@ -133,7 +132,7 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
               >
                 {t('viewPortfolio')}
               </Button>
-              <ProfileMessageButton userId={profile.id} />
+              <ProfileMessageButton />
             </motion.div>
           </div>
         </div>

@@ -15,8 +15,7 @@
   "card": {
     "typeNote": "Конспект",
     "typeWebinar": "Вебинар",
-    "durationHours": "{hours} ч",
-    "durationUnset": "—"
+    "durationHours": "{hours} ч"
   },
   "empty": {
     "title": "Здесь пока пусто",
@@ -41,18 +40,23 @@
       "empty": "Описание появится позже."
     },
     "tags": {
-      "title": "Темы конспекта"
+      "title": "Темы"
     },
     "enroll": {
-      "cta": "Записаться на конспект",
-      "guarantee": "Доступ к конспекту сразу после оплаты",
-      "soonTitle": "Скоро",
-      "soonDescription": "Запись на конспекты скоро будет доступна.",
-      "privateTitle": "Доступ по приглашению",
-      "privateHint": "Записаться самостоятельно нельзя — автор выдаёт доступ по приглашению или в подарок."
+      "cta": "Записаться",
+      "continueCta": "Продолжить изучение",
+      "errorTitle": "Не удалось записаться",
+      "errorUnreleased": "У конспекта пока нет ни одного выпуска — загляните позже.",
+      "errorUnpublished": "Конспект ещё не опубликован.",
+      "errorPrivate": "Запись на этот конспект — только по приглашению.",
+      "errorNetwork": "Проверьте соединение и попробуйте снова.",
+      "errorUnknown": "Что-то пошло не так. Попробуйте снова.",
+      "requestCta": "Запросить доступ",
+      "requestSoonTitle": "Раздел в разработке",
+      "requestSoonDescription": "Запрос доступа к закрытым конспектам пока в разработке."
     },
     "faq": {
-      "title": "Вопросы и ответы",
+      "title": "Вопросы",
       "error": {
         "title": "Не удалось загрузить вопросы",
         "description": "Проверьте соединение и попробуйте снова.",
@@ -60,15 +64,15 @@
       }
     },
     "meta": {
-      "title": "Кратко о конспекте",
+      "title": "Информация",
       "type": "Формат",
       "duration": "Длительность",
-      "durationValue": "{hours, plural, one {# час} few {# часа} many {# часов} other {# часов}}",
+      "durationValue": "{hours} ч",
       "durationUnset": "уточняется",
       "updatedAt": "Обновлён"
     },
     "structure": {
-      "title": "Программа конспекта",
+      "title": "Программа",
       "summary": "{modules, plural, one {# модуль} few {# модуля} many {# модулей} other {# модулей}} · {lessons, plural, one {# урок} few {# урока} many {# уроков} other {# уроков}}",
       "moduleLessons": "{count, plural, one {# урок} few {# урока} many {# уроков} other {# уроков}}",
       "lessonMaterials": "{count, plural, one {# материал} few {# материала} many {# материалов} other {# материалов}}",

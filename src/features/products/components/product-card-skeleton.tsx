@@ -8,11 +8,23 @@ export function ProductCardSkeleton() {
       </div>
       <div className="relative flex flex-1 flex-col gap-3 p-4 pt-0">
         <Skeleton className="-translate-y-1/2 h-6 w-20 rounded-full ring-[3px] ring-card" />
-        <Skeleton className="h-4 w-4/5" />
-        <Skeleton className="h-4 w-3/5" />
-        <div className="mt-auto flex items-center gap-3 pt-3">
-          <Skeleton className="h-3.5 w-16" />
-          <Skeleton className="h-3.5 w-24" />
+        {/* Title + two-line description excerpt */}
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-4/5" />
+          <Skeleton className="h-3.5 w-full" />
+          <Skeleton className="h-3.5 w-2/3" />
+        </div>
+        {/* Meta zone: stats row + tag chips above the divider */}
+        <div className="mt-auto flex flex-col gap-2.5 border-t border-border/60 pt-3">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-3.5 w-16" />
+            <Skeleton className="h-3.5 w-24" />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Skeleton className="h-5 w-16 rounded-full" />
+            <Skeleton className="h-5 w-14 rounded-full" />
+            <Skeleton className="h-5 w-12 rounded-full" />
+          </div>
         </div>
       </div>
     </div>

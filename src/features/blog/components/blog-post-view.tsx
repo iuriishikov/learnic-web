@@ -12,8 +12,8 @@ type BlogPostViewProps = {
 /**
  * Public reading page for a single published post — a centered layout:
  * topic label, title, short description, and the author byline above a
- * full-width cover, then the ordered content blocks in a narrower
- * reading column.
+ * wide edge-to-edge cover (square corners, wider than the text), then
+ * the ordered content blocks in a narrow 720px reading column.
  */
 export async function BlogPostView({ post }: BlogPostViewProps) {
   const format = await getFormatter();
@@ -26,44 +26,50 @@ export async function BlogPostView({ post }: BlogPostViewProps) {
     : null;
 
   return (
-    <article className="mx-auto w-full max-w-3xl px-4 pb-20 pt-10 md:px-6 md:pt-14 lg:pt-16">
-      <header className="mx-auto flex max-w-2xl flex-col items-center gap-4 text-center md:gap-5">
-        {post.topic ? (
-          <p className="text-sm font-semibold text-brand">{post.topic}</p>
-        ) : null}
+    <article className="w-full pb-16 pt-10 md:pb-24 md:pt-14 lg:pt-16">
+      <div className="px-4 md:px-6">
+        <header className="mx-auto flex w-full max-w-[45rem] flex-col items-center text-center">
+          {post.topic ? (
+            <p className="text-sm font-semibold text-brand">{post.topic}</p>
+          ) : null}
 
-        <h1 className="font-heading text-[2rem] font-semibold leading-[1.15] tracking-tight text-foreground md:text-4xl lg:text-[2.75rem] lg:leading-[1.1]">
-          {post.title}
-        </h1>
+          <h1 className="mt-3 font-heading text-3xl font-semibold leading-[1.2] tracking-tight text-foreground md:text-4xl md:leading-[1.15] lg:text-5xl">
+            {post.title}
+          </h1>
 
-        {post.subtitle ? (
-          <p className="text-base leading-relaxed text-muted-foreground md:text-lg">
-            {post.subtitle}
-          </p>
-        ) : null}
+          {post.subtitle ? (
+            <p className="mt-4 text-lg leading-[1.5] text-muted-foreground md:mt-6 md:text-xl">
+              {post.subtitle}
+            </p>
+          ) : null}
 
-        {post.author ? (
-          <AuthorByline author={post.author} date={date} />
-        ) : null}
-      </header>
+          {post.author ? (
+            <AuthorByline author={post.author} date={date} />
+          ) : null}
+        </header>
+      </div>
 
       {post.cover ? (
-        <div className="mt-10 overflow-hidden rounded-2xl bg-muted ring-1 ring-foreground/5 md:mt-12">
-          {/* Presigned S3 URL (expiring, off-domain) — next/image would need
-              per-host remote config and gives no SEO benefit here. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={post.cover.url}
-            alt=""
-            className="aspect-[16/9] w-full object-cover"
-          />
+        <div className="mt-10 md:mt-16 md:px-6">
+          <div className="mx-auto w-full max-w-5xl bg-muted">
+            {/* Presigned S3 URL (expiring, off-domain) — next/image would need
+                per-host remote config and gives no SEO benefit here. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={post.cover.url}
+              alt=""
+              className="aspect-[16/9] w-full object-cover"
+            />
+          </div>
         </div>
       ) : null}
 
-      <div className="mx-auto mt-10 flex max-w-2xl flex-col gap-7 md:mt-12 md:gap-8">
-        {post.blocks.map((block, index) => (
-          <BlockRenderer key={index} block={block} />
-        ))}
+      <div className="px-4 md:px-6">
+        <div className="mx-auto mt-12 flex w-full max-w-[45rem] flex-col gap-8 md:mt-16 lg:mt-24">
+          {post.blocks.map((block, index) => (
+            <BlockRenderer key={index} block={block} />
+          ))}
+        </div>
       </div>
     </article>
   );
@@ -77,11 +83,11 @@ function AuthorByline({
   date: string | null;
 }) {
   return (
-    <div className="flex items-center justify-center gap-2.5 pt-1">
+    <div className="mt-6 flex items-center justify-center gap-2.5 md:mt-8">
       <UserAvatar
         user={{ id: author.name, fullName: author.name, avatar: null }}
         imageUrl={author.avatarUrl}
-        statusType={null}
+        showStatus={false}
         shape="circle"
         size="lg"
       />
@@ -101,7 +107,17 @@ function BlockRenderer({ block }: { block: PublishedPostBlock }) {
   if (block.type === 'html') {
     return (
       <div
-        className="rich-editor-content text-base leading-relaxed text-foreground md:text-[1.0625rem]"
+        className={cn(
+          'rich-editor-content text-lg leading-7 text-muted-foreground',
+          // Reading-page typographic overrides on top of the editor
+          // defaults: roomier paragraphs, large section headings, and a
+          // quiet full-width divider — matching the post-page design.
+          '[&_p]:my-[1em] [&_p:first-child]:mt-0 [&_p:last-child]:mb-0',
+          '[&_h1]:text-4xl [&_h2]:text-3xl [&_h3]:text-2xl',
+          '[&_:is(h1,h2,h3)]:mb-5 [&_:is(h1,h2,h3)]:mt-12',
+          '[&_:is(h1,h2,h3):first-child]:mt-0',
+          '[&_hr]:my-9 [&_hr]:border-border',
+        )}
         // Server-sanitized HTML from the backend (see BlogHtmlBlock).
         dangerouslySetInnerHTML={{ __html: block.html }}
       />
@@ -117,7 +133,7 @@ function BlockRenderer({ block }: { block: PublishedPostBlock }) {
             <img
               src={block.url}
               alt={block.caption ?? ''}
-              className="w-full object-cover"
+              className="w-full"
             />
           ) : (
             <MissingMedia />
@@ -154,12 +170,7 @@ function MediaFrame({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        'overflow-hidden rounded-2xl bg-muted ring-1 ring-foreground/5',
-        className,
-      )}
-    >
+    <div className={cn('overflow-hidden bg-muted', className)}>
       {children}
     </div>
   );

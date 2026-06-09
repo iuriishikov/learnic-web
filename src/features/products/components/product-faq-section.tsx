@@ -1,6 +1,6 @@
 'use client';
 
-import { HelpCircleIcon, RotateCwIcon } from 'lucide-react';
+import { RotateCwIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { cn } from '@/shared/lib/utils';
@@ -15,16 +15,16 @@ import { Skeleton } from '@/shared/ui/skeleton';
 
 import { useProductQA } from '../api/use-product-qa';
 
-import { InfoCard } from './product-info-card';
+import { InfoSection } from './product-info-section';
 
 /**
  * Public Q&A (FAQ) for the product landing. `GET /products/{id}/qa` is an
  * unauthenticated endpoint, so anonymous marketplace visitors see it too.
  *
  * Product-wide (every product type has Q&A), so it's rendered as a shared
- * section in the main column rather than via the per-type section registry.
- * Secondary content: an empty list or a load error hides / degrades the
- * block — it never escalates to a page-level error.
+ * editorial section in the reading column rather than via the per-type
+ * section registry. Secondary content: an empty list or a load error hides /
+ * degrades the block — it never escalates to a page-level error.
  */
 export function ProductFaqSection({ productId }: { productId: string }) {
   const t = useTranslations('marketplace.detail.faq');
@@ -34,7 +34,7 @@ export function ProductFaqSection({ productId }: { productId: string }) {
   if (query.isSuccess && query.data.length === 0) return null;
 
   return (
-    <InfoCard title={t('title')} icon={HelpCircleIcon}>
+    <InfoSection eyebrow={t('title')}>
       {query.isPending ? (
         <FaqSkeleton />
       ) : query.isError ? (
@@ -43,22 +43,20 @@ export function ProductFaqSection({ productId }: { productId: string }) {
           isRetrying={query.isFetching}
         />
       ) : (
-        <Accordion className="gap-0">
+        <Accordion className="border-y border-border">
           {query.data.map((entry) => (
             <AccordionItem key={entry.id} value={entry.id}>
-              <AccordionTrigger className="text-sm font-medium text-foreground">
+              <AccordionTrigger className="py-4 text-base">
                 {entry.question}
               </AccordionTrigger>
               <AccordionContent>
-                <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
-                  {entry.answer}
-                </p>
+                <p className="whitespace-pre-line">{entry.answer}</p>
               </AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
       )}
-    </InfoCard>
+    </InfoSection>
   );
 }
 

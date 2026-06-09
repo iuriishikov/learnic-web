@@ -1,1 +1,1 @@
-export { SiteHeader } from './ui/site-header';
+export { SiteHeader, type SiteHeaderVariant } from './ui/site-header';

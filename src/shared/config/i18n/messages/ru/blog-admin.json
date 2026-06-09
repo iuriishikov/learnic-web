@@ -12,7 +12,12 @@
     "rowActions": "Действия",
     "edit": "Редактировать",
     "delete": "Удалить",
-    "confirmDelete": "Удалить пост «{title}»? Это действие необратимо.",
+    "confirmDelete": {
+      "title": "Удалить пост?",
+      "description": "Пост «{title}» будет удалён навсегда. Это действие необратимо.",
+      "confirm": "Удалить",
+      "cancel": "Отмена"
+    },
     "range": "{from}–{to} из {total}",
     "prev": "Назад",
     "next": "Вперёд",
@@ -53,7 +58,8 @@
     "slugLabel": "Адрес поста",
     "dragHandle": "Перетащить блок",
     "deleteBlock": "Удалить блок",
-    "addBlock": "Добавить блок:",
+    "addBlock": "Добавить блок",
+    "blockMenuLabel": "Тип блока",
     "addHtmlHint": "Форматированный текст",
     "addImageHint": "Загрузить изображение",
     "addVideoHint": "Загрузить видео",

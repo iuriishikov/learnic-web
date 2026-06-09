@@ -2,11 +2,17 @@
   "header": {
     "brand": "Learnic",
     "nav": {
-      "products": "Lorem",
-      "services": "Ipsum",
+      "products": "Найти конспект",
+      "services": "Тарифы",
       "pricing": "Dolor",
       "resources": "Sit",
       "about": "Amet"
+    },
+    "findNote": {
+      "viewAll": "Все конспекты",
+      "empty": "Пока нет популярных тегов",
+      "readMore": "Читать дальше",
+      "notInterested": "Не интересно"
     },
     "logIn": "Войти",
     "signUp": "Регистрация",
@@ -66,10 +72,10 @@
     }
   },
   "hero": {
-    "featureBadge": "Lorem",
-    "featureLinkText": "Consectetur adipiscing elit dolor",
-    "title": "Lorem ipsum dolor sit amet consectetur",
-    "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+    "featureBadge": "Новое",
+    "featureLinkText": "Наш Telegram канал",
+    "title": "Учитесь у практиков. Делитесь знаниями",
+    "description": "Learnic — платформа конспектов и вебинаров: авторы упаковывают опыт в понятные материалы, а ученики учатся в своём темпе.",
     "demo": "Lorem",
     "signUp": "Ipsum"
   },

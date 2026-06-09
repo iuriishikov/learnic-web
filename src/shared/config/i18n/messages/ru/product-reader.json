@@ -1,0 +1,68 @@
+{
+  "nav": {
+    "title": "Содержание",
+    "open": "Открыть содержание",
+    "summary": "{modules, plural, one {# модуль} few {# модуля} many {# модулей} other {# модулей}} · {lessons, plural, one {# урок} few {# урока} many {# уроков} other {# уроков}}",
+    "moduleLessons": "{count, plural, one {# урок} few {# урока} many {# уроков} other {# уроков}}",
+    "empty": "В этом выпуске пока нет уроков",
+    "about": "О конспекте"
+  },
+  "lesson": {
+    "position": "Урок {current} из {total}",
+    "empty": "В этом уроке пока нет материалов",
+    "prev": "Назад",
+    "next": "Дальше",
+    "prevLabel": "Предыдущий урок",
+    "nextLabel": "Следующий урок"
+  },
+  "guest": {
+    "label": "Вы смотрите как гость",
+    "hint": "Запишитесь, чтобы закрепить выпуск за собой и решать задания",
+    "enroll": "Записаться",
+    "errorTitle": "Не удалось записаться",
+    "errorDescription": "Проверьте соединение и попробуйте снова."
+  },
+  "answers": {
+    "singleTitle": "Выберите один вариант",
+    "multiTitle": "Выберите все подходящие варианты",
+    "textTitle": "Введите ответ",
+    "textPlaceholder": "Ваш ответ…",
+    "caseSensitiveHint": "Регистр важен",
+    "check": "Проверить",
+    "reveal": "Показать ответ",
+    "correct": "Верно!",
+    "incorrect": "Неверно — попробуйте ещё раз",
+    "revealedTitle": "Правильный ответ",
+    "revealedCorrectSr": "Правильный вариант",
+    "guestLocked": "Задания доступны после записи на конспект",
+    "checkErrorTitle": "Не удалось проверить ответ",
+    "revealErrorTitle": "Не удалось показать ответ",
+    "errorDescription": "Проверьте соединение и попробуйте снова."
+  },
+  "release": {
+    "label": "Версия конспекта",
+    "pickerLabel": "Выбрать версию конспекта",
+    "change": "Сменить версию",
+    "latest": "Последняя",
+    "updateAvailable": "Есть новая версия",
+    "none": "—",
+    "switchFailed": "Не удалось сменить версию"
+  },
+  "gallery": {
+    "prev": "Предыдущие фото",
+    "next": "Следующие фото",
+    "aria": "Фотогалерея"
+  },
+  "functionGraph": {
+    "invalidExpression": "Некоторые выражения не удалось отобразить",
+    "unavailable": "График недоступен",
+    "resetView": "Сбросить вид",
+    "zoomIn": "Приблизить",
+    "zoomOut": "Отдалить"
+  },
+  "content": {
+    "errorTitle": "Не удалось загрузить конспект",
+    "errorDescription": "Проверьте соединение и попробуйте снова.",
+    "retry": "Повторить"
+  }
+}

@@ -2,8 +2,8 @@
 
 import { RefreshCwIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRef } from 'react';
 
+import { useDebouncedFlush } from '@/shared/hooks/use-debounced-flush';
 import { Button } from '@/shared/ui/button';
 import { EditorBlockShell } from '@/shared/ui/editor-block-shell';
 import { InlineRichEditor } from '@/shared/ui/inline-rich-editor';
@@ -68,20 +68,18 @@ function HtmlBlockBody({
   onUpdate: (html: string) => void;
 }) {
   const t = useTranslations('blog-admin');
-  // Debounced flush so we don't fire a PATCH on every keystroke.
-  const timer = useRef<number | null>(null);
-  const latest = useRef(block.html);
-
-  function handleChange(html: string) {
-    latest.current = html;
-    if (timer.current) window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => onUpdate(latest.current), 600);
-  }
+  // Debounced flush so we don't fire a PATCH on every keystroke; pending
+  // edits are committed on unmount so the last keystroke is never lost.
+  const { schedule } = useDebouncedFlush({
+    serverValue: block.html,
+    onChange: onUpdate,
+    delayMs: 600,
+  });
 
   return (
     <InlineRichEditor
       value={block.html}
-      onChange={handleChange}
+      onChange={schedule}
       placeholder={t('editor.htmlPlaceholder')}
       emptyText={t('editor.htmlEmpty')}
     />
@@ -105,13 +103,11 @@ function MediaBlockBody({
     block.type === 'image'
       ? BLOG_IMAGE_BLOCK_MAX_BYTES
       : BLOG_VIDEO_BLOCK_MAX_BYTES;
-  const timer = useRef<number | null>(null);
-
-  function handleTextChange(value: string) {
-    if (timer.current) window.clearTimeout(timer.current);
-    const v = value;
-    timer.current = window.setTimeout(() => onUpdateText(v), 700);
-  }
+  const { schedule: scheduleText } = useDebouncedFlush({
+    serverValue: text ?? '',
+    onChange: onUpdateText,
+    delayMs: 700,
+  });
 
   return (
     <div className="flex flex-col gap-2">
@@ -144,7 +140,7 @@ function MediaBlockBody({
         type="text"
         defaultValue={text ?? ''}
         maxLength={BLOG_BLOCK_CAPTION_MAX_LEN}
-        onChange={(e) => handleTextChange(e.target.value)}
+        onChange={(e) => scheduleText(e.target.value)}
         placeholder={t(`editor.${block.type}TextPlaceholder`)}
         className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       />

@@ -450,7 +450,7 @@ function CursorAvatar({
         user={toAvatarUser(user)}
         size="sm"
         shape="circle"
-        statusType={null}
+        showStatus={false}
         showLoadErrorIndicator={false}
       />
     </motion.span>

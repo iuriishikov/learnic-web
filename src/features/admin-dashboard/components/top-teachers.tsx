@@ -28,7 +28,7 @@ export function TopTeachers({ teachers }: TopTeachersProps) {
                 user={{ id: teacher.id, fullName: teacher.name, avatar: null }}
                 imageUrl={teacher.avatarUrl}
                 shape="circle"
-                statusType={null}
+                showStatus={false}
                 showLoadErrorIndicator={false}
               />
               <div className="flex min-w-0 flex-col">

@@ -1,3 +1,4 @@
+import type { GraphSpec } from '@/shared/ui/function-graph.types';
 import type { ApiFile } from '@/shared/types/user';
 
 export type LessonBlockType =
@@ -10,7 +11,8 @@ export type LessonBlockType =
   | 'text_input'
   | 'file'
   | 'video_file'
-  | 'photo_collage';
+  | 'photo_collage'
+  | 'function_graph';
 
 // Mirror of the backend `CodeBlockLanguage` enum and the frontend
 // `code-block-tokenize` supported set — keep these in sync.
@@ -232,6 +234,26 @@ export type PhotoCollageBlock = {
   title: string | null;
 };
 
+// Function-graph (GeoGebra-like) block limits — keep in sync with the
+// backend's `entities/note_block/constants.py`.
+export const FUNCTION_GRAPH_MAX_OBJECTS = 20;
+export const FUNCTION_GRAPH_MAX_PARAMS = 8;
+export const GRAPH_EXPR_MAX_LEN = 256;
+export const GRAPH_PARAM_NAME_MAX_LEN = 16;
+
+// The stored graph spec (camelCase, mirrors the `FunctionGraph`
+// primitive's `GraphSpec`) plus the interactive flag. The snake_case
+// wire shape is mapped at the `lib/function-graph-config` boundary so
+// components never see snake_case keys.
+export type FunctionGraphConfig = GraphSpec & { interactive: boolean };
+
+export type FunctionGraphBlock = {
+  type: 'function_graph';
+  id: string;
+  position: number;
+  config: FunctionGraphConfig;
+};
+
 export type LessonBlock =
   | HtmlBlock
   | KatexBlock
@@ -242,7 +264,8 @@ export type LessonBlock =
   | TextInputBlock
   | FileBlock
   | VideoFileBlock
-  | PhotoCollageBlock;
+  | PhotoCollageBlock
+  | FunctionGraphBlock;
 
 export type DraftLesson = {
   id: string;

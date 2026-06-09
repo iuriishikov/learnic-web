@@ -18,6 +18,7 @@ import {
   listNoteReleasesAction,
   resetNoteDraftAction,
 } from './releases';
+import { releasedByAuthorKey } from './use-has-released-products';
 import { noteDraftKey } from './use-note-draft';
 import { productKey } from './use-product';
 
@@ -82,6 +83,9 @@ export function useCreateNoteReleaseMutation(noteId: string) {
       qc.invalidateQueries({ queryKey: noteReleasesKey(noteId) });
       // First release flips the product to "published" — refresh the product.
       qc.invalidateQueries({ queryKey: productKey(noteId) });
+      // …and the author now has a released product, so re-probe the
+      // user-menu storage gate (prefix match covers the current user).
+      qc.invalidateQueries({ queryKey: releasedByAuthorKey });
     },
     onError: (err) => fail('createReleaseFailed', err),
   });

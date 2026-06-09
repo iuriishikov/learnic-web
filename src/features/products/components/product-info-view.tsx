@@ -1,23 +1,16 @@
 'use client';
 
-import { ArrowLeftIcon, FileTextIcon, TagIcon } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
-import { useTranslations } from 'next-intl';
-
-import { Link } from '@/shared/config/i18n/navigation';
-import { cn } from '@/shared/lib/utils';
-import { buttonVariants } from '@/shared/ui/button';
+import { useFormatter, useTranslations } from 'next-intl';
 
 import { hasDescriptionContent, looksLikeHtml } from '../lib/description-html';
+import { PROSE_HTML_CLASS } from '../lib/prose';
 import type { Product } from '../model/types';
 
 import { ProductFaqSection } from './product-faq-section';
-import { InfoCard } from './product-info-card';
 import { ProductInfoHero } from './product-info-hero';
+import { InfoSection } from './product-info-section';
 import { ProductInfoTypeSections } from './product-info-sections';
-import { ProductInfoSidebar } from './product-info-sidebar';
-
-const SECTION_TRANSITION = { duration: 0.25, ease: [0.32, 0.72, 0, 1] } as const;
 
 type ProductInfoViewProps = {
   product: Product;
@@ -25,94 +18,81 @@ type ProductInfoViewProps = {
   authorAvatarUrl?: string | null;
   /** Author verified badge, from the same public-profile lookup. */
   authorIsVerified?: boolean;
+  /**
+   * Whether the viewer already has an active enrollment on this product,
+   * resolved server-side at the page level. Threaded into the hero CTA so it
+   * shows «Продолжить изучение» (→ reader) instead of «Записаться».
+   */
+  viewerEnrolled?: boolean;
 };
 
 /**
  * Public product landing shown BEFORE enrollment — the marketplace detail
- * page. Composes the shared product fields (description, tags, Q&A) with the
- * per-type preview sections (note curriculum) and a sticky enroll rail.
+ * page in the «Спотлайт» layout: a full-bleed cover hero (title, lead, CTA
+ * and author over a scrim) followed by a single editorial reading column —
+ * container-less sections separated by eyebrows + hairline rules. No sidebar,
+ * no cards; the quick facts close the column as an inline colophon.
  */
 export function ProductInfoView({
   product,
   authorAvatarUrl,
   authorIsVerified,
+  viewerEnrolled,
 }: ProductInfoViewProps) {
   const t = useTranslations('marketplace.detail');
   const reduceMotion = useReducedMotion();
 
   return (
-    <div className="mx-auto w-full max-w-[1280px] px-4 py-6 md:px-8 md:py-8">
-      <div className="mb-5">
-        <Link
-          href="/marketplace"
-          className={cn(
-            buttonVariants({ variant: 'ghost', size: 'sm' }),
-            '-ml-2 gap-1.5 text-muted-foreground hover:text-foreground',
-          )}
-        >
-          <ArrowLeftIcon className="size-4" />
-          {t('back')}
-        </Link>
-      </div>
-
+    <>
       <ProductInfoHero
         product={product}
         authorAvatarUrl={authorAvatarUrl}
         authorIsVerified={authorIsVerified}
+        viewerEnrolled={viewerEnrolled}
       />
 
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8">
-        <motion.div
-          initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...SECTION_TRANSITION, delay: 0.05 }}
-          className="flex min-w-0 flex-col gap-6"
-        >
-          <InfoCard title={t('overview.title')} icon={FileTextIcon}>
-            <ProductDescription description={product.description} />
-          </InfoCard>
+      <motion.div
+        initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1], delay: 0.05 }}
+        className="mx-auto w-full max-w-[820px] px-5 pb-20 md:px-6 md:pb-28"
+      >
+        {/* Always rendered (it owns the empty state), so it's the stable
+            `first` section — every conditional section below carries the
+            hairline divider. */}
+        <InfoSection first eyebrow={t('overview.title')}>
+          <ProductDescription description={product.description} />
+        </InfoSection>
 
-          {product.tags.length > 0 ? (
-            <InfoCard title={t('tags.title')} icon={TagIcon}>
-              <ul className="flex flex-wrap gap-2">
-                {product.tags.map((tag) => (
-                  <li
-                    key={tag.id}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground"
-                  >
-                    <span
-                      aria-hidden
-                      className="size-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: tag.color }}
-                    />
-                    <span className="max-w-[12rem] truncate">{tag.name}</span>
-                  </li>
-                ))}
-              </ul>
-            </InfoCard>
-          ) : null}
+        <ProductInfoTypeSections product={product} />
 
-          <ProductInfoTypeSections product={product} />
+        {product.tags.length > 0 ? (
+          <InfoSection eyebrow={t('tags.title')}>
+            <ul className="flex flex-wrap gap-2">
+              {product.tags.map((tag) => (
+                <li
+                  key={tag.id}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-transparent px-3 py-1 text-xs text-foreground"
+                >
+                  <span
+                    aria-hidden
+                    className="size-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: tag.color }}
+                  />
+                  <span className="max-w-[12rem] truncate">{tag.name}</span>
+                </li>
+              ))}
+            </ul>
+          </InfoSection>
+        ) : null}
 
-          <ProductFaqSection productId={product.id} />
-        </motion.div>
+        <ProductFaqSection productId={product.id} />
 
-        {/*
-          Sticky enroll rail. Offset = app header height (72px, `sticky top-0`)
-          + 16px breathing room, so the card pins just below the chrome instead
-          of sliding under it. `self-start` keeps the column from stretching to
-          the main column's height (a stretched flex item can't go sticky).
-        */}
-        <motion.aside
-          initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...SECTION_TRANSITION, delay: 0.1 }}
-          className="flex flex-col gap-6 lg:sticky lg:top-[88px] lg:self-start"
-        >
-          <ProductInfoSidebar product={product} />
-        </motion.aside>
-      </div>
-    </div>
+        <InfoSection eyebrow={t('meta.title')}>
+          <MetaFacts product={product} />
+        </InfoSection>
+      </motion.div>
+    </>
   );
 }
 
@@ -131,7 +111,7 @@ function ProductDescription({ description }: { description: string }) {
 
   if (!looksLikeHtml(description)) {
     return (
-      <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">
+      <p className="whitespace-pre-line text-base leading-[1.75] text-foreground md:text-[1.0625rem]">
         {description}
       </p>
     );
@@ -139,8 +119,46 @@ function ProductDescription({ description }: { description: string }) {
 
   return (
     <div
-      className="text-sm leading-relaxed text-foreground [&_a]:break-words [&_a]:text-brand [&_a]:underline [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[0.85em] [&_h1]:mt-4 [&_h1]:mb-2 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:mt-4 [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1.5 [&_h3]:text-base [&_h3]:font-semibold [&_img]:my-3 [&_img]:max-w-full [&_img]:rounded-lg [&_li]:my-1 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_em]:italic [&_*:first-child]:mt-0 [&_*:last-child]:mb-0"
+      className={PROSE_HTML_CLASS}
       dangerouslySetInnerHTML={{ __html: description }}
     />
+  );
+}
+
+/** Inline `label · value` facts — the editorial colophon closing the column. */
+function MetaFacts({ product }: { product: Product }) {
+  const t = useTranslations('marketplace.detail.meta');
+  const tType = useTranslations('teach-products.type');
+  const formatter = useFormatter();
+
+  const facts = [
+    { label: t('type'), value: tType(product.type) },
+    {
+      label: t('duration'),
+      value:
+        product.durationHours > 0
+          ? t('durationValue', { hours: product.durationHours })
+          : t('durationUnset'),
+    },
+    {
+      label: t('updatedAt'),
+      value: formatter.dateTime(new Date(product.updatedAt), {
+        dateStyle: 'medium',
+      }),
+    },
+  ];
+
+  return (
+    <dl className="flex flex-wrap gap-x-8 gap-y-3 text-sm">
+      {facts.map((fact) => (
+        <div key={fact.label} className="flex items-center gap-1.5">
+          <dt className="text-muted-foreground">{fact.label}</dt>
+          <span aria-hidden className="text-muted-foreground/50">
+            ·
+          </span>
+          <dd className="font-medium text-foreground">{fact.value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }

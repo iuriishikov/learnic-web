@@ -2,6 +2,7 @@
 
 import {
   CheckIcon,
+  ChevronDownIcon,
   MonitorIcon,
   MoonIcon,
   SunIcon,
@@ -13,12 +14,13 @@ import { useTransition } from 'react';
 import { usePathname, useRouter } from '@/shared/config/i18n/navigation';
 import { cn } from '@/shared/lib/utils';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shared/ui/select';
+  Menu,
+  MenuContent,
+  MenuGroup,
+  MenuRadioGroup,
+  MenuRadioItem,
+  MenuTrigger,
+} from '@/shared/ui/menu';
 import { SettingsRow, SettingsSection } from '@/widgets/settings';
 
 const THEME_OPTIONS = [
@@ -38,6 +40,12 @@ export function PreferencesView() {
   const router = useRouter();
   const pathname = usePathname();
   const [pending, startTransition] = useTransition();
+
+  // Guard against a locale without a catalog entry (e.g. a manual /en visit):
+  // `options.*` only lists shipped locales, so fall back to the first option.
+  const activeLocale = LOCALE_OPTIONS.some((option) => option.value === locale)
+    ? (locale as (typeof LOCALE_OPTIONS)[number]['value'])
+    : LOCALE_OPTIONS[0].value;
 
   function handleLocaleChange(next: string | null) {
     if (!next || next === locale) return;
@@ -98,25 +106,30 @@ export function PreferencesView() {
         description={tLanguage('description')}
         labelFor="settings-language"
       >
-        <Select
-          value={locale}
-          onValueChange={handleLocaleChange}
-          disabled={pending}
-        >
-          <SelectTrigger
+        <Menu>
+          <MenuTrigger
             id="settings-language"
-            className="w-full max-w-xs"
+            disabled={pending}
+            className="flex h-8 w-full max-w-xs items-center justify-between gap-1.5 rounded-md border border-input bg-background py-1 pr-2 pl-2.5 text-sm whitespace-nowrap text-foreground outline-none transition-colors hover:bg-muted/40 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50 data-popup-open:border-ring data-popup-open:ring-3 data-popup-open:ring-ring/40"
           >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {LOCALE_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {tLanguage(`options.${option.value}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+            <span>{tLanguage(`options.${activeLocale}`)}</span>
+            <ChevronDownIcon className="size-4 text-muted-foreground" />
+          </MenuTrigger>
+          <MenuContent size="md" align="start">
+            <MenuGroup>
+              <MenuRadioGroup
+                value={activeLocale}
+                onValueChange={(next) => handleLocaleChange(String(next))}
+              >
+                {LOCALE_OPTIONS.map((option) => (
+                  <MenuRadioItem key={option.value} value={option.value}>
+                    {tLanguage(`options.${option.value}`)}
+                  </MenuRadioItem>
+                ))}
+              </MenuRadioGroup>
+            </MenuGroup>
+          </MenuContent>
+        </Menu>
       </SettingsRow>
     </SettingsSection>
   );

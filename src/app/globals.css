@@ -2,9 +2,26 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "katex/dist/katex.min.css";
+@import "../../node_modules/jsxgraph/distrib/jsxgraph.css";
 @import "overlayscrollbars/overlayscrollbars.css";
 
 @custom-variant dark (&:is(.dark *));
+
+/* Function-graph (JSXGraph) polish. Unlayered so it beats jsxgraph.css and SVG
+   presentation attributes: rounded strokes + on-brand label typography. */
+.jxgbox path {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.jxgbox .fg-label {
+  font-family: var(--font-sans);
+  font-weight: 500;
+}
+.jxgbox .fg-tick-label {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
 
 :root {
 

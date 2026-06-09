@@ -1,17 +1,13 @@
 'use client';
 
 import { SearchIcon } from 'lucide-react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import {
-  type ReadonlyURLSearchParams,
-  useSearchParams,
-} from 'next/navigation';
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useMemo } from 'react';
 
 import type { Tag } from '@/features/product-tags';
-import { usePathname, useRouter } from '@/shared/config/i18n/navigation';
-import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
+import { useRouter } from '@/shared/config/i18n/navigation';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import {
@@ -29,14 +25,19 @@ import {
   PUBLISHED_PRODUCTS_PER_PAGE_OPTIONS,
   usePublishedProducts,
 } from '../api/use-published-products';
+import { useCatalogSearchParams } from '../hooks/use-catalog-search-params';
+import { shouldShowCatalogSkeleton } from '../lib/catalog-search';
 import type { Product } from '../model/types';
 
-import { ProductCardSkeleton } from './product-card-skeleton';
+import { ProductResultsGrid } from './product-results-grid';
 import { ProductsPagination } from './products-pagination';
 import {
   ProductShowcaseCard,
   accentFromId,
 } from './product-showcase-card';
+
+const GRID_CLASS =
+  'grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-6';
 
 type MarketplaceViewProps = {
   initialProducts: Product[];
@@ -59,70 +60,31 @@ export function MarketplaceView({
 }: MarketplaceViewProps) {
   const t = useTranslations('marketplace');
   const tPagination = useTranslations('marketplace.pagination');
-  const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  // Pagination/search swap the URL via ``router.replace``, which makes
-  // Next re-run ``page.tsx`` on the server for the new page/query and
-  // hand back fresh ``initialData`` — so React Query never enters a
-  // placeholder/loading state. That server round-trip is the real
-  // wait, and ``isPending`` is the only signal that tracks it. We wrap
-  // every push in this ``startTransition`` and drive the skeleton off
-  // ``isPending``.
-  const [isPending, startTransition] = useTransition();
 
-  // Source of truth for page/perPage/q is the URL. Initial values
-  // mirror what page.tsx resolved server-side so the first paint
-  // matches without a hydration shift; subsequent reads come from
-  // ``useSearchParams`` (router pushes update both URL and these).
-  const urlPage = readUrlNumber(searchParams.get('page'), initialPage, 1);
-  const urlPerPage = readUrlNumber(
-    searchParams.get('perPage'),
+  // URL-driven page/perPage/q + debounced search + transition, shared
+  // with the teach catalog. ``isPending`` drives the skeleton on every
+  // search/paginate/tag navigation.
+  const catalog = useCatalogSearchParams({
+    initialPage,
     initialPerPage,
-    1,
-    PUBLISHED_PRODUCTS_PER_PAGE_OPTIONS[
-      PUBLISHED_PRODUCTS_PER_PAGE_OPTIONS.length - 1
-    ],
-  );
-  const urlQuery = searchParams.get('q') ?? initialQuery ?? '';
-  // Tag filter is URL state too (``?tags=id1,id2``) so it drives a
-  // real server query — AND across the ids, with pagination + total
-  // computed over the filtered set, not a client cull of the current
-  // page. Mirrors ``q``: the server reads it for the first paint,
-  // ``useSearchParams`` for every push after.
+    initialQuery,
+    pageSize: PUBLISHED_PRODUCTS_PAGE_SIZE,
+    perPageMax:
+      PUBLISHED_PRODUCTS_PER_PAGE_OPTIONS[
+        PUBLISHED_PRODUCTS_PER_PAGE_OPTIONS.length - 1
+      ],
+  });
+  const { search, setSearch, debouncedSearch, urlPage, urlPerPage, urlQuery } =
+    catalog;
+
+  // Tag filter is marketplace-only URL state (``?tags=id1,id2``) — it
+  // drives a real server query (AND across the ids). Read here and
+  // threaded into both the query and ``push({ extra })`` so search /
+  // pagination preserve the active filter.
   const urlTags = readUrlTags(searchParams.get('tags'), initialTags);
   const selectedTagIds = new Set(urlTags);
   const tagFilterActive = urlTags.length > 0;
-
-  // ``search`` is the live input value; ``debouncedSearch`` is what
-  // actually drives the URL push (and therefore the backend query)
-  // so we hit ``/products?q=`` once per typing pause, not per
-  // keystroke.
-  const [search, setSearch] = useState(urlQuery);
-  const debouncedSearch = useDebouncedValue(search, 250);
-
-  // Push URL when the debounced search diverges from what's in the
-  // URL — also resets page to 1 since "page 5 of a different
-  // query" is meaningless.
-  useEffect(() => {
-    const trimmed = debouncedSearch.trim();
-    if (trimmed === urlQuery.trim()) return;
-    pushUrl(
-      router,
-      pathname,
-      searchParams,
-      {
-        page: 1,
-        perPage: urlPerPage,
-        q: trimmed.length >= 2 ? trimmed : null,
-      },
-      startTransition,
-    );
-    // urlPerPage covered as a snapshot; we intentionally don't
-    // depend on it directly — perPage changes go through their own
-    // handler with their own push.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch]);
 
   const initialData = useMemo(
     () => ({ products: initialProducts, total: initialTotal }),
@@ -149,92 +111,45 @@ export function MarketplaceView({
   const products = data?.products ?? [];
   const total = data?.total ?? initialTotal;
   const totalPages = Math.max(1, Math.ceil(total / urlPerPage));
-  // Clamp displayed page — if the user paginates past the end and
-  // then narrows the query, ``urlPage`` could outlive the new
-  // page count. Don't trust the URL blindly when computing the
-  // active page indicator.
+  // Clamp displayed page — if the user paginates past the end and then
+  // narrows the query, ``urlPage`` could outlive the new page count.
   const activePage = Math.min(urlPage, totalPages);
 
+  const showSkeleton = shouldShowCatalogSkeleton({
+    isPending: catalog.isPending,
+    isFetching,
+    isPlaceholderData,
+    hasData: Boolean(data),
+  });
+
   const goToPage = (next: number) => {
-    pushUrl(
-      router,
-      pathname,
-      searchParams,
-      {
-        page: Math.min(Math.max(next, 1), totalPages),
-        perPage: urlPerPage,
-        q: urlQuery.trim().length >= 2 ? urlQuery.trim() : null,
-      },
-      startTransition,
-    );
+    catalog.push({ page: Math.min(Math.max(next, 1), totalPages) });
   };
 
   // Toggling a tag rewrites ``?tags=`` and resets to page 1 (the old
-  // page index is meaningless against a different result set); the
-  // server then computes the filtered page + total. ``q`` rides along
-  // so search and tags compose. Not passing ``tags`` on the paginate
-  // / search pushes above leaves the active filter untouched.
+  // page index is meaningless against a different result set); ``q`` and
+  // ``perPage`` ride along automatically because ``push`` preserves
+  // params it isn't told to change.
   const toggleTag = (tagId: string) => {
     const nextTags = selectedTagIds.has(tagId)
       ? urlTags.filter((id) => id !== tagId)
       : [...urlTags, tagId];
-    pushUrl(
-      router,
-      pathname,
-      searchParams,
-      {
-        page: 1,
-        perPage: urlPerPage,
-        q: urlQuery.trim().length >= 2 ? urlQuery.trim() : null,
-        tags: nextTags,
-      },
-      startTransition,
-    );
+    catalog.push({
+      page: 1,
+      extra: { tags: nextTags.length > 0 ? nextTags.join(',') : null },
+    });
   };
 
   const clearTags = () => {
-    pushUrl(
-      router,
-      pathname,
-      searchParams,
-      {
-        page: 1,
-        perPage: urlPerPage,
-        q: urlQuery.trim().length >= 2 ? urlQuery.trim() : null,
-        tags: [],
-      },
-      startTransition,
-    );
+    catalog.push({ page: 1, extra: { tags: null } });
   };
 
   // "No results" CTA: drop every active filter (search + tags) in one
   // push so the user lands back on the full catalog.
   const clearAllFilters = () => {
     setSearch('');
-    pushUrl(
-      router,
-      pathname,
-      searchParams,
-      { page: 1, perPage: urlPerPage, q: null, tags: [] },
-      startTransition,
-    );
+    catalog.push({ page: 1, q: null, extra: { tags: null } });
   };
-
-  // Show the layout-matching skeleton whenever a *different* page or
-  // query is loading. The dominant trigger is ``isPending`` — the RSC
-  // navigation that pagination/search kicks off. The React Query part
-  // (``isPlaceholderData`` / ``!data``) is a fallback for any
-  // client-only fetch that bypasses navigation. The SSR-hydrated first
-  // paint has fresh ``initialData`` and no pending transition, so the
-  // initial render stays skeleton-free; every prev/next/search swap
-  // now drops to skeletons instead of a dimmed stale grid.
-  const showSkeleton =
-    isPending || (isFetching && (isPlaceholderData || !data));
-  // Mirror the count currently on screen so the grid height doesn't
-  // jump when we swap to skeletons mid-pagination; fall back to a
-  // sensible fill on the cold load where there's nothing to mirror.
-  const skeletonCount =
-    products.length > 0 ? products.length : Math.min(urlPerPage, 6);
 
   return (
     <div className="flex flex-col">
@@ -257,67 +172,39 @@ export function MarketplaceView({
         />
 
         <div className="mt-8 md:mt-10">
-          {showSkeleton ? (
-            <ul
-              aria-hidden
-              className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-6"
-            >
-              {Array.from({ length: skeletonCount }).map((_, i) => (
-                <li key={i}>
-                  <ProductCardSkeleton />
-                </li>
-              ))}
-            </ul>
-          ) : products.length === 0 ? (
-            <EmptyState
-              isFiltered={
-                debouncedSearch.trim().length > 0 || tagFilterActive
-              }
-              onClear={clearAllFilters}
-            />
-          ) : (
-            <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-6">
-              <AnimatePresence mode="popLayout" initial={false}>
-                {products.map((product) => (
-                  <MarketplaceCardWrapper
-                    key={product.id}
-                    product={product}
-                  />
-                ))}
-              </AnimatePresence>
-            </ul>
-          )}
-
-          {total > 0 && (
-            <ProductsPagination
-              activePage={activePage}
-              totalPages={totalPages}
-              onPageChange={goToPage}
-              previousLabel={tPagination('previous')}
-              nextLabel={tPagination('next')}
-              positionLabel={(current, total) =>
-                tPagination('position', { current, total })
-              }
-            />
-          )}
+          <ProductResultsGrid
+            items={products}
+            showSkeleton={showSkeleton}
+            perPage={urlPerPage}
+            gridClassName={GRID_CLASS}
+            renderItem={(product) => <MarketplaceCard product={product} />}
+            empty={
+              <EmptyState
+                isFiltered={
+                  debouncedSearch.trim().length > 0 || tagFilterActive
+                }
+                onClear={clearAllFilters}
+              />
+            }
+            pagination={
+              total > 0 ? (
+                <ProductsPagination
+                  activePage={activePage}
+                  totalPages={totalPages}
+                  onPageChange={goToPage}
+                  previousLabel={tPagination('previous')}
+                  nextLabel={tPagination('next')}
+                  positionLabel={(current, totalCount) =>
+                    tPagination('position', { current, total: totalCount })
+                  }
+                />
+              ) : null
+            }
+          />
         </div>
       </section>
     </div>
   );
-}
-
-function readUrlNumber(
-  raw: string | null,
-  fallback: number,
-  min: number,
-  max?: number,
-): number {
-  if (raw === null) return fallback;
-  const parsed = Number.parseInt(raw, 10);
-  if (!Number.isFinite(parsed)) return fallback;
-  const capped =
-    max !== undefined ? Math.min(Math.max(parsed, min), max) : Math.max(parsed, min);
-  return capped;
 }
 
 function readUrlTags(raw: string | null, fallback: string[]): string[] {
@@ -336,42 +223,6 @@ function sameTags(a: string[], b: string[]): boolean {
   if (a.length !== b.length) return false;
   const sortedB = [...b].sort();
   return [...a].sort().every((id, i) => id === sortedB[i]);
-}
-
-function pushUrl(
-  router: ReturnType<typeof useRouter>,
-  pathname: ReturnType<typeof usePathname>,
-  current: ReadonlyURLSearchParams,
-  next: {
-    page: number;
-    perPage: number;
-    q: string | null;
-    // Omit to keep whatever ``tags`` is already in the URL (paginate
-    // / search preserve the active filter); pass an array to
-    // overwrite it (``[]`` clears it).
-    tags?: string[];
-  },
-  startTransition: ReturnType<typeof useTransition>[1],
-) {
-  const params = new URLSearchParams(current.toString());
-  if (next.page === 1) params.delete('page');
-  else params.set('page', String(next.page));
-  if (next.perPage === PUBLISHED_PRODUCTS_PAGE_SIZE) {
-    params.delete('perPage');
-  } else {
-    params.set('perPage', String(next.perPage));
-  }
-  if (next.q) params.set('q', next.q);
-  else params.delete('q');
-  if (next.tags !== undefined) {
-    if (next.tags.length > 0) params.set('tags', next.tags.join(','));
-    else params.delete('tags');
-  }
-  const qs = params.toString();
-  const href = qs ? `${pathname}?${qs}` : pathname;
-  // Keep ``isPending`` true for the whole server round-trip so the
-  // grid shows skeletons until the new page/query/tags are ready.
-  startTransition(() => router.replace(href));
 }
 
 
@@ -429,59 +280,40 @@ function MarketplaceHero({
 }
 
 
-type MarketplaceCardWrapperProps = {
+type MarketplaceCardProps = {
   product: Product;
 };
 
 /**
  * Marketplace cards render type pill + title + duration + tag chips
- * using ``product.tags`` embedded inline by the backend — no
- * per-card fetch. Tag filtering is server-side now
- * (``GET /products?tag_ids=…`` with AND semantics), so every product
- * reaching this wrapper is already a match — no client-side culling.
+ * using ``product.tags`` embedded inline by the backend — no per-card
+ * fetch. Tag filtering is server-side (``GET /products?tag_ids=…`` with
+ * AND semantics), so every product reaching here is already a match.
+ * The motion/list-presence wrapper lives in ``ProductResultsGrid``.
  */
-function MarketplaceCardWrapper({
-  product,
-}: MarketplaceCardWrapperProps) {
-  const reduceMotion = useReducedMotion();
+function MarketplaceCard({ product }: MarketplaceCardProps) {
   const router = useRouter();
   const tCard = useTranslations('marketplace.card');
-  const tags = product.tags;
 
   return (
-    // Opacity-only enter/exit + ``layout`` so filter changes
-    // (search query + tag toggle) animate smoothly: items being
-    // filtered out fade and the rest reflow into the gap.
-    // ``AnimatePresence initial={false}`` on the parent suppresses
-    // the fade on first paint, so cards never slide-down on
-    // initial mount.
-    <motion.li
-      layout={reduceMotion ? false : true}
-      initial={reduceMotion ? undefined : { opacity: 0 }}
-      animate={reduceMotion ? undefined : { opacity: 1 }}
-      exit={reduceMotion ? undefined : { opacity: 0 }}
-      transition={{ duration: 0.18, ease: 'easeOut' }}
-    >
-      {/*
-        Card opens the public product landing (pre-enrollment detail) at
-        ``/marketplace/[id]``. ``ProductShowcaseCard`` turns interactive
-        (role=button + keyboard) once it gets an ``onClick``.
-      */}
-      <ProductShowcaseCard
-        type="note"
-        typeLabel={tCard('typeNote')}
-        title={product.title}
-        onClick={() => router.push(`/marketplace/${product.id}`)}
-        durationLabel={
-          product.durationHours > 0
-            ? tCard('durationHours', { hours: product.durationHours })
-            : tCard('durationUnset')
-        }
-        accent={accentFromId(product.id)}
-        coverUrl={product.cover?.url ?? null}
-        tags={tags}
-      />
-    </motion.li>
+    // Card opens the public product landing (pre-enrollment detail) at
+    // ``/marketplace/[id]``. ``ProductShowcaseCard`` turns interactive
+    // (role=button + keyboard) once it gets an ``onClick``.
+    <ProductShowcaseCard
+      type="note"
+      typeLabel={tCard('typeNote')}
+      title={product.title}
+      description={product.description}
+      onClick={() => router.push(`/marketplace/${product.id}`)}
+      durationLabel={
+        product.durationHours > 0
+          ? tCard('durationHours', { hours: product.durationHours })
+          : null
+      }
+      accent={accentFromId(product.id)}
+      coverUrl={product.cover?.url ?? null}
+      tags={product.tags}
+    />
   );
 }
 

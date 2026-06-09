@@ -1,61 +1,28 @@
 'use client';
 
 import {
-  DndContext,
-  type DragEndEvent,
-  KeyboardSensor,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  arrayMove,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import {
   CircleDotIcon,
   CodeIcon,
   FileIcon,
   ImagesIcon,
+  LineChartIcon,
   ListChecksIcon,
   PlayIcon,
-  PlusIcon,
   SigmaIcon,
   TextCursorInputIcon,
   TypeIcon,
   VideoIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useState } from 'react';
 
-import { useIsMobile } from '@/shared/hooks/use-mobile';
-import { cn } from '@/shared/lib/utils';
+import { useDebouncedFlush } from '@/shared/hooks/use-debounced-flush';
 import {
-  BottomSheet,
-  BottomSheetBody,
-  BottomSheetContent,
-  BottomSheetHeader,
-  BottomSheetTitle,
-  BottomSheetTrigger,
-} from '@/shared/ui/bottom-sheet';
-import { Button } from '@/shared/ui/button';
+  EditorAddBlockMenu,
+  type EditorAddBlockEntry,
+} from '@/shared/ui/editor-add-block-menu';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/shared/ui/dropdown-menu';
-import {
-  EditorBlockList,
+  EditorBlockDnd,
   EditorBlockShell,
 } from '@/shared/ui/editor-block-shell';
 import {
@@ -69,6 +36,7 @@ import type { ChoiceOptionDraftInput } from '../api/blocks';
 import {
   CODE_BLOCK_MAX_TABS,
   type CodeTab,
+  type FunctionGraphConfig,
   type LessonBlock,
 } from '../model/draft';
 
@@ -77,6 +45,7 @@ import {
   SingleChoiceBlockEditor,
   TextInputBlockEditor,
 } from './answer-block-editors';
+import { FunctionGraphBlockEditor } from './function-graph-block-editor';
 import {
   AddFileBlockDialog,
   AddPhotoCollageBlockDialog,
@@ -90,6 +59,7 @@ export type CreatableBlockType =
   | 'html'
   | 'katex'
   | 'code'
+  | 'function_graph'
   | 'single_choice'
   | 'multi_choice'
   | 'text_input';
@@ -109,6 +79,10 @@ export type LessonBlocksProps = {
   onUpdateHtml: (blockId: string, html: string) => void;
   onUpdateKatex: (blockId: string, source: string) => void;
   onUpdateCode: (blockId: string, tabs: CodeTab[]) => void;
+  onUpdateFunctionGraph: (
+    blockId: string,
+    config: FunctionGraphConfig,
+  ) => void;
   onUpdateSingleChoice: (
     blockId: string,
     options: ChoiceOptionDraftInput[],
@@ -135,6 +109,7 @@ type FileBackedKind = 'file' | 'video_file' | 'photo_collage';
 
 const HTML_DEBOUNCE_MS = 600;
 const KATEX_DEBOUNCE_MS = 600;
+const FUNCTION_GRAPH_DEBOUNCE_MS = 600;
 
 export function LessonBlocks({
   blocks,
@@ -143,6 +118,7 @@ export function LessonBlocks({
   onUpdateHtml,
   onUpdateKatex,
   onUpdateCode,
+  onUpdateFunctionGraph,
   onUpdateSingleChoice,
   onUpdateMultiChoice,
   onUpdateTextInput,
@@ -152,74 +128,125 @@ export function LessonBlocks({
   canEditLessons = true,
   insufficientPermissionsTitle,
 }: LessonBlocksProps) {
+  const t = useTranslations('teach-products.editor');
   // The three file-backed block types open a modal upload dialog rather
   // than resolving inline; keeping the open-dialog state here lets the
-  // `AddBlockMenu` stay a thin presentational component.
+  // `EditorAddBlockMenu` stay a thin presentational component.
   const [openDialog, setOpenDialog] = useState<FileBackedKind | null>(null);
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: canEditLessons
-        ? { distance: 6 }
-        : { distance: 999_999 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
-
-  const onDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-      const oldIndex = blocks.findIndex((b) => b.id === active.id);
-      const newIndex = blocks.findIndex((b) => b.id === over.id);
-      if (oldIndex < 0 || newIndex < 0) return;
-      const next = arrayMove(blocks, oldIndex, newIndex);
-      onReorder(next.map((b) => b.id));
-    },
-    [blocks, onReorder],
-  );
 
   const itemIds = blocks.map((b) => b.id);
 
+  const addBlockEntries: EditorAddBlockEntry[] = [
+    {
+      key: 'html',
+      icon: <TypeIcon />,
+      label: t('block.types.html'),
+      description: t('block.types.htmlDescription'),
+      onSelect: () => onAddBlock('html'),
+    },
+    {
+      key: 'katex',
+      icon: <SigmaIcon />,
+      label: t('block.types.katex'),
+      description: t('block.types.katexDescription'),
+      onSelect: () => onAddBlock('katex'),
+    },
+    {
+      key: 'code',
+      icon: <CodeIcon />,
+      label: t('block.types.code'),
+      description: t('block.types.codeDescription'),
+      onSelect: () => onAddBlock('code'),
+    },
+    {
+      key: 'function_graph',
+      icon: <LineChartIcon />,
+      label: t('block.types.functionGraph'),
+      description: t('block.types.functionGraphDescription'),
+      onSelect: () => onAddBlock('function_graph'),
+    },
+    {
+      key: 'single_choice',
+      icon: <CircleDotIcon />,
+      label: t('block.types.singleChoice'),
+      description: t('block.types.singleChoiceDescription'),
+      onSelect: () => onAddBlock('single_choice'),
+    },
+    {
+      key: 'multi_choice',
+      icon: <ListChecksIcon />,
+      label: t('block.types.multiChoice'),
+      description: t('block.types.multiChoiceDescription'),
+      onSelect: () => onAddBlock('multi_choice'),
+    },
+    {
+      key: 'text_input',
+      icon: <TextCursorInputIcon />,
+      label: t('block.types.textInput'),
+      description: t('block.types.textInputDescription'),
+      onSelect: () => onAddBlock('text_input'),
+    },
+    {
+      key: 'file',
+      icon: <FileIcon />,
+      label: t('block.types.file'),
+      description: t('block.types.fileDescription'),
+      onSelect: () => setOpenDialog('file'),
+    },
+    {
+      key: 'video_file',
+      icon: <VideoIcon />,
+      label: t('block.types.videoFile'),
+      description: t('block.types.videoFileDescription'),
+      onSelect: () => setOpenDialog('video_file'),
+    },
+    {
+      key: 'photo_collage',
+      icon: <ImagesIcon />,
+      label: t('block.types.photoCollage'),
+      description: t('block.types.photoCollageDescription'),
+      onSelect: () => setOpenDialog('photo_collage'),
+    },
+  ];
+
   return (
     <div className="flex flex-col">
-      <DndContext
+      <EditorBlockDnd
         id="lesson-blocks-dnd"
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={onDragEnd}
+        itemIds={itemIds}
+        onReorder={onReorder}
+        canEdit={canEditLessons}
       >
-        <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-          <EditorBlockList>
-            {blocks.map((block, idx) => (
-              <SortableBlock
-                key={block.id}
-                block={block}
-                isFirst={idx === 0}
-                noteId={noteId}
-                onUpdateHtml={(html) => onUpdateHtml(block.id, html)}
-                onUpdateKatex={(source) => onUpdateKatex(block.id, source)}
-                onUpdateCode={(nextTabs) => onUpdateCode(block.id, nextTabs)}
-                onUpdateSingleChoice={(opts) =>
-                  onUpdateSingleChoice(block.id, opts)
-                }
-                onUpdateMultiChoice={(opts) =>
-                  onUpdateMultiChoice(block.id, opts)
-                }
-                onUpdateTextInput={(args) => onUpdateTextInput(block.id, args)}
-                onRemove={() => onRemoveBlock(block.id)}
-                canEditLessons={canEditLessons}
-                insufficientPermissionsTitle={insufficientPermissionsTitle}
-              />
-            ))}
-          </EditorBlockList>
-        </SortableContext>
-      </DndContext>
+        {blocks.map((block, idx) => (
+          <SortableBlock
+            key={block.id}
+            block={block}
+            isFirst={idx === 0}
+            noteId={noteId}
+            onUpdateHtml={(html) => onUpdateHtml(block.id, html)}
+            onUpdateKatex={(source) => onUpdateKatex(block.id, source)}
+            onUpdateCode={(nextTabs) => onUpdateCode(block.id, nextTabs)}
+            onUpdateFunctionGraph={(config) =>
+              onUpdateFunctionGraph(block.id, config)
+            }
+            onUpdateSingleChoice={(opts) =>
+              onUpdateSingleChoice(block.id, opts)
+            }
+            onUpdateMultiChoice={(opts) =>
+              onUpdateMultiChoice(block.id, opts)
+            }
+            onUpdateTextInput={(args) => onUpdateTextInput(block.id, args)}
+            onRemove={() => onRemoveBlock(block.id)}
+            canEditLessons={canEditLessons}
+            insufficientPermissionsTitle={insufficientPermissionsTitle}
+          />
+        ))}
+      </EditorBlockDnd>
 
-      <AddBlockMenu
-        onSelect={onAddBlock}
-        onSelectFileBacked={setOpenDialog}
+      <EditorAddBlockMenu
+        entries={addBlockEntries}
+        triggerLabel={t('actions.addBlock')}
+        menuLabel={t('block.menuLabel')}
         hasBlocks={blocks.length > 0}
         disabled={!canEditLessons}
         disabledTitle={insufficientPermissionsTitle}
@@ -254,6 +281,7 @@ type SortableBlockProps = {
   onUpdateHtml: (html: string) => void;
   onUpdateKatex: (source: string) => void;
   onUpdateCode: (tabs: CodeTab[]) => void;
+  onUpdateFunctionGraph: (config: FunctionGraphConfig) => void;
   onUpdateSingleChoice: (options: ChoiceOptionDraftInput[]) => void;
   onUpdateMultiChoice: (options: ChoiceOptionDraftInput[]) => void;
   onUpdateTextInput: (args: TextInputBlockUpdate) => void;
@@ -269,6 +297,7 @@ function SortableBlock({
   onUpdateHtml,
   onUpdateKatex,
   onUpdateCode,
+  onUpdateFunctionGraph,
   onUpdateSingleChoice,
   onUpdateMultiChoice,
   onUpdateTextInput,
@@ -343,6 +372,13 @@ function SortableBlock({
           canEditLessons={canEditLessons}
           insufficientPermissionsTitle={insufficientPermissionsTitle}
         />
+      ) : block.type === 'function_graph' ? (
+        <DebouncedFunctionGraphEditor
+          blockId={block.id}
+          value={block.config}
+          onChange={onUpdateFunctionGraph}
+          canEdit={canEditLessons}
+        />
       ) : (
         <RutubeBlockView
           embedUrl={block.embedUrl}
@@ -375,13 +411,18 @@ function DebouncedHtmlEditor({
   placeholder,
   emptyText,
 }: DebouncedEditorProps & { placeholder: string; emptyText: string }) {
-  const flush = useDebouncedFlush(blockId, value, onChange, HTML_DEBOUNCE_MS);
+  const { schedule } = useDebouncedFlush({
+    key: blockId,
+    serverValue: value,
+    onChange,
+    delayMs: HTML_DEBOUNCE_MS,
+  });
   return (
     <div data-cursor-target={`block.${blockId}.body`}>
       <InlineRichEditor
         key={blockId}
         value={value}
-        onChange={flush}
+        onChange={schedule}
         placeholder={placeholder}
         emptyText={emptyText}
       />
@@ -395,16 +436,49 @@ function DebouncedKatexEditor({
   onChange,
   emptyText,
 }: DebouncedEditorProps & { emptyText: string }) {
-  const flush = useDebouncedFlush(blockId, value, onChange, KATEX_DEBOUNCE_MS);
+  const { schedule } = useDebouncedFlush({
+    key: blockId,
+    serverValue: value,
+    onChange,
+    delayMs: KATEX_DEBOUNCE_MS,
+  });
   return (
     <div data-cursor-target={`block.${blockId}.source`}>
       <InlineLatexEditor
         key={blockId}
         value={value}
-        onChange={flush}
+        onChange={schedule}
         emptyText={emptyText}
       />
     </div>
+  );
+}
+
+function DebouncedFunctionGraphEditor({
+  blockId,
+  value,
+  onChange,
+  canEdit,
+}: {
+  blockId: string;
+  value: FunctionGraphConfig;
+  onChange: (config: FunctionGraphConfig) => void;
+  canEdit: boolean;
+}) {
+  const { schedule } = useDebouncedFlush<FunctionGraphConfig>({
+    key: blockId,
+    serverValue: value,
+    onChange,
+    delayMs: FUNCTION_GRAPH_DEBOUNCE_MS,
+  });
+  return (
+    <FunctionGraphBlockEditor
+      key={blockId}
+      blockId={blockId}
+      config={value}
+      onChange={schedule}
+      canEdit={canEdit}
+    />
   );
 }
 
@@ -444,62 +518,16 @@ function CodeBlockEditor({
   );
 }
 
-function useDebouncedFlush(
-  blockId: string,
-  serverValue: string,
-  onChange: (value: string) => void,
-  delayMs: number,
-) {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingRef = useRef<string | null>(null);
-  const onChangeRef = useRef(onChange);
-  const serverValueRef = useRef(serverValue);
-
-  useEffect(() => {
-    onChangeRef.current = onChange;
-  }, [onChange]);
-
-  useEffect(() => {
-    serverValueRef.current = serverValue;
-  }, [serverValue]);
-
-  // Flush pending writes whenever the active block changes (or on unmount):
-  // a debounced edit on the previous block must reach the server before the
-  // editor is reused for another id.
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-      const value = pendingRef.current;
-      pendingRef.current = null;
-      if (value !== null && value !== serverValueRef.current) {
-        onChangeRef.current(value);
-      }
-    };
-  }, [blockId]);
-
-  return useCallback(
-    (next: string) => {
-      pendingRef.current = next;
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => {
-        timerRef.current = null;
-        const value = pendingRef.current;
-        pendingRef.current = null;
-        if (value !== null) onChangeRef.current(value);
-      }, delayMs);
-    },
-    [delayMs],
-  );
-}
-
 /* -------------------------------------------------------------------------- */
 /* Rutube block — read-only display (no editor UI yet)                        */
 /* -------------------------------------------------------------------------- */
 
-function RutubeBlockView({
+/**
+ * Read-only Rutube embed. Exported so the learner reader's
+ * `LessonBlockViewer` can reuse the exact same chrome for `rutube_video`
+ * blocks instead of rebuilding the iframe + title bar.
+ */
+export function RutubeBlockView({
   embedUrl,
   title,
 }: {
@@ -524,262 +552,5 @@ function RutubeBlockView({
         </div>
       ) : null}
     </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Add-block menu                                                             */
-/* -------------------------------------------------------------------------- */
-
-type AddBlockMenuProps = {
-  onSelect: (type: CreatableBlockType) => void;
-  onSelectFileBacked: (kind: FileBackedKind) => void;
-  hasBlocks: boolean;
-  disabled?: boolean;
-  disabledTitle?: string;
-};
-
-function AddBlockMenu({
-  onSelect,
-  onSelectFileBacked,
-  hasBlocks,
-  disabled,
-  disabledTitle,
-}: AddBlockMenuProps) {
-  const t = useTranslations('teach-products.editor');
-  const isMobile = useIsMobile();
-  const [open, setOpen] = useState(false);
-
-  const items: ReadonlyArray<{
-    key: string;
-    icon: ReactNode;
-    label: string;
-    description: string;
-    onSelect: () => void;
-  }> = [
-    {
-      key: 'html',
-      icon: <TypeIcon />,
-      label: t('block.types.html'),
-      description: t('block.types.htmlDescription'),
-      onSelect: () => onSelect('html'),
-    },
-    {
-      key: 'katex',
-      icon: <SigmaIcon />,
-      label: t('block.types.katex'),
-      description: t('block.types.katexDescription'),
-      onSelect: () => onSelect('katex'),
-    },
-    {
-      key: 'code',
-      icon: <CodeIcon />,
-      label: t('block.types.code'),
-      description: t('block.types.codeDescription'),
-      onSelect: () => onSelect('code'),
-    },
-    {
-      key: 'single_choice',
-      icon: <CircleDotIcon />,
-      label: t('block.types.singleChoice'),
-      description: t('block.types.singleChoiceDescription'),
-      onSelect: () => onSelect('single_choice'),
-    },
-    {
-      key: 'multi_choice',
-      icon: <ListChecksIcon />,
-      label: t('block.types.multiChoice'),
-      description: t('block.types.multiChoiceDescription'),
-      onSelect: () => onSelect('multi_choice'),
-    },
-    {
-      key: 'text_input',
-      icon: <TextCursorInputIcon />,
-      label: t('block.types.textInput'),
-      description: t('block.types.textInputDescription'),
-      onSelect: () => onSelect('text_input'),
-    },
-    {
-      key: 'file',
-      icon: <FileIcon />,
-      label: t('block.types.file'),
-      description: t('block.types.fileDescription'),
-      onSelect: () => onSelectFileBacked('file'),
-    },
-    {
-      key: 'video_file',
-      icon: <VideoIcon />,
-      label: t('block.types.videoFile'),
-      description: t('block.types.videoFileDescription'),
-      onSelect: () => onSelectFileBacked('video_file'),
-    },
-    {
-      key: 'photo_collage',
-      icon: <ImagesIcon />,
-      label: t('block.types.photoCollage'),
-      description: t('block.types.photoCollageDescription'),
-      onSelect: () => onSelectFileBacked('photo_collage'),
-    },
-  ];
-
-  return (
-    <div
-      className={cn(
-        'relative flex items-center justify-center',
-        hasBlocks ? 'mt-8' : 'mt-2',
-      )}
-    >
-      <span
-        aria-hidden
-        className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border"
-      />
-      {isMobile ? (
-        <BottomSheet open={open} onOpenChange={setOpen}>
-          <BottomSheetTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={disabled}
-              title={disabled ? disabledTitle : undefined}
-              className="relative gap-1.5 bg-background hover:bg-muted dark:bg-background dark:hover:bg-muted"
-            >
-              <PlusIcon /> {t('actions.addBlock')}
-            </Button>
-          </BottomSheetTrigger>
-          <BottomSheetContent>
-            <BottomSheetHeader>
-              <BottomSheetTitle className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                {t('block.menuLabel')}
-              </BottomSheetTitle>
-            </BottomSheetHeader>
-            <BottomSheetBody className="py-3">
-              <div className="grid h-[420px] grid-cols-2 grid-rows-5 auto-rows-fr gap-2">
-                {items.map((item) => (
-                  <BlockTypeTileButton
-                    key={item.key}
-                    icon={item.icon}
-                    label={item.label}
-                    description={item.description}
-                    onSelect={() => {
-                      setOpen(false);
-                      item.onSelect();
-                    }}
-                  />
-                ))}
-              </div>
-            </BottomSheetBody>
-          </BottomSheetContent>
-        </BottomSheet>
-      ) : (
-        <DropdownMenu open={open} onOpenChange={setOpen}>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={disabled}
-                title={disabled ? disabledTitle : undefined}
-                className="relative gap-1.5 bg-background hover:bg-muted dark:bg-background dark:hover:bg-muted"
-              />
-            }
-          >
-            <PlusIcon /> {t('actions.addBlock')}
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="center"
-            sideOffset={8}
-            className="w-[560px] p-1.5"
-          >
-            <p className="px-2 pt-1 pb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-              {t('block.menuLabel')}
-            </p>
-            <div className="grid h-[400px] grid-cols-2 grid-rows-5 auto-rows-fr gap-1">
-              {items.map((item) => (
-                <BlockTypeMenuItem
-                  key={item.key}
-                  icon={item.icon}
-                  label={item.label}
-                  description={item.description}
-                  onSelect={item.onSelect}
-                />
-              ))}
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
-    </div>
-  );
-}
-
-type BlockTypeTileProps = {
-  icon: ReactNode;
-  label: string;
-  description: string;
-  onSelect: () => void;
-};
-
-function BlockTypeTileInner({
-  icon,
-  label,
-  description,
-}: Omit<BlockTypeTileProps, 'onSelect'>) {
-  return (
-    <>
-      <span
-        aria-hidden
-        className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md bg-foreground/[0.04] text-foreground/80 ring-1 ring-foreground/10 transition-colors group-hover/item:bg-foreground/10 group-hover/item:text-foreground group-focus/item:bg-foreground/10 group-focus/item:text-foreground"
-      >
-        {icon}
-      </span>
-      <span className="flex min-w-0 flex-col gap-0.5 pt-0.5">
-        <span className="truncate text-sm font-medium leading-tight text-foreground">
-          {label}
-        </span>
-        <span className="text-xs leading-snug text-muted-foreground">
-          {description}
-        </span>
-      </span>
-    </>
-  );
-}
-
-function BlockTypeMenuItem({
-  icon,
-  label,
-  description,
-  onSelect,
-}: BlockTypeTileProps) {
-  return (
-    <DropdownMenuItem
-      onClick={onSelect}
-      className="group/item flex h-full cursor-pointer items-start gap-3 rounded-md p-2"
-    >
-      <BlockTypeTileInner
-        icon={icon}
-        label={label}
-        description={description}
-      />
-    </DropdownMenuItem>
-  );
-}
-
-function BlockTypeTileButton({
-  icon,
-  label,
-  description,
-  onSelect,
-}: BlockTypeTileProps) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className="group/item flex h-full w-full items-start gap-3 rounded-md p-2 text-left outline-none transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <BlockTypeTileInner
-        icon={icon}
-        label={label}
-        description={description}
-      />
-    </button>
   );
 }
