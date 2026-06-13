@@ -18,7 +18,12 @@ export {
   MY_PRODUCTS_PER_PAGE_OPTIONS,
   PUBLISHED_PRODUCTS_PAGE_SIZE,
   PUBLISHED_PRODUCTS_PER_PAGE_OPTIONS,
+  USER_PRODUCTS_PAGE_SIZE,
 } from './model/pagination';
+export {
+  getUserProductsAction,
+} from './api/get-user-products-action';
+export type { GetUserProductsResult } from './api/get-user-products';
 export { ProductsGeneralView } from './components/products-general-view';
 export { ProductsGeneralViewSkeleton } from './components/products-general-view-skeleton';
 export { ProductCardSkeleton } from './components/product-card-skeleton';
@@ -37,6 +42,7 @@ export { ProductInfoView } from './components/product-info-view';
 export { ProductInfoSkeleton } from './components/product-info-skeleton';
 export { ProductReaderView } from './components/product-reader-view';
 export { ProductReaderSkeleton } from './components/product-reader-skeleton';
+export { NoteReaderDemoView } from './components/note-reader-demo-view';
 export { MyLearningView } from './components/my-learning-view';
 export { MyLearningSkeleton } from './components/my-learning-skeleton';
 export { enrollIntoProductAction } from './api/enrollment-action';
@@ -51,8 +57,6 @@ export type {
 export type {
   PublicLesson,
   PublicLessonBlock,
-  PublicModule,
-  PublicNoteContent,
 } from './model/public-content';
 export { getProductByIdAction } from './api/get-product-by-id-action';
 export { useHasReleasedProducts } from './api/use-has-released-products';

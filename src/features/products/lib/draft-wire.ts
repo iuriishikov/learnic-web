@@ -236,11 +236,11 @@ export function fromBlockResponse(raw: LessonBlockResponse): LessonBlock {
   return fromSharedBlockResponse(raw);
 }
 
-// The seven non-interactive block types (html, katex, rutube_video, code,
-// file, video_file, photo_collage) carry identical payloads on the draft
-// AND public-release wires. The mappers below are the single source of
-// truth for that shared shape, reused by `content-wire.ts` for the
-// learner-facing tree — only the interactive choice/text blocks differ
+// The eight non-interactive block types (html, katex, rutube_video, code,
+// file, video_file, photo_collage, function_graph) carry identical payloads
+// on the draft AND public-release wires. The mappers below are the single source of
+// truth for that shared shape, reused by `lesson-wire.ts` for the
+// learner-facing lesson — only the interactive choice/text blocks differ
 // (the public wire strips answer keys), so those are mapped separately by
 // each caller.
 

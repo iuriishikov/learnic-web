@@ -22,3 +22,9 @@ export const PUBLISHED_PRODUCTS_PER_PAGE_OPTIONS = [12, 24, 48, 96] as const;
 // ``MAX_LIMIT = 100`` — the top option here mirrors that.
 export const MY_PRODUCTS_PAGE_SIZE = 12;
 export const MY_PRODUCTS_PER_PAGE_OPTIONS = [12, 24, 48, 96] as const;
+
+// A user's public products on their profile (``GET /users/{id}/products``).
+// That endpoint returns a bare array with no ``X-Total-Count`` header, so
+// numbered "page X of Y" controls aren't possible — the profile uses a
+// "load more" infinite-query control instead, which only needs a page size.
+export const USER_PRODUCTS_PAGE_SIZE = 12;

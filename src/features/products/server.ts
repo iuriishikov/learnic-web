@@ -8,7 +8,11 @@ export {
   type GetMyEffectivePermissionsResult,
   type EffectivePermissions,
 } from './api/get-my-effective-permissions';
-export { getNoteContent, type GetNoteContentResult } from './api/content';
+export { getNoteScheme, type GetNoteSchemeResult } from './api/scheme';
+export {
+  getNoteReleaseLesson,
+  type GetNoteReleaseLessonResult,
+} from './api/lesson';
 export {
   getMySavedAnswers,
   type GetMySavedAnswersResult,

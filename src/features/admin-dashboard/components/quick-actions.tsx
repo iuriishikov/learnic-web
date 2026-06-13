@@ -2,13 +2,15 @@
 
 import { BookOpenIcon, UsersIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { ComponentType } from 'react';
+import { useState, type ComponentType } from 'react';
 
-import { useComingSoon } from '../lib/use-coming-soon';
+import { NoteSearchMenu, UserSearchMenu } from './admin-search-menus';
 import { SectionHeader } from './section-header';
 
+type ActionKey = 'users' | 'notes';
+
 type ActionItem = {
-  key: string;
+  key: ActionKey;
   Icon: ComponentType<{ className?: string }>;
   title: string;
   desc: string;
@@ -16,7 +18,7 @@ type ActionItem = {
 
 export function QuickActions() {
   const t = useTranslations('admin-dashboard');
-  const comingSoon = useComingSoon();
+  const [openMenu, setOpenMenu] = useState<ActionKey | null>(null);
 
   const items: ActionItem[] = [
     {
@@ -41,7 +43,7 @@ export function QuickActions() {
           <button
             key={key}
             type="button"
-            onClick={comingSoon}
+            onClick={() => setOpenMenu(key)}
             className="flex items-stretch gap-3 rounded-xl border border-border bg-card p-4 text-left outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:hover:bg-muted/50"
           >
             <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-transparent text-foreground">
@@ -58,6 +60,15 @@ export function QuickActions() {
           </button>
         ))}
       </div>
+
+      <UserSearchMenu
+        open={openMenu === 'users'}
+        onOpenChange={(next) => setOpenMenu(next ? 'users' : null)}
+      />
+      <NoteSearchMenu
+        open={openMenu === 'notes'}
+        onOpenChange={(next) => setOpenMenu(next ? 'notes' : null)}
+      />
     </section>
   );
 }

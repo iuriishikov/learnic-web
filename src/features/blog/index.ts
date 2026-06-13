@@ -8,9 +8,19 @@ export {
 } from './components/recent-blog-posts-rail';
 export { BlogPostView } from './components/blog-post-view';
 export { BlogPostViewSkeleton } from './components/blog-post-view-skeleton';
-export { getPublishedPostAction } from './api/posts';
+export { BlogIndex, type BlogIndexLabels } from './components/blog-index';
+export { BlogIndexSkeleton } from './components/blog-index-skeleton';
+export {
+  getPublishedPostAction,
+  listPublishedPostsAction,
+} from './api/posts';
 export {
   useLatestPublishedPosts,
   latestBlogPostsKey,
 } from './hooks/use-latest-published-posts';
-export type { PublishedPost, BlogPostCardData } from './model/types';
+export { toFeatured, toFeaturedFromSummary } from './lib/to-featured';
+export type {
+  PublishedPost,
+  BlogPostCardData,
+  FeaturedPostData,
+} from './model/types';

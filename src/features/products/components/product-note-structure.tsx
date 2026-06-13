@@ -14,18 +14,23 @@ import { Button } from '@/shared/ui/button';
 import { Skeleton } from '@/shared/ui/skeleton';
 
 import {
-  NoteContentError,
-  useNoteContent,
-} from '../api/use-note-content';
-import type { PublicNoteContent, PublicModule } from '../model/public-content';
+  NoteSchemeError,
+  useNoteScheme,
+} from '../api/use-note-scheme';
+import type {
+  PublicNoteScheme,
+  PublicSchemeModule,
+} from '../model/public-scheme';
 import type { Product } from '../model/types';
 
 import { InfoSection } from './product-info-section';
 
 /**
  * Note curriculum preview for the public product landing — the module →
- * lesson tree read from the published release (answer keys stripped), styled
- * as the editorial numbered "table of contents" («Спотлайт» layout). It's the
+ * lesson tree read from the published release via the structure-only
+ * `/scheme` projection (no block payloads, so it stays public even for
+ * invite-only notes whose `/content` is enrollment-gated), styled as the
+ * editorial numbered "table of contents" («Спотлайт» layout). It's the
  * `note` entry in the per-type section registry (`product-info-sections.tsx`).
  *
  * Secondary content: a load failure is surfaced inline (retry), and a missing
@@ -35,15 +40,15 @@ import { InfoSection } from './product-info-section';
 export function ProductNoteStructure({ product }: { product: Product }) {
   const t = useTranslations('marketplace.detail.structure');
   const isNote = product.type === 'note';
-  const query = useNoteContent(product.id, isNote);
+  const query = useNoteScheme(product.id, isNote);
 
   if (!isNote) return null;
 
   // Note exists but has no published curriculum yet (or isn't a note on
-  // the content endpoint) — hide the section rather than show an error box.
+  // the scheme endpoint) — hide the section rather than show an error box.
   if (
     query.isError &&
-    query.error instanceof NoteContentError &&
+    query.error instanceof NoteSchemeError &&
     query.error.reason === 'not-found'
   ) {
     return null;
@@ -51,7 +56,10 @@ export function ProductNoteStructure({ product }: { product: Product }) {
   if (query.data && query.data.modules.length === 0) return null;
 
   return (
-    <InfoSection eyebrow={t('title')}>
+    // The framed module list (`border-y`) already closes this section with a
+    // rule — the next section's own top hairline would read as a second line,
+    // so it's suppressed via the adjacent-sibling selector.
+    <InfoSection eyebrow={t('title')} className="[&+section]:border-t-0">
       {query.isPending ? (
         <StructureSkeleton />
       ) : query.isError ? (
@@ -78,15 +86,15 @@ export function ProductNoteStructure({ product }: { product: Product }) {
   );
 }
 
-function countLessons(content: PublicNoteContent): number {
-  return content.modules.reduce((sum, m) => sum + m.lessons.length, 0);
+function countLessons(scheme: PublicNoteScheme): number {
+  return scheme.modules.reduce((sum, m) => sum + m.lessons.length, 0);
 }
 
 function ModuleRow({
   module,
   index,
 }: {
-  module: PublicModule;
+  module: PublicSchemeModule;
   index: number;
 }) {
   const t = useTranslations('marketplace.detail.structure');
@@ -152,9 +160,9 @@ function ModuleRow({
                     <span className="min-w-0 flex-1 truncate text-foreground">
                       {lesson.title}
                     </span>
-                    {lesson.blocks.length > 0 ? (
+                    {lesson.blockCount > 0 ? (
                       <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
-                        {t('lessonMaterials', { count: lesson.blocks.length })}
+                        {t('lessonMaterials', { count: lesson.blockCount })}
                       </span>
                     ) : null}
                   </li>

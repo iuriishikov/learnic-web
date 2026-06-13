@@ -16,12 +16,12 @@ export async function generateMetadata({
   const { locale } = await params;
   return buildPageMetadata({
     locale,
-    namespace: 'metadata.myNotes',
+    namespace: 'metadata.learning',
     noindex: true,
   });
 }
 
-export default async function MyNotesPage({ params }: PageProps) {
+export default async function LearningPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
 

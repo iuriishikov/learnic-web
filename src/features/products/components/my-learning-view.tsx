@@ -1,24 +1,27 @@
 'use client';
 
-import { CalendarIcon, ClockIcon, GraduationCapIcon } from 'lucide-react';
-import { motion, useReducedMotion } from 'motion/react';
+import { GraduationCapIcon } from 'lucide-react';
+import { motion, useReducedMotion, type Variants } from 'motion/react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
 import { Link, useRouter } from '@/shared/config/i18n/navigation';
-import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from '@/shared/ui/empty';
 import { NavTabs, type NavTab } from '@/shared/ui/nav-tabs';
 
-import { descriptionExcerpt } from '../lib/description-html';
 import type { EnrolledProduct } from '../model/enrollment';
+
+import { ProductShowcaseCard, accentFromId } from './product-showcase-card';
 
 type MyLearningViewProps = {
   items: EnrolledProduct[];
 };
-
-/** Chip-row cap so card heights stay even across the grid. */
-const MAX_VISIBLE_TAGS = 3;
 
 /**
  * Content-type tabs. Keys mirror `ProductType` so the grid filters by
@@ -34,12 +37,12 @@ const CONTENT_TYPES = [
 /**
  * "Моё обучение" — every product the learner is enrolled in. An in-page
  * underlined tab strip switches between content types (Конспекты,
- * Вебинары, …); the grid below filters by the active type. Restrained,
- * editorial card — neutral covers, sober labels, crisp borders. Each
- * card opens the reader at `/products/[id]`.
+ * Вебинары, …); the grid below filters by the active type. Cards are the
+ * standard `ProductShowcaseCard` (shared with the marketplace and teach
+ * catalogs); each opens the reader at `/products/[id]`.
  */
 export function MyLearningView({ items }: MyLearningViewProps) {
-  const t = useTranslations('my-notes');
+  const t = useTranslations('learning');
   const reduceMotion = useReducedMotion();
   const [activeType, setActiveType] = useState<string>(CONTENT_TYPES[0].key);
 
@@ -107,155 +110,103 @@ export function MyLearningView({ items }: MyLearningViewProps) {
 }
 
 function MyLearningCard({ item }: { item: EnrolledProduct }) {
-  const t = useTranslations('my-notes.card');
-  const tType = useTranslations('my-notes.type');
+  const t = useTranslations('learning.card');
+  const tType = useTranslations('learning.type');
   const format = useFormatter();
   const router = useRouter();
   const { product } = item;
 
-  const open = () => router.push(`/products/${product.id}`);
-  const lead = descriptionExcerpt(product.description);
-  const monogram = product.title.trim().charAt(0).toUpperCase() || '•';
   const enrolled = format.relativeTime(new Date(item.enrolledAt), {
     now: new Date(),
   });
-  const visibleTags = product.tags.slice(0, MAX_VISIBLE_TAGS);
-  const overflowTags = product.tags.slice(MAX_VISIBLE_TAGS);
 
   return (
     <li>
-      <article
-        role="button"
-        tabIndex={0}
-        aria-label={product.title}
-        onClick={open}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            open();
-          }
-        }}
-        className={cn(
-          'group flex h-full cursor-pointer flex-col overflow-hidden rounded-xl border border-border bg-card transition-colors',
-          'hover:border-foreground/25 hover:bg-accent/30',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-        )}
-      >
-        <div className="relative aspect-[16/9] w-full overflow-hidden border-b border-border bg-muted">
-          {product.cover?.url ? (
-            <div
-              role="img"
-              aria-label={product.title}
-              className="absolute inset-0 bg-cover bg-center transition-transform duration-300 ease-out group-hover:scale-[1.03]"
-              style={{ backgroundImage: `url(${product.cover.url})` }}
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span
-                aria-hidden
-                className="select-none font-heading text-7xl font-semibold leading-none text-foreground/[0.07]"
-              >
-                {monogram}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-1 flex-col gap-2 p-4">
-          <span className="text-[11px] font-medium uppercase tracking-[0.09em] text-muted-foreground">
-            {tType(product.type)}
-          </span>
-          <div className="space-y-1">
-            <h3 className="font-heading text-[15px] font-semibold leading-snug tracking-tight text-foreground line-clamp-2">
-              {product.title}
-            </h3>
-            {lead ? (
-              <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-                {lead}
-              </p>
-            ) : null}
-          </div>
-
-          <div className="mt-auto flex flex-col gap-2.5 pt-1">
-            {visibleTags.length > 0 ? (
-              <ul className="flex flex-wrap gap-1.5">
-                {visibleTags.map((tag) => (
-                  <li
-                    key={tag.id}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-border px-1.5 py-0.5 text-[11px] text-muted-foreground"
-                  >
-                    <span
-                      aria-hidden
-                      className="size-1.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: tag.color }}
-                    />
-                    <span className="max-w-[8rem] truncate">{tag.name}</span>
-                  </li>
-                ))}
-                {overflowTags.length > 0 ? (
-                  <li
-                    title={overflowTags.map((tag) => tag.name).join(', ')}
-                    className="inline-flex items-center rounded-md border border-border px-1.5 py-0.5 text-[11px] text-muted-foreground"
-                  >
-                    +{overflowTags.length}
-                  </li>
-                ) : null}
-              </ul>
-            ) : null}
-
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-border/60 pt-2.5 text-xs text-muted-foreground">
-              {product.durationHours > 0 ? (
-                <>
-                  <span className="inline-flex items-center gap-1">
-                    <ClockIcon className="size-3.5" />
-                    {t('durationHours', { hours: product.durationHours })}
-                  </span>
-                  <span
-                    aria-hidden
-                    className="size-0.5 rounded-full bg-muted-foreground/40"
-                  />
-                </>
-              ) : null}
-              <span className="inline-flex items-center gap-1">
-                <CalendarIcon className="size-3.5" />
-                {t('enrolled', { time: enrolled })}
-              </span>
-            </div>
-          </div>
-        </div>
-      </article>
+      <ProductShowcaseCard
+        type={product.type}
+        typeLabel={tType(product.type)}
+        title={product.title}
+        description={product.description}
+        onClick={() => router.push(`/products/${product.id}`)}
+        durationLabel={
+          product.durationHours > 0
+            ? t('durationHours', { hours: product.durationHours })
+            : null
+        }
+        dueLabel={t('enrolled', { time: enrolled })}
+        accent={accentFromId(product.id)}
+        coverUrl={product.cover?.url ?? null}
+        tags={product.tags}
+      />
     </li>
   );
 }
 
+/** Gentle cascade for the empty-state pieces — opacity + small lift only. */
+const EMPTY_CONTAINER: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.07, delayChildren: 0.04 } },
+};
+
+const EMPTY_ITEM: Variants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
+};
+
 function EmptyState({ isGloballyEmpty }: { isGloballyEmpty: boolean }) {
-  const t = useTranslations('my-notes.empty');
+  const t = useTranslations('learning.empty');
+  const reduceMotion = useReducedMotion();
 
   return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
-      <div className="flex size-12 items-center justify-center rounded-full border border-border text-muted-foreground">
-        <GraduationCapIcon className="size-5" />
-      </div>
+    <Empty className="rounded-2xl border border-dashed border-border/70 bg-gradient-to-b from-muted/35 to-muted/[0.08] px-6 py-16 md:py-20">
+      <motion.div
+        variants={reduceMotion ? undefined : EMPTY_CONTAINER}
+        initial={reduceMotion ? false : 'hidden'}
+        animate="visible"
+        className="flex w-full flex-col items-center gap-5"
+      >
+        {/* Concentric-ring medallion: a calm, considered focal point that
+            reads as intentional rather than a lone grey circle. */}
+        <motion.div variants={EMPTY_ITEM}>
+          <div className="relative flex size-28 items-center justify-center md:size-32">
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-full border border-border/30"
+            />
+            <span
+              aria-hidden
+              className="absolute inset-[18%] rounded-full border border-border/50"
+            />
+            <span className="relative flex size-14 items-center justify-center rounded-full border border-border bg-background text-foreground/70 shadow-sm">
+              <GraduationCapIcon className="size-6" aria-hidden />
+            </span>
+          </div>
+        </motion.div>
 
-      <div className="max-w-sm space-y-1">
-        <h2 className="font-heading text-base font-semibold tracking-tight text-foreground">
-          {isGloballyEmpty ? t('title') : t('tabTitle')}
-        </h2>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {isGloballyEmpty ? t('description') : t('tabDescription')}
-        </p>
-      </div>
+        <motion.div variants={EMPTY_ITEM}>
+          <EmptyHeader className="gap-1.5">
+            <EmptyTitle className="text-base">
+              {isGloballyEmpty ? t('title') : t('tabTitle')}
+            </EmptyTitle>
+            <EmptyDescription className="text-balance">
+              {isGloballyEmpty ? t('description') : t('tabDescription')}
+            </EmptyDescription>
+          </EmptyHeader>
+        </motion.div>
 
-      {isGloballyEmpty ? (
-        <Button
-          variant="outline"
-          size="sm"
-          render={<Link href="/marketplace" />}
-          nativeButton={false}
-        >
-          {t('cta')}
-        </Button>
-      ) : null}
-    </div>
+        {/* Always offer a way forward — even on a type-empty tab the catalogue
+            is where the learner finds something to enrol in. */}
+        <motion.div variants={EMPTY_ITEM}>
+          <Button
+            variant={isGloballyEmpty ? 'default' : 'outline'}
+            size="sm"
+            render={<Link href="/marketplace" />}
+            nativeButton={false}
+          >
+            {t('cta')}
+          </Button>
+        </motion.div>
+      </motion.div>
+    </Empty>
   );
 }

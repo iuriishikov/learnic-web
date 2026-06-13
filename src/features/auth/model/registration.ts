@@ -36,6 +36,10 @@ export const registerSchema = z.object({
     .min(1, 'emailRequired')
     .max(EMAIL_MAX, 'emailTooLong')
     .email('emailInvalid'),
+  acceptConsent: z.boolean().refine((value) => value, 'consentRequired'),
+  // Optional consent to distribution of personal data (ст. 10.1 152-ФЗ).
+  // Declining must not block registration, so no refinement here.
+  acceptDistribution: z.boolean(),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

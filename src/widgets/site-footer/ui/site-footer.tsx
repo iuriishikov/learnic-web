@@ -47,7 +47,7 @@ export function SiteFooter({ className }: SiteFooterProps) {
       >
         {/* Brand + navigation columns */}
         <div className="flex flex-col gap-12 md:flex-row md:items-start md:justify-between md:gap-8">
-          <motion.div variants={item}>
+          <motion.div variants={item} className="flex flex-col gap-4">
             <Link
               href="/"
               aria-label={t('brand')}
@@ -55,6 +55,9 @@ export function SiteFooter({ className }: SiteFooterProps) {
             >
               <BrandMark label={t('brand')} size="md" tone="dark" />
             </Link>
+            <p className="max-w-xs text-sm text-muted-foreground">
+              {t('tagline')}
+            </p>
           </motion.div>
 
           <nav
@@ -72,19 +75,7 @@ export function SiteFooter({ className }: SiteFooterProps) {
                 </h2>
                 <ul className="flex flex-col gap-3">
                   {column.links.map((link) => (
-                    <li key={link.label} className="flex items-center gap-2">
-                      <a
-                        href={link.href}
-                        className="text-sm font-semibold text-foreground/80 transition-colors hover:text-foreground"
-                      >
-                        {link.label}
-                      </a>
-                      {link.badge ? (
-                        <Badge variant="outline" className="rounded-md">
-                          {link.badge}
-                        </Badge>
-                      ) : null}
-                    </li>
+                    <FooterNavLink key={link.label} link={link} />
                   ))}
                 </ul>
               </motion.div>
@@ -117,5 +108,41 @@ export function SiteFooter({ className }: SiteFooterProps) {
         </motion.div>
       </motion.div>
     </footer>
+  );
+}
+
+/**
+ * A single footer link. Internal routes go through the locale-aware
+ * next-intl `Link` (so the `/ru`–`/en` prefix is preserved); external
+ * URLs (e.g. the Telegram channel) render as a plain anchor that opens
+ * in a new tab. An optional `badge` renders next to the label.
+ */
+function FooterNavLink({ link }: { link: FooterLink }) {
+  const linkClassName =
+    'text-sm font-semibold text-foreground/80 transition-colors hover:text-foreground';
+  const isExternal = /^https?:\/\//.test(link.href);
+
+  return (
+    <li className="flex items-center gap-2">
+      {isExternal ? (
+        <a
+          href={link.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={linkClassName}
+        >
+          {link.label}
+        </a>
+      ) : (
+        <Link href={link.href} className={linkClassName}>
+          {link.label}
+        </Link>
+      )}
+      {link.badge ? (
+        <Badge variant="outline" className="rounded-md">
+          {link.badge}
+        </Badge>
+      ) : null}
+    </li>
   );
 }

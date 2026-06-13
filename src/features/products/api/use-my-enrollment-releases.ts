@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 
+import { useRouter } from '@/shared/config/i18n/navigation';
 import { useNotify } from '@/shared/lib/notify';
 
 import {
@@ -10,7 +11,8 @@ import {
   listMyEnrollmentReleasesAction,
   repinMyEnrollmentAction,
 } from './releases';
-import { noteContentKey } from './use-note-content';
+import { noteLessonsPrefix } from './use-note-lesson';
+import { noteSchemeKey } from './use-note-scheme';
 import { myBlockAnswersKey } from './use-saved-answers';
 
 export const myEnrollmentReleasesKey = (enrollmentId: string) =>
@@ -49,17 +51,23 @@ export function useMyEnrollmentReleases(
 }
 
 /**
- * Switch the student's pinned release. On success the note-content AND
- * saved-answers caches are invalidated so the reader refetches both the
- * newly-pinned release's tree and the answers saved against it (answers are
- * per-release); failures roll nothing back (the pin is server-side) and
- * surface a toast.
+ * Switch the student's pinned release. On success the note-scheme AND
+ * saved-answers caches are invalidated so the reader and the landing's
+ * curriculum preview refetch the newly-pinned release's tree along with the
+ * answers saved against it (answers are per-release), while the per-lesson
+ * caches are REMOVED outright — lesson ids are release-scoped, so a stale id
+ * must never refetch (it would 404 against the new release). The router cache
+ * is refreshed too: without it a Back-navigation would restore the reader's
+ * pre-repin RSC payload and the re-seed effect would stamp the old release's
+ * tree back into the query cache. Failures roll nothing back (the pin is
+ * server-side) and surface a toast.
  */
 export function useRepinMyEnrollmentMutation(
   productId: string,
   enrollmentId: string,
 ) {
   const qc = useQueryClient();
+  const router = useRouter();
   const t = useTranslations('product-reader');
   const notify = useNotify();
 
@@ -69,8 +77,10 @@ export function useRepinMyEnrollmentMutation(
       if (!result.ok) throw new Error(result.reason);
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: noteContentKey(productId) });
+      qc.removeQueries({ queryKey: noteLessonsPrefix(productId) });
+      qc.invalidateQueries({ queryKey: noteSchemeKey(productId) });
       qc.invalidateQueries({ queryKey: myBlockAnswersKey(productId) });
+      router.refresh();
     },
     onError: () => notify.error(t('release.switchFailed')),
   });

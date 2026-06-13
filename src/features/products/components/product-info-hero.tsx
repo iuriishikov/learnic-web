@@ -3,6 +3,7 @@
 import { ArrowLeftIcon, ClockIcon, Loader2Icon, LockIcon } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
+import { useQueryClient } from '@tanstack/react-query';
 import { useState, useTransition } from 'react';
 
 import { useAuth } from '@/shared/auth';
@@ -15,6 +16,8 @@ import { UserAvatar } from '@/shared/ui/user-avatar';
 import { UserLink } from '@/shared/ui/user-link';
 
 import { enrollIntoProductAction } from '../api/enrollment-action';
+import { noteLessonsPrefix } from '../api/use-note-lesson';
+import { noteSchemeKey } from '../api/use-note-scheme';
 import { descriptionExcerpt } from '../lib/description-html';
 import type { Product } from '../model/types';
 
@@ -186,6 +189,7 @@ function HeroEnroll({
   const notify = useNotify();
   const { user } = useAuth();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [isPending, startTransition] = useTransition();
   // A transient network failure keeps the CTA on screen — per the error
   // conventions it surfaces as a persistent inline Alert anchored to the
@@ -218,6 +222,14 @@ function HeroEnroll({
     startTransition(async () => {
       const result = await enrollIntoProductAction(product.id);
       if (result.ok) {
+        // The enrollment pins a release; the cached anonymous
+        // scheme/lessons on this very page may now be stale.
+        queryClient.invalidateQueries({
+          queryKey: noteLessonsPrefix(product.id),
+        });
+        queryClient.invalidateQueries({
+          queryKey: noteSchemeKey(product.id),
+        });
         router.push(readerHref);
         return;
       }

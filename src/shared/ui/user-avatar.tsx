@@ -220,12 +220,23 @@ export function UserAvatar({
 
   const radius = resolveAvatarRadius(shape, size);
 
-  // Anchor the dot badges (online / load-error) just off the bottom-right
-  // corner, the same offset the verified badge and the `/menu-demo` reference
-  // use. The dot then sits centered on the corner — half on the avatar, half
-  // proud of it — reading as a status indicator beside the avatar rather than
-  // pasted flat onto its face.
-  const dotBadgePosition = '-right-0.5 -bottom-0.5';
+  // Where the corner badges (online / load-error / verified) sit.
+  //
+  // For a *square* avatar the bottom-right corner of the box coincides with the
+  // visible edge, so we anchor to the corner (nudged out a hair so the dot
+  // straddles it — half on, half proud), matching the `/menu-demo` reference.
+  //
+  // For a *circle* the box corner is empty space: the rim curves ~0.41·r away
+  // from it, so a corner-anchored dot floats off into the corner — and the
+  // bigger the avatar, the further it drifts (very visible at the `size-32`
+  // profile header). Instead, drop the dot's *centre* onto the rim at the 4:30
+  // position with a size-independent percentage inset (~14.6% ≈ the rim along
+  // the diagonal) plus a half-self translate, so it hugs the edge at every
+  // diameter.
+  const dotBadgePosition =
+    shape === 'circle'
+      ? 'right-[14.6%] bottom-[14.6%] translate-x-1/2 translate-y-1/2'
+      : '-right-0.5 -bottom-0.5';
 
   return (
     // base-ui's `Avatar.Root` keeps the loaded-status in context and never
@@ -284,7 +295,22 @@ export function UserAvatar({
           className={cn(
             'bg-online',
             dotBadgePosition,
-            'group-data-[size=sm]/avatar:size-1.5 group-data-[size=default]/avatar:size-2 group-data-[size=lg]/avatar:size-2.5',
+            // Size the dot proportionally to the avatar instead of pinning it
+            // to a per-variant pixel size. The base `AvatarBadge` keys the badge
+            // off `data-size`, which only spans the sm/default/lg scale
+            // (24-40px). Callers that scale the avatar past that via `className`
+            // (e.g. the `size-32` profile header) keep `data-size="default"`, so
+            // a pixel-pinned dot froze at 8px and read as a speck on a 128px
+            // avatar. `clamp(0.375rem, 25%, 1.125rem)` tracks the avatar
+            // (reproducing the old 6/8/10px sm/default/lg sizes exactly, since
+            // 25% of 24/32/40px lands on those) but caps at 16px so it stays a
+            // discreet presence dot on a large avatar instead of ballooning.
+            // Surfaces with an oversized avatar (the `size-32` profile header)
+            // can still widen the background gap via a
+            // `[&_[data-slot=avatar-badge]]:ring-*` override. The
+            // variant-prefixed form is required to out-specify the base badge's
+            // own `data-size` size rules.
+            'group-data-[size=sm]/avatar:size-[clamp(0.375rem,25%,1rem)] group-data-[size=default]/avatar:size-[clamp(0.375rem,25%,1rem)] group-data-[size=lg]/avatar:size-[clamp(0.375rem,25%,1rem)]',
           )}
         />
       )}

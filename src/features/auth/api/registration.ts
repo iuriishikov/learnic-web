@@ -23,6 +23,7 @@ export async function registerAction(input: unknown): Promise<AuthResult> {
         ...(parsed.data.patronymic.length > 0
           ? { patronymic: parsed.data.patronymic }
           : {}),
+        distribution_consent: parsed.data.acceptDistribution,
       },
     });
 

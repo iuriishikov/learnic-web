@@ -1,5 +1,7 @@
 import { Skeleton } from '@/shared/ui/skeleton';
 
+import { ProductCardSkeleton } from './product-card-skeleton';
+
 /**
  * Streaming fallback for the "Моё обучение" route — header lines, the
  * underlined tab strip, and a card grid shaped like {@link MyLearningView}
@@ -24,32 +26,10 @@ export function MyLearningSkeleton() {
       >
         {Array.from({ length: 6 }).map((_, i) => (
           <li key={i}>
-            <CardSkeleton />
+            <ProductCardSkeleton />
           </li>
         ))}
       </ul>
-    </div>
-  );
-}
-
-function CardSkeleton() {
-  return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card">
-      <Skeleton className="aspect-[16/9] w-full rounded-none" />
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <Skeleton className="h-3 w-16" />
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-4/5" />
-          <Skeleton className="h-3.5 w-full" />
-        </div>
-        <div className="mt-auto flex flex-col gap-2.5 pt-1">
-          <Skeleton className="h-5 w-16 rounded-md" />
-          <div className="flex items-center gap-2 border-t border-border/60 pt-2.5">
-            <Skeleton className="h-3.5 w-12" />
-            <Skeleton className="h-3.5 w-24" />
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

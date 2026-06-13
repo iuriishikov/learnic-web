@@ -58,3 +58,19 @@ export type BlogPostCardData = {
   excerpt: string;
   coverUrl: string | null;
 };
+
+/**
+ * Presentation shape for the blog-index lead story. Carries the richer
+ * fields a `PublishedPostSummary` lacks (topic, excerpt, author), resolved
+ * from the newest post's full body on the server. `excerpt` is the post's
+ * subtitle, or its first HTML block distilled to plain text.
+ */
+export type FeaturedPostData = {
+  slug: string;
+  title: string;
+  topic: string | null;
+  excerpt: string;
+  publishedAt: string | null;
+  coverUrl: string | null;
+  author: BlogAuthor | null;
+};

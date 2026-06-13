@@ -1,14 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import {
-  ArrowRightIcon,
-  BookOpenIcon,
-  ChevronDownIcon,
-  FileTextIcon,
-  PlayCircleIcon,
-  SparklesIcon,
-} from 'lucide-react';
+import { ArrowRightIcon, ChevronDownIcon } from 'lucide-react';
 import {
   AnimatePresence,
   motion,
@@ -58,30 +51,26 @@ import {
 import { Separator } from '@/shared/ui/separator';
 import { Skeleton } from '@/shared/ui/skeleton';
 
-type NavKey = 'products' | 'services' | 'pricing' | 'resources' | 'about';
+type NavKey = 'products' | 'services' | 'blog' | 'about';
 
 /**
  * Each nav item declares how it behaves:
- * - `find-note` — the "Найти конспект" trigger; its dropdown lists the
+ * - `find-note` — the "Каталог" trigger; its dropdown lists the
  *   top-10 popular tags (each linking to the marketplace pre-filtered by
  *   that tag) alongside the latest blog post.
- * - `link` — a plain link to an in-app route (e.g. pricing).
- * - `mega` — the placeholder mega-menu trigger.
- * - `placeholder` — a plain placeholder link (`#`).
+ * - `link` — a plain link to an in-app route (e.g. pricing, blog, the team page).
  */
 type NavItem =
   | { key: 'products'; kind: 'find-note' }
   | { key: 'services'; kind: 'link'; href: string }
-  | { key: 'pricing'; kind: 'placeholder' }
-  | { key: 'resources'; kind: 'mega' }
-  | { key: 'about'; kind: 'placeholder' };
+  | { key: 'blog'; kind: 'link'; href: string }
+  | { key: 'about'; kind: 'link'; href: string };
 
 const NAV_ITEMS: NavItem[] = [
   { key: 'products', kind: 'find-note' },
   { key: 'services', kind: 'link', href: '/pricing' },
-  { key: 'pricing', kind: 'placeholder' },
-  { key: 'resources', kind: 'mega' },
-  { key: 'about', kind: 'placeholder' },
+  { key: 'blog', kind: 'link', href: '/blog' },
+  { key: 'about', kind: 'link', href: '/team' },
 ];
 
 /** How many popular tags the "find note" menu surfaces (backend caps at 50). */
@@ -113,9 +102,6 @@ const TAG_SKELETON_WIDTHS = [
   'w-16',
 ] as const;
 
-const MEGA_MENU_ICONS = [BookOpenIcon, SparklesIcon, PlayCircleIcon, FileTextIcon];
-
-type MegaMenuItem = { title: string; description: string };
 type MobileFooterColumn = { items: string[] };
 
 /** Lifecycle of the lazily-fetched popular-tags request. */
@@ -186,7 +172,7 @@ export function SiteHeader({
   const t = useTranslations('home.header');
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // The "Найти конспект" menu is data-driven (popular tags + the latest
+  // The "Каталог" menu is data-driven (popular tags + the latest
   // blog post). Both loads are deferred until the menu is first opened
   // (hover / focus / mobile expand) and owned here, in the always-mounted
   // header — never inside the dropdown content, which unmounts on close
@@ -250,7 +236,6 @@ export function SiteHeader({
 
   const showChrome = bordered && (!transparent || scrolled);
 
-  const megaMenuItems = t.raw('megaMenu.items') as MegaMenuItem[];
   const mobileFooterColumns = t.raw(
     'mobileFooter.columns',
   ) as MobileFooterColumn[];
@@ -289,7 +274,7 @@ export function SiteHeader({
           'flex h-16 items-center justify-between rounded-2xl border px-3 md:h-[72px] md:px-5',
           'transition-[background-color,border-color,box-shadow] duration-300',
           showChrome
-            ? 'border-border bg-background/90 backdrop-blur'
+            ? 'border-border bg-background/60 backdrop-blur-xl'
             : 'border-transparent',
         )}
       >
@@ -332,41 +317,11 @@ export function SiteHeader({
                         </NavigationMenuContent>
                       </NavigationMenuItem>
                     );
-                  case 'mega':
-                    return (
-                      <NavigationMenuItem key={item.key}>
-                        <NavigationMenuTrigger
-                          className={cn(
-                            'h-9 gap-0 px-3 text-[15px] font-medium',
-                            navTriggerToneClasses,
-                          )}
-                        >
-                          {label}
-                        </NavigationMenuTrigger>
-                        <NavigationMenuContent>
-                          <MegaMenu items={megaMenuItems} />
-                        </NavigationMenuContent>
-                      </NavigationMenuItem>
-                    );
                   case 'link':
                     return (
                       <NavigationMenuItem key={item.key}>
                         <NavigationMenuLink
                           render={<Link href={item.href} />}
-                          className={cn(
-                            'h-9 px-3 text-[15px] font-medium',
-                            navLinkToneClasses,
-                          )}
-                        >
-                          {label}
-                        </NavigationMenuLink>
-                      </NavigationMenuItem>
-                    );
-                  case 'placeholder':
-                    return (
-                      <NavigationMenuItem key={item.key}>
-                        <NavigationMenuLink
-                          href="#"
                           className={cn(
                             'h-9 px-3 text-[15px] font-medium',
                             navLinkToneClasses,
@@ -415,7 +370,6 @@ export function SiteHeader({
           <MobileMenuContent srTitle={t('openMenu')}>
             <SiteMobileMenuContent
               brand={t('brand')}
-              megaMenuItems={megaMenuItems}
               mobileFooterColumns={mobileFooterColumns}
               popularTags={tags}
               tagsStatus={tagsStatus}
@@ -437,7 +391,6 @@ export function SiteHeader({
 
 type SiteMobileMenuContentProps = {
   brand: string;
-  megaMenuItems: MegaMenuItem[];
   mobileFooterColumns: MobileFooterColumn[];
   popularTags: Tag[] | null;
   tagsStatus: TagsStatus;
@@ -456,7 +409,6 @@ const EASE_IN_QUAD = [0.4, 0, 1, 1] as const;
 
 function SiteMobileMenuContent({
   brand,
-  megaMenuItems,
   mobileFooterColumns,
   popularTags,
   tagsStatus,
@@ -558,62 +510,11 @@ function SiteMobileMenuContent({
                     />
                   </MobileNavCollapsible>
                 );
-              case 'mega':
-                return (
-                  <MobileNavCollapsible
-                    key={item.key}
-                    label={label}
-                    open={openKey === item.key}
-                    onToggle={() => toggleKey(item.key)}
-                    reduceMotion={!!reduceMotion}
-                    listVariants={listVariants}
-                    panelTransition={panelTransition}
-                  >
-                    {megaMenuItems.map((sub, i) => {
-                      const Icon = MEGA_MENU_ICONS[i] ?? BookOpenIcon;
-                      return (
-                        <motion.li key={sub.title} variants={itemVariants}>
-                          <Link
-                            href="#"
-                            onClick={onNavigate}
-                            className="flex items-start gap-3 rounded-lg p-2 no-underline transition-colors hover:bg-muted hover:no-underline"
-                          >
-                            <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background">
-                              <Icon className="size-[18px] text-brand" />
-                            </span>
-                            <span className="flex flex-col gap-0.5">
-                              <span className="text-sm font-semibold text-foreground">
-                                {sub.title}
-                              </span>
-                              <span className="text-xs leading-relaxed text-muted-foreground">
-                                {sub.description}
-                              </span>
-                            </span>
-                          </Link>
-                        </motion.li>
-                      );
-                    })}
-                  </MobileNavCollapsible>
-                );
               case 'link':
                 return (
                   <Link
                     key={item.key}
                     href={item.href}
-                    onClick={onNavigate}
-                    className={cn(
-                      'flex items-center justify-between rounded-lg px-3 py-3 text-base font-semibold text-foreground',
-                      'transition-colors hover:bg-muted',
-                    )}
-                  >
-                    {label}
-                  </Link>
-                );
-              case 'placeholder':
-                return (
-                  <Link
-                    key={item.key}
-                    href="#"
                     onClick={onNavigate}
                     className={cn(
                       'flex items-center justify-between rounded-lg px-3 py-3 text-base font-semibold text-foreground',
@@ -759,7 +660,7 @@ type MobileTagItemsProps = {
   onNavigate: () => void;
 };
 
-/** Popular-tag rows for the mobile "Найти конспект" section. */
+/** Popular-tag rows for the mobile "Каталог" section. */
 function MobileTagItems({
   tags,
   status,
@@ -940,7 +841,7 @@ function TagSwatch({ color }: { color: string }) {
 }
 
 /**
- * Desktop dropdown for "Найти конспект", laid out like the mega menu:
+ * Desktop dropdown for "Каталог", laid out like the mega menu:
  * popular-tag chips on the left (each links to the marketplace pre-filtered
  * by that tag) and the latest blog post on the right with "read more" /
  * "not interested" actions. Collapses to a single tags column when there's
@@ -1160,68 +1061,6 @@ function FeaturedPostSkeleton() {
       <div className="mt-auto flex items-center gap-4">
         <Skeleton className="h-3 w-20" />
         <Skeleton className="h-3 w-24" />
-      </div>
-    </div>
-  );
-}
-
-function MegaMenu({ items }: { items: MegaMenuItem[] }) {
-  const t = useTranslations('home.header.megaMenu');
-
-  return (
-    <div className="grid w-[680px] grid-cols-[1fr_260px] gap-2 p-2">
-      <ul className="flex flex-col">
-        {items.map((item, i) => {
-          const Icon = MEGA_MENU_ICONS[i] ?? BookOpenIcon;
-          return (
-            <li key={item.title}>
-              <NavigationMenuLink
-                href="#"
-                className="items-start gap-3 p-3"
-              >
-                <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background">
-                  <Icon className="size-[18px] text-brand" />
-                </span>
-                <span className="flex flex-col gap-1">
-                  <span className="text-sm font-semibold text-foreground">
-                    {item.title}
-                  </span>
-                  <span className="text-xs leading-relaxed text-muted-foreground">
-                    {item.description}
-                  </span>
-                </span>
-              </NavigationMenuLink>
-            </li>
-          );
-        })}
-      </ul>
-
-      <div className="flex flex-col gap-3 rounded-lg bg-muted/40 p-3">
-        <div className="relative aspect-[16/10] overflow-hidden rounded-md">
-          <Placeholder variant="brand" seed="site-header-featured" />
-        </div>
-        <div className="flex flex-col gap-1">
-          <p className="text-sm font-semibold text-foreground">
-            {t('featured.title')}
-          </p>
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            {t('featured.description')}
-          </p>
-        </div>
-        <div className="mt-auto flex items-center gap-4 text-xs font-medium">
-          <a
-            href="#"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-          >
-            {t('featured.dismiss')}
-          </a>
-          <a
-            href="#"
-            className="text-brand transition-colors hover:text-brand/80"
-          >
-            {t('featured.cta')}
-          </a>
-        </div>
       </div>
     </div>
   );

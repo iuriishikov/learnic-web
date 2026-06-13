@@ -33,5 +33,41 @@
     "empty": "Пока нет учителей со студентами"
   },
   "metricsError": "Не удалось обновить данные за выбранный период",
+  "search": {
+    "usersTitle": "Поиск пользователей",
+    "usersPlaceholder": "Имя или фамилия…",
+    "notesTitle": "Поиск конспектов",
+    "notesPlaceholder": "Название конспекта…",
+    "byAuthor": "Автор: {author}",
+    "minChars": "Введите минимум 2 символа",
+    "emptyUsers": "Пользователи не найдены",
+    "emptyNotes": "Конспекты не найдены",
+    "error": "Не удалось выполнить поиск. Попробуйте ещё раз",
+    "navHint": "Навигация",
+    "closeHint": "Закрыть"
+  },
+  "actions": {
+    "back": "Назад",
+    "cancel": "Отмена",
+    "error": "Не удалось выполнить действие",
+    "openProfile": "Открыть профиль",
+    "grantBeta": "Выдать тариф BETA",
+    "revokeTariff": "Отозвать тариф",
+    "banUser": "Забанить",
+    "unbanUser": "Разбанить",
+    "openNote": "Открыть конспект",
+    "deleteNote": "Удалить конспект",
+    "grantedSuccess": "{name} — выдан тариф BETA",
+    "revokedSuccess": "{name} — тариф отозван",
+    "bannedSuccess": "{name} забанен(а)",
+    "unbannedSuccess": "{name} разбанен(а)",
+    "deletedSuccess": "Конспект «{title}» удалён",
+    "confirmBanTitle": "Забанить {name}?",
+    "confirmBanDesc": "Доступ к платформе будет заблокирован, а активные сессии сброшены. Снять бан можно позже через «Разбанить».",
+    "banCta": "Забанить",
+    "confirmDeleteTitle": "Удалить «{title}»?",
+    "confirmDeleteDesc": "Конспект и вся его история (модули, уроки, записи студентов) будут удалены безвозвратно.",
+    "deleteCta": "Удалить"
+  },
   "comingSoon": "Раздел в разработке"
 }

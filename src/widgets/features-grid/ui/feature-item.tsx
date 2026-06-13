@@ -1,31 +1,31 @@
 'use client';
 
 import {
-  CommandIcon,
-  HeartHandshakeIcon,
-  MessageCircleIcon,
-  MessageSquareIcon,
-  PieChartIcon,
-  ZapIcon,
+  BlocksIcon,
+  LayersIcon,
+  ListChecksIcon,
+  SearchIcon,
+  SigmaIcon,
+  UsersIcon,
   type LucideIcon,
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 
 export type FeatureIconKey =
-  | 'messageCircle'
-  | 'zap'
-  | 'pieChart'
-  | 'messageSquare'
-  | 'command'
-  | 'heartHandshake';
+  | 'blocks'
+  | 'sigma'
+  | 'listChecks'
+  | 'users'
+  | 'layers'
+  | 'search';
 
 const ICON_MAP: Record<FeatureIconKey, LucideIcon> = {
-  messageCircle: MessageCircleIcon,
-  zap: ZapIcon,
-  pieChart: PieChartIcon,
-  messageSquare: MessageSquareIcon,
-  command: CommandIcon,
-  heartHandshake: HeartHandshakeIcon,
+  blocks: BlocksIcon,
+  sigma: SigmaIcon,
+  listChecks: ListChecksIcon,
+  users: UsersIcon,
+  layers: LayersIcon,
+  search: SearchIcon,
 };
 
 type FeatureItemProps = {

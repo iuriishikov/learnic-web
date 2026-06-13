@@ -89,7 +89,11 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
               className={cn(
                 'size-24 rounded-full ring-4 ring-background sm:size-28 md:size-32',
                 '[&_[data-slot=avatar-fallback]]:text-2xl sm:[&_[data-slot=avatar-fallback]]:text-3xl md:[&_[data-slot=avatar-fallback]]:text-4xl',
-                '[&_[data-slot=avatar-verified-badge]]:size-6 [&_[data-slot=avatar-verified-badge]]:-right-1 [&_[data-slot=avatar-verified-badge]]:-bottom-1',
+                '[&_[data-slot=avatar-verified-badge]]:size-6',
+                // The status dot caps at 16px on this oversized avatar; widen
+                // the background ring so it reads as a deliberate gap rather
+                // than a hairline against the 128px photo.
+                '[&_[data-slot=avatar-badge]]:ring-[3px]',
               )}
             />
           </motion.div>

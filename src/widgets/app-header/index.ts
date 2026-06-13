@@ -9,6 +9,7 @@ export {
   type HeaderConfigValue,
 } from './ui/header-config-provider';
 export { HeaderConfig, type HeaderConfigProps } from './ui/header-config';
+export { HeaderActiveKey } from './ui/header-active-key';
 
 export { AppSubHeader } from './ui/app-sub-header';
 export type { AppSubHeaderProps, AppSubHeaderTab } from './ui/app-sub-header';

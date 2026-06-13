@@ -24,8 +24,8 @@ export function DefaultHeaderConfig() {
       label: t('nav.findNote'),
     },
     {
-      key: 'my-notes',
-      href: '/my-notes',
+      key: 'learning',
+      href: '/learning',
       label: t('nav.myLearning'),
     },
     {

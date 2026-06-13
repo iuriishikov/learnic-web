@@ -5,12 +5,13 @@ import { CheckCircle2Icon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useState, useTransition } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 
-import { useRouter } from '@/shared/config/i18n/navigation';
+import { Link, useRouter } from '@/shared/config/i18n/navigation';
 import { cn } from '@/shared/lib/utils';
 import { Alert, AlertDescription } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
+import { Checkbox } from '@/shared/ui/checkbox';
 import {
   EmailInput,
   FieldRow,
@@ -42,6 +43,8 @@ export function RegisterForm() {
       patronymic: '',
       password: '',
       email: '',
+      acceptConsent: false,
+      acceptDistribution: false,
     },
     mode: 'onTouched',
   });
@@ -254,6 +257,110 @@ export function RegisterForm() {
               : t('fields.password.hint', { min: PASSWORD_MIN })}
           </span>
         </p>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-start gap-2.5">
+          <Controller
+            control={form.control}
+            name="acceptConsent"
+            render={({ field }) => (
+              <Checkbox
+                id="register-consent"
+                className="mt-0.5"
+                checked={field.value}
+                onCheckedChange={(checked) => field.onChange(checked === true)}
+                onBlur={field.onBlur}
+                aria-invalid={Boolean(errors.acceptConsent)}
+                aria-describedby={
+                  errors.acceptConsent ? 'register-consent-error' : undefined
+                }
+              />
+            )}
+          />
+          <label
+            htmlFor="register-consent"
+            className="text-sm leading-snug text-muted-foreground"
+          >
+            {t.rich('register.consent.label', {
+              terms: (chunks) => (
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-foreground underline underline-offset-2 hover:text-brand"
+                >
+                  {chunks}
+                </Link>
+              ),
+              privacy: (chunks) => (
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-foreground underline underline-offset-2 hover:text-brand"
+                >
+                  {chunks}
+                </Link>
+              ),
+              pdn: (chunks) => (
+                <Link
+                  href="/consent-personal-data"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-foreground underline underline-offset-2 hover:text-brand"
+                >
+                  {chunks}
+                </Link>
+              ),
+            })}
+          </label>
+        </div>
+        {errors.acceptConsent ? (
+          <p
+            id="register-consent-error"
+            role="alert"
+            className="text-sm text-destructive"
+          >
+            {t(`errors.${errors.acceptConsent.message}`)}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="flex items-start gap-2.5">
+        <Controller
+          control={form.control}
+          name="acceptDistribution"
+          render={({ field }) => (
+            <Checkbox
+              id="register-distribution"
+              className="mt-0.5"
+              checked={field.value}
+              onCheckedChange={(checked) => field.onChange(checked === true)}
+              onBlur={field.onBlur}
+            />
+          )}
+        />
+        <label
+          htmlFor="register-distribution"
+          className="text-sm leading-snug text-muted-foreground"
+        >
+          {t.rich('register.consentDistribution.label', {
+            distribution: (chunks) => (
+              <Link
+                href="/consent-distribution"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-foreground underline underline-offset-2 hover:text-brand"
+              >
+                {chunks}
+              </Link>
+            ),
+          })}{' '}
+          <span className="text-muted-foreground/70">
+            {t('register.consentDistribution.optional')}
+          </span>
+        </label>
       </div>
 
       {formError && formError.kind !== 'validation' ? (

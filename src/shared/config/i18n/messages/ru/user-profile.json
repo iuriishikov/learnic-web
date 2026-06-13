@@ -81,6 +81,8 @@
       "webinar": "Вебинар",
       "podcast": "Подкаст"
     },
+    "durationHours": "{count, plural, one {# ч} few {# ч} many {# ч} other {# ч}}",
+    "loadMore": "Показать ещё",
     "empty": "У пользователя пока нет опубликованных продуктов."
   }
 }

@@ -9,7 +9,7 @@ import {
   softAccentFromSeed,
   type SoftAccent,
 } from '@/shared/lib/placeholder-accent';
-import { Placeholder } from '@/shared/ui/placeholder';
+import { CoverImage } from '@/shared/ui/cover-image';
 
 import { descriptionExcerpt } from '../lib/description-html';
 
@@ -137,16 +137,14 @@ export function ProductShowcaseCard({
                 'group-hover/showcase:scale-[1.04]',
             )}
           >
-            {coverUrl ? (
-              <div
-                role="img"
-                aria-label={title}
-                className="absolute inset-0 bg-cover bg-center"
-                style={{ backgroundImage: `url(${coverUrl})` }}
-              />
-            ) : (
-              <Placeholder variant="soft" seed={title} accent={accent} />
-            )}
+            <CoverImage
+              src={coverUrl}
+              alt={title}
+              seed={title}
+              accent={accent}
+              sizes="(max-width: 768px) 100vw, 320px"
+              className="absolute inset-0"
+            />
           </div>
         </div>
       </div>

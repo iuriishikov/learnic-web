@@ -1,7 +1,14 @@
+import { ChevronLeft, ChevronRight, Lock, Plus, Share } from 'lucide-react';
+import NextImage from 'next/image';
+
+import { SITE_URL } from '@/shared/config/site';
 import { cn } from '@/shared/lib/utils';
-import { Placeholder } from '@/shared/ui/placeholder';
 
 type DeviceShowcaseProps = {
+  /** Accessible description of the app screenshot shown inside the frames. */
+  alt: string;
+  /** Anchor id so the hero demo CTA can scroll to this section. */
+  id?: string;
   className?: string;
 };
 
@@ -15,20 +22,121 @@ const PHONE_SHADOW =
 const PHONE_SHADOW_DARK =
   'dark:shadow-[0_-20px_60px_-20px_rgba(0,0,0,0.45),-35px_0_60px_-25px_rgba(0,0,0,0.30),35px_0_60px_-25px_rgba(0,0,0,0.30)]';
 
-export function DeviceShowcase({ className }: DeviceShowcaseProps) {
+/**
+ * Domain shown in the mock Safari address bar. Derived from the configured site
+ * URL so it auto-tracks the real domain in production; falls back to the brand
+ * domain when SITE_URL is a localhost dev value.
+ */
+const DEMO_HOST = (() => {
+  try {
+    const { host } = new URL(SITE_URL);
+    return host.startsWith('localhost') ? 'learnic.ru' : host;
+  } catch {
+    return 'learnic.ru';
+  }
+})();
+
+/**
+ * Mock macOS Safari toolbar rendered above the desktop screenshot: traffic-light
+ * window controls + a centred address pill. Purely decorative chrome around the
+ * app screenshot, so the whole bar is hidden from assistive tech. The lights use
+ * the destructive / warning / online tokens, so they stay red / amber / green in
+ * both themes without any hardcoded hex.
+ */
+function BrowserChrome() {
   return (
-    <div className={cn('relative w-full', className)}>
-      <div className="mx-auto hidden w-full max-w-[1200px] sm:block">
-        <DesktopFrame />
+    <div
+      aria-hidden
+      className="relative flex h-11 items-center gap-3 border-b border-border bg-muted/60 px-4"
+    >
+      {/* window controls */}
+      <div className="flex items-center gap-2">
+        <span className="size-3 rounded-full bg-destructive" />
+        <span className="size-3 rounded-full bg-warning" />
+        <span className="size-3 rounded-full bg-online" />
       </div>
-      <div className="mx-auto block w-full max-w-[420px] sm:hidden">
-        <PhoneFrame />
+
+      {/* back / forward — collapse on narrow frames, like a real browser */}
+      <div className="hidden items-center gap-1 text-muted-foreground/40 md:flex">
+        <ChevronLeft className="size-4" />
+        <ChevronRight className="size-4" />
+      </div>
+
+      {/* centred address pill */}
+      <div className="pointer-events-none absolute left-1/2 flex h-7 w-full max-w-[360px] -translate-x-1/2 items-center justify-center gap-1.5 rounded-md bg-background/80 px-3 text-xs font-medium text-muted-foreground ring-1 ring-inset ring-border/70">
+        <Lock className="size-3 shrink-0" />
+        <span className="truncate">{DEMO_HOST}</span>
+      </div>
+
+      {/* trailing toolbar icons — collapse on narrow frames */}
+      <div className="ml-auto hidden items-center gap-3 text-muted-foreground/40 md:flex">
+        <Share className="size-4" />
+        <Plus className="size-4" />
       </div>
     </div>
   );
 }
 
-function DesktopFrame() {
+export function DeviceShowcase({ alt, id, className }: DeviceShowcaseProps) {
+  return (
+    <div id={id} className={cn('relative w-full', className)}>
+      <div className="mx-auto hidden w-full max-w-[1200px] sm:block">
+        <DesktopFrame alt={alt} />
+      </div>
+      <div className="mx-auto block w-full max-w-[420px] sm:hidden">
+        <PhoneFrame alt={alt} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Theme-aware app screenshot: light + dark variants are both in the DOM and
+ * swapped purely in CSS (`dark:hidden` / `hidden dark:block`) so the correct
+ * one paints on first render with no theme-flash. `object-top` keeps the
+ * recognisable top of the page (header → lesson title → graph) in frame when
+ * the source aspect doesn't match the device screen.
+ */
+function ThemedShot({
+  lightSrc,
+  darkSrc,
+  alt,
+  sizes,
+  fit,
+}: {
+  lightSrc: string;
+  darkSrc: string;
+  alt: string;
+  sizes: string;
+  /** object-fit / object-position utilities tuned per device aspect. */
+  fit: string;
+}) {
+  return (
+    <>
+      <NextImage
+        src={lightSrc}
+        alt={alt}
+        fill
+        priority
+        sizes={sizes}
+        className={cn(fit, 'dark:hidden')}
+      />
+      <NextImage
+        src={darkSrc}
+        alt=""
+        aria-hidden
+        fill
+        sizes={sizes}
+        className={cn('hidden dark:block', fit)}
+      />
+    </>
+  );
+}
+
+const DESKTOP_SIZES = '(min-width: 1216px) 1200px, 100vw';
+const PHONE_SIZES = '420px';
+
+function DesktopFrame({ alt }: { alt: string }) {
   return (
     // outer hairline
     <div
@@ -47,12 +155,15 @@ function DesktopFrame() {
             {/* inner hairline — bezel around screen */}
             <div className="relative rounded-t-[15px] bg-foreground/25 p-px pb-0">
               {/* screen */}
-              <div className="relative overflow-hidden rounded-t-[14px]">
-                <div className="relative aspect-[16/10] w-full">
-                  <Placeholder
-                    variant="brand"
-                    seed="landing-hero-desktop"
-                    priority
+              <div className="relative overflow-hidden rounded-t-[14px] bg-background">
+                <BrowserChrome />
+                <div className="relative aspect-[4/3] w-full">
+                  <ThemedShot
+                    lightSrc="/landing/reader-desktop-light.png"
+                    darkSrc="/landing/reader-desktop-dark.png"
+                    alt={alt}
+                    sizes={DESKTOP_SIZES}
+                    fit="object-cover object-top"
                   />
                 </div>
               </div>
@@ -64,7 +175,7 @@ function DesktopFrame() {
   );
 }
 
-function PhoneFrame() {
+function PhoneFrame({ alt }: { alt: string }) {
   return (
     // outer hairline
     <div
@@ -83,9 +194,15 @@ function PhoneFrame() {
             {/* inner hairline — bezel around screen */}
             <div className="relative rounded-t-[39px] bg-foreground/25 p-px pb-0">
               {/* screen */}
-              <div className="relative overflow-hidden rounded-t-[38px]">
+              <div className="relative overflow-hidden rounded-t-[38px] bg-background">
                 <div className="relative aspect-[9/16] w-full">
-                  <Placeholder variant="brand" seed="landing-hero-phone" />
+                  <ThemedShot
+                    lightSrc="/landing/reader-mobile-light.png"
+                    darkSrc="/landing/reader-mobile-dark.png"
+                    alt={alt}
+                    sizes={PHONE_SIZES}
+                    fit="object-cover object-top"
+                  />
                 </div>
               </div>
             </div>

@@ -28,8 +28,8 @@ export type NavTabsVariant = 'underline' | 'pill';
 
 export type NavTabsProps = {
   tabs: NavTab[];
-  /** Controlled active tab key. Pair with `onChange`. */
-  activeKey?: string;
+  /** Controlled active tab key. Pair with `onChange`. `null` → no tab active. */
+  activeKey?: string | null;
   /** Initial active tab key for uncontrolled mode. Ignored when `activeKey` is provided. */
   defaultActiveKey?: string;
   /** Fired when the user picks a tab — both controlled and uncontrolled modes. */

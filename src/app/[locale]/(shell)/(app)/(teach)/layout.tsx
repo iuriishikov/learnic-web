@@ -17,8 +17,8 @@ export default async function TeachLayout({
 
   // This group never overrides the header — `DefaultHeaderConfig`
   // mounted by the shared `(shell)` layout stays in effect. The studio
-  // sub-header (`<TeachSubHeader>`) is contributed by the browse-level
-  // pages, not here, so the product editor renders without the tab row.
+  // has no sub-header tab row; in-studio location is shown through the
+  // breadcrumb trail below instead.
   return (
     <>
       <ModeTracker mode="teach" />

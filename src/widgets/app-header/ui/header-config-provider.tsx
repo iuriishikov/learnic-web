@@ -25,19 +25,38 @@ const DEFAULT_CONFIG: HeaderConfigValue = {
   brandSuffix: null,
 };
 
+/**
+ * Active nav-tab override.
+ * - `undefined` → not overridden; the header derives the active tab from the
+ *   pathname (longest matching `href`).
+ * - `null` → explicitly NO active tab (e.g. a public leaf page like the note
+ *   reader, reachable from several sections, that shouldn't claim a tab).
+ * - a key string → force that tab active.
+ */
+export type HeaderActiveKey = string | null | undefined;
+
 type HeaderConfigContext = {
   config: HeaderConfigValue;
   setConfig: (config: HeaderConfigValue) => void;
+  activeKey: HeaderActiveKey;
+  setActiveKey: (key: HeaderActiveKey) => void;
 };
 
 const Context = createContext<HeaderConfigContext | null>(null);
 
 export function HeaderConfigProvider({ children }: { children: ReactNode }) {
   const [config, setConfigState] = useState<HeaderConfigValue>(DEFAULT_CONFIG);
+  const [activeKey, setActiveKeyState] = useState<HeaderActiveKey>(undefined);
   const setConfig = useCallback((next: HeaderConfigValue) => {
     setConfigState((prev) => (configEqual(prev, next) ? prev : next));
   }, []);
-  const value = useMemo(() => ({ config, setConfig }), [config, setConfig]);
+  const setActiveKey = useCallback((next: HeaderActiveKey) => {
+    setActiveKeyState((prev) => (prev === next ? prev : next));
+  }, []);
+  const value = useMemo(
+    () => ({ config, setConfig, activeKey, setActiveKey }),
+    [config, setConfig, activeKey, setActiveKey],
+  );
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 
@@ -54,6 +73,20 @@ export function useSetHeaderConfig() {
     );
   }
   return ctx.setConfig;
+}
+
+export function useHeaderActiveKey(): HeaderActiveKey {
+  return useContext(Context)?.activeKey;
+}
+
+export function useSetHeaderActiveKey() {
+  const ctx = useContext(Context);
+  if (!ctx) {
+    throw new Error(
+      'useSetHeaderActiveKey must be used within HeaderConfigProvider',
+    );
+  }
+  return ctx.setActiveKey;
 }
 
 function configEqual(a: HeaderConfigValue, b: HeaderConfigValue): boolean {

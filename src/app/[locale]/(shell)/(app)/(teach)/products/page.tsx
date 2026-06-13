@@ -10,8 +10,6 @@ import { getMyProducts } from '@/features/products/server';
 import { httpStatusForReason } from '@/shared/lib/http-error';
 import { buildPageMetadata } from '@/shared/lib/page-metadata';
 
-import { TeachSubHeader } from '../teach-sub-header';
-
 type PageProps = {
   params: Promise<{ locale: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -78,15 +76,12 @@ export default async function TeachProductsGeneralPage({
   }
 
   return (
-    <>
-      <TeachSubHeader locale={locale} />
-      <ProductsGeneralView
-        initialProducts={result.products}
-        initialTotal={result.total}
-        initialPage={page}
-        initialPerPage={perPage}
-        initialQuery={q ?? ''}
-      />
-    </>
+    <ProductsGeneralView
+      initialProducts={result.products}
+      initialTotal={result.total}
+      initialPage={page}
+      initialPerPage={perPage}
+      initialQuery={q ?? ''}
+    />
   );
 }

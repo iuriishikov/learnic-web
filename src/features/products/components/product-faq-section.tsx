@@ -34,7 +34,10 @@ export function ProductFaqSection({ productId }: { productId: string }) {
   if (query.isSuccess && query.data.length === 0) return null;
 
   return (
-    <InfoSection eyebrow={t('title')}>
+    // The framed accordion (`border-y`) already closes this section with a
+    // rule — the next section's own top hairline would read as a second line,
+    // so it's suppressed via the adjacent-sibling selector.
+    <InfoSection eyebrow={t('title')} className="[&+section]:border-t-0">
       {query.isPending ? (
         <FaqSkeleton />
       ) : query.isError ? (

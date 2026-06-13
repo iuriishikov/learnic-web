@@ -27,6 +27,7 @@ type JxgJessieCode = {
 
 type JxgBoard = {
   create(type: string, parents: unknown, attributes?: Record<string, unknown>): JxgElement;
+  getBoundingBox(): [number, number, number, number];
   setBoundingBox(bbox: [number, number, number, number], keepaspectratio?: boolean): JxgBoard;
   fullUpdate(): JxgBoard;
   update(): JxgBoard;
@@ -97,6 +98,35 @@ function objectColor(color: string | undefined, index: number): string {
 }
 
 const DASH_BY_NAME: Record<string, number> = { solid: 0, dashed: 2, dotted: 1 };
+
+const isBlank = (value: unknown): boolean =>
+  typeof value === 'string' && value.trim() === '';
+
+/**
+ * Whether an object has enough data to render. Incomplete objects (an empty
+ * expression / coordinate — e.g. a freshly added row) are skipped silently
+ * rather than counted as a failed render, so a blank new block shows no error.
+ */
+function isObjectRenderable(object: GraphObject): boolean {
+  switch (object.kind) {
+    case 'function':
+    case 'implicit':
+      return !isBlank(object.expr);
+    case 'parametric':
+      return !isBlank(object.xExpr) && !isBlank(object.yExpr);
+    case 'point':
+      return !isBlank(object.x) && !isBlank(object.y);
+    case 'segment':
+      return (
+        !isBlank(object.x1) &&
+        !isBlank(object.y1) &&
+        !isBlank(object.x2) &&
+        !isBlank(object.y2)
+      );
+    case 'verticalLine':
+      return !isBlank(object.x);
+  }
+}
 
 /* -------------------------------------------------------------------------- */
 /* Expression compilation (parameters resolve to live React state)            */
@@ -351,6 +381,7 @@ function buildBoard(
 
   let failedCount = 0;
   spec.objects.forEach((object, i) => {
+    if (!isObjectRenderable(object)) return;
     try {
       createObject(board, object, i, [xMin, xMax], paramNames, getParams, interactive);
     } catch {
@@ -386,6 +417,10 @@ export function FunctionGraphBoard({
   const boardRef = useRef<JxgBoard | null>(null);
   const bboxRef = useRef<[number, number, number, number] | null>(null);
   const paramsRef = useRef<ParamValues>(paramValues ?? {});
+  // Pan/zoom preserved across rebuilds + the viewport key of the last build, so
+  // editing an expression / param doesn't snap the view back (avoids jitter).
+  const preservedBboxRef = useRef<[number, number, number, number] | null>(null);
+  const lastViewportKeyRef = useRef<string | null>(null);
   const [ready, setReady] = useState(false);
   const [themeVersion, setThemeVersion] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
@@ -417,13 +452,23 @@ export function FunctionGraphBoard({
     return () => observer.disconnect();
   }, []);
 
-  // (Re)build the board on spec / mode / theme change — NOT on parameter
-  // changes (those flow through the lightweight update effect below).
+  // Debounce structural rebuilds so per-keystroke editing doesn't thrash the
+  // engine. Theme / mode changes rebuild immediately (separate deps).
   const specKey = JSON.stringify(spec);
+  const viewportKey = JSON.stringify(spec.viewport);
+  const [buildKey, setBuildKey] = useState(specKey);
+  useEffect(() => {
+    if (buildKey === specKey) return undefined;
+    const timer = setTimeout(() => setBuildKey(specKey), 180);
+    return () => clearTimeout(timer);
+  }, [specKey, buildKey]);
+
+  // (Re)build the board on spec / mode / theme change — NOT on parameter
+  // value changes (those flow through the lightweight update effect below).
   useEffect(() => {
     const JXG = engineRef.current;
     const el = containerRef.current;
-    if (!ready || !JXG || !el) return;
+    if (!ready || !JXG || !el) return undefined;
 
     let result: BuildResult | null = null;
     try {
@@ -431,12 +476,22 @@ export function FunctionGraphBoard({
       boardRef.current = result.board;
       bboxRef.current = result.bbox;
       setFailedCount(result.failedCount);
+      // Restore the previous pan/zoom unless the viewport spec itself changed.
+      if (lastViewportKeyRef.current === viewportKey && preservedBboxRef.current) {
+        result.board.setBoundingBox(preservedBboxRef.current, false).fullUpdate();
+      }
+      lastViewportKeyRef.current = viewportKey;
     } catch {
       setFailedCount(spec.objects.length);
     }
 
     return () => {
       if (result) {
+        try {
+          preservedBboxRef.current = result.board.getBoundingBox();
+        } catch {
+          /* board already torn down */
+        }
         try {
           JXG.freeBoard(result.board);
         } catch {
@@ -445,9 +500,9 @@ export function FunctionGraphBoard({
       }
       boardRef.current = null;
     };
-    // specKey captures deep spec changes; spec/interactive are derived from it.
+    // buildKey captures debounced deep spec changes; spec is read fresh.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, specKey, interactive, themeVersion, getParams]);
+  }, [ready, buildKey, interactive, themeVersion, getParams]);
 
   // Live parameter updates: refresh the shared values and repaint — no rebuild.
   const paramsKey = JSON.stringify(paramValues ?? {});
@@ -478,38 +533,38 @@ export function FunctionGraphBoard({
       />
 
       {interactive ? (
-        <div className="absolute top-2.5 right-2.5 z-10 flex flex-col overflow-hidden rounded-lg border border-border bg-card/85 shadow-sm backdrop-blur">
+        <div className="absolute top-2 right-2 z-10 flex overflow-hidden rounded-md border border-border/70 bg-card/70 backdrop-blur-sm">
           <Button
             type="button"
             size="icon"
             variant="ghost"
             onClick={zoomIn}
             aria-label={labels?.zoomIn ?? 'Zoom in'}
-            className="size-8 rounded-none"
+            className="size-7 rounded-none text-muted-foreground hover:text-foreground"
           >
-            <ZoomInIcon className="size-4" />
+            <ZoomInIcon className="size-3.5" />
           </Button>
-          <div className="h-px bg-border" />
+          <div className="w-px bg-border/70" />
           <Button
             type="button"
             size="icon"
             variant="ghost"
             onClick={zoomOut}
             aria-label={labels?.zoomOut ?? 'Zoom out'}
-            className="size-8 rounded-none"
+            className="size-7 rounded-none text-muted-foreground hover:text-foreground"
           >
-            <ZoomOutIcon className="size-4" />
+            <ZoomOutIcon className="size-3.5" />
           </Button>
-          <div className="h-px bg-border" />
+          <div className="w-px bg-border/70" />
           <Button
             type="button"
             size="icon"
             variant="ghost"
             onClick={resetView}
             aria-label={labels?.resetView ?? 'Reset view'}
-            className="size-8 rounded-none"
+            className="size-7 rounded-none text-muted-foreground hover:text-foreground"
           >
-            <Maximize2Icon className="size-4" />
+            <Maximize2Icon className="size-3.5" />
           </Button>
         </div>
       ) : null}

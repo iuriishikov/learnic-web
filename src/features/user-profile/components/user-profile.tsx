@@ -42,7 +42,10 @@ export async function UserProfile({ profile }: UserProfileProps) {
             label={t('products')}
             className="scroll-mt-24"
           >
-            <ProfileProductsList products={profile.products} />
+            <ProfileProductsList
+              userId={profile.id}
+              initialProducts={profile.products}
+            />
           </ProfileSection>
         </div>
       </div>

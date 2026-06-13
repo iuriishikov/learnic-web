@@ -1,31 +1,40 @@
 'use client';
 
-import { motion, useReducedMotion, type Variants } from 'motion/react';
+import { Loader2Icon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { ProductShowcaseCard } from '@/features/products';
+import {
+  accentFromId,
+  ProductCardSkeleton,
+  ProductShowcaseCard,
+  USER_PRODUCTS_PAGE_SIZE,
+  type Product,
+} from '@/features/products';
 import { useRouter } from '@/shared/config/i18n/navigation';
+import { Button } from '@/shared/ui/button';
 
-import type { PublicProfileProduct } from '../model/types';
+import { useUserProducts } from '../hooks/use-user-products';
 
 type ProfileProductsListProps = {
-  products: PublicProfileProduct[];
+  /** Profile owner — drives the per-author products endpoint. */
+  userId: string;
+  /** First page, fetched on the server; seeds the infinite query. */
+  initialProducts: Product[];
 };
 
-const LIST_VARIANTS: Variants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } },
-};
+const GRID_CLASS = 'grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3';
 
-const ITEM_VARIANTS: Variants = {
-  hidden: { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.32, ease: 'easeOut' } },
-};
-
-export function ProfileProductsList({ products }: ProfileProductsListProps) {
+export function ProfileProductsList({
+  userId,
+  initialProducts,
+}: ProfileProductsListProps) {
   const t = useTranslations('user-profile.products');
-  const reduceMotion = useReducedMotion();
   const router = useRouter();
+
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useUserProducts(userId, USER_PRODUCTS_PAGE_SIZE, initialProducts);
+
+  const products = data?.pages.flat() ?? initialProducts;
 
   if (products.length === 0) {
     return (
@@ -36,32 +45,53 @@ export function ProfileProductsList({ products }: ProfileProductsListProps) {
   }
 
   return (
-    <motion.ul
-      initial={reduceMotion ? false : 'hidden'}
-      animate="visible"
-      variants={LIST_VARIANTS}
-      className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"
-    >
-      {products.map((product) => (
-        <motion.li
-          key={product.id}
-          variants={ITEM_VARIANTS}
-          className="min-w-0"
-        >
-          <ProductShowcaseCard
-            type={product.type}
-            typeLabel={t(`type.${product.type}`)}
-            title={product.title}
-            description={product.description}
-            durationLabel={product.durationLabel}
-            dueLabel={product.dueLabel ?? undefined}
-            accent={product.accent}
-            coverUrl={product.cover?.url ?? null}
-            tags={product.tags}
-            onClick={() => router.push(`/products/${product.id}`)}
-          />
-        </motion.li>
-      ))}
-    </motion.ul>
+    <div className="flex flex-col gap-8">
+      <ul className={GRID_CLASS}>
+        {products.map((product) => (
+          <li key={product.id} className="min-w-0">
+            <ProductShowcaseCard
+              type={product.type}
+              typeLabel={t(`type.${product.type}`)}
+              title={product.title}
+              description={product.description}
+              durationLabel={
+                product.durationHours > 0
+                  ? t('durationHours', { count: product.durationHours })
+                  : null
+              }
+              accent={accentFromId(product.id)}
+              coverUrl={product.cover?.url ?? null}
+              tags={product.tags}
+              onClick={() => router.push(`/products/${product.id}`)}
+            />
+          </li>
+        ))}
+        {/* Skeletons appended in the same grid while the next page loads —
+            keeps the list height growing smoothly with no centered spinner. */}
+        {isFetchingNextPage
+          ? Array.from({ length: USER_PRODUCTS_PAGE_SIZE }).map((_, i) => (
+              <li key={`pending-${i}`} className="min-w-0">
+                <ProductCardSkeleton />
+              </li>
+            ))
+          : null}
+      </ul>
+
+      {hasNextPage ? (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+          >
+            {isFetchingNextPage ? (
+              <Loader2Icon className="animate-spin" aria-hidden />
+            ) : null}
+            {t('loadMore')}
+          </Button>
+        </div>
+      ) : null}
+    </div>
   );
 }

@@ -1,12 +1,11 @@
 import { getTranslations } from 'next-intl/server';
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarGroup,
-} from '@/shared/ui/avatar';
+import { listAdminsAction } from '@/features/admins';
+import { Link } from '@/shared/config/i18n/navigation';
+import { AvatarGroup } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
 import { Separator } from '@/shared/ui/separator';
+import { UserAvatar } from '@/shared/ui/user-avatar';
 
 import { FaqList } from './faq-list';
 
@@ -15,15 +14,16 @@ type FaqItem = {
   answer: string;
 };
 
-const SUPPORT_AVATARS = [
-  { initials: 'AM', className: 'bg-brand/15 text-brand' },
-  { initials: 'SK', className: 'bg-muted text-foreground' },
-  { initials: 'ND', className: 'bg-brand/10 text-brand' },
-] as const;
+const SUPPORT_AVATAR_LIMIT = 3;
 
 export async function FaqSection() {
-  const t = await getTranslations('home.faq');
+  const [t, adminsResult] = await Promise.all([
+    getTranslations('home.faq'),
+    listAdminsAction({ limit: SUPPORT_AVATAR_LIMIT }),
+  ]);
   const items = t.raw('items') as FaqItem[];
+  // Secondary content: on backend failure the avatar row simply hides.
+  const admins = adminsResult.ok ? adminsResult.data : [];
 
   return (
     <section className="w-full py-10 md:py-14 lg:py-16">
@@ -42,17 +42,19 @@ export async function FaqSection() {
         </div>
 
         <div className="mt-16 flex flex-col items-center gap-6 rounded-2xl bg-muted/60 px-6 py-10 text-center md:mt-20 md:px-10">
-          <AvatarGroup>
-            {SUPPORT_AVATARS.map((avatar) => (
-              <Avatar key={avatar.initials} size="lg">
-                <AvatarFallback
-                  className={`${avatar.className} text-sm font-semibold`}
-                >
-                  {avatar.initials}
-                </AvatarFallback>
-              </Avatar>
-            ))}
-          </AvatarGroup>
+          {admins.length > 0 && (
+            <AvatarGroup>
+              {admins.map((admin) => (
+                <UserAvatar
+                  key={admin.id}
+                  user={admin}
+                  size="lg"
+                  shape="circle"
+                  showStatus={false}
+                />
+              ))}
+            </AvatarGroup>
+          )}
           <div className="flex flex-col gap-2">
             <h3 className="text-xl font-semibold tracking-tight text-foreground">
               {t('support.title')}
@@ -63,7 +65,7 @@ export async function FaqSection() {
           </div>
           <Button
             className="h-11 gap-2 rounded-lg bg-brand px-5 text-base font-medium text-brand-foreground hover:bg-brand/90"
-            render={<a href="#" />}
+            render={<Link href="/help" />}
             nativeButton={false}
           >
             {t('support.cta')}

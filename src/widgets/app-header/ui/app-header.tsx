@@ -34,8 +34,11 @@ export type AppHeaderNavItem = {
 export type AppHeaderProps = {
   /** Primary navigation items rendered in the centre of the header (and inside the mobile sheet). */
   navItems?: AppHeaderNavItem[];
-  /** Active item key. When omitted, falls back to pathname-based matching. */
-  activeKey?: string;
+  /**
+   * Active item key. `undefined` → pathname-based matching; `null` → no tab
+   * active (override for leaf pages that share a tab's href prefix).
+   */
+  activeKey?: string | null;
   /** Slot rendered before the bell on desktop and at the top of the mobile sheet. */
   actions?: ReactNode;
   /** Slot rendered at the bottom of the mobile sheet (use for mode switches, secondary CTAs). */
@@ -59,8 +62,10 @@ export function AppHeader({
   const { user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // `undefined` → derive from pathname; an explicit key or `null` (no active
+  // tab) is honoured as-is.
   const resolvedActiveKey =
-    activeKey ?? findLongestMatchKey(navItems, pathname);
+    activeKey === undefined ? findLongestMatchKey(navItems, pathname) : activeKey;
 
   function isActive(item: AppHeaderNavItem): boolean {
     return resolvedActiveKey === item.key;

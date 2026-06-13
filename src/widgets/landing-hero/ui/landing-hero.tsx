@@ -1,12 +1,13 @@
 import { getTranslations } from 'next-intl/server';
-import { PlayCircleIcon } from 'lucide-react';
 
+import { Link } from '@/shared/config/i18n/navigation';
 import { TELEGRAM_CHANNEL_URL } from '@/shared/config/site';
 import { Button } from '@/shared/ui/button';
 import { GridBackdrop } from '@/shared/ui/grid-backdrop';
 import { Separator } from '@/shared/ui/separator';
 
 import { DeviceShowcase } from './device-showcase';
+import { DEMO_SECTION_ID, HeroDemoButton } from './hero-demo-button';
 import { TypewriterTitle } from './typewriter-title';
 
 export async function LandingHero() {
@@ -37,17 +38,11 @@ export async function LandingHero() {
             </p>
 
             <div className="mt-8 flex w-full flex-col-reverse gap-3 md:mt-10 md:w-auto md:flex-row md:justify-center md:gap-3">
-              <Button
-                variant="outline"
-                className="h-12 w-full gap-2 rounded-lg px-5 text-base font-medium dark:bg-background dark:hover:bg-muted md:w-auto md:min-w-[120px]"
-                render={<a href="#" />} nativeButton={false}
-              >
-                <PlayCircleIcon className="size-[18px]" />
-                {t('demo')}
-              </Button>
+              <HeroDemoButton label={t('demo')} />
               <Button
                 className="h-12 w-full gap-2 rounded-lg bg-brand px-5 text-base font-medium text-brand-foreground hover:bg-brand/90 md:w-auto md:min-w-[120px]"
-                render={<a href="#" />} nativeButton={false}
+                render={<Link href="/register" />}
+                nativeButton={false}
               >
                 {t('signUp')}
               </Button>
@@ -55,7 +50,11 @@ export async function LandingHero() {
           </div>
         </div>
 
-        <DeviceShowcase className="relative" />
+        <DeviceShowcase
+          alt={t('deviceAlt')}
+          id={DEMO_SECTION_ID}
+          className="relative scroll-mt-24 md:scroll-mt-28"
+        />
 
         <div className="relative z-10 mt-px -mx-8 md:-mx-16 lg:-mx-32 xl:-mx-48">
           <Separator className="h-px w-full" />

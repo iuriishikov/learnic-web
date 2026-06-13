@@ -2,12 +2,6 @@
   "breadcrumbs": {
     "root": "Студия"
   },
-  "nav": {
-    "products": "Продукты"
-  },
-  "subHeader": {
-    "ariaLabel": "Разделы студии"
-  },
   "products": {
     "ariaLabel": "Разделы продуктов",
     "tabs": {

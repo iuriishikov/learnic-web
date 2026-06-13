@@ -5,6 +5,7 @@ import { Geist_Mono, Inter } from 'next/font/google';
 import { routing } from '@/shared/config/i18n/routing';
 import {
   BRAND_COLOR,
+  DEFAULT_THEME,
   SITE_NAME,
   SITE_URL,
   TITLE_TEMPLATE,
@@ -54,7 +55,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
       <body className="min-h-full flex flex-col">
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme={DEFAULT_THEME}
           enableSystem
           disableTransitionOnChange
         >

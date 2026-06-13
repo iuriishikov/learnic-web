@@ -25,7 +25,7 @@ export default async function LearnLayout({
   // navigation lives in the sub-header instead.
   const tabs: AppSubHeaderTab[] = [
     { key: 'marketplace', href: '/marketplace', label: t('nav.marketplace') },
-    { key: 'my-notes', href: '/my-notes', label: t('nav.myNotes') },
+    { key: 'learning', href: '/learning', label: t('nav.myLearning') },
     { key: 'community', href: '/community', label: t('nav.community') },
   ];
 

@@ -1,10 +1,10 @@
 import 'server-only';
 
-import type {
-  ProductShowcaseAccent,
-  ProductShowcaseType,
+import {
+  getUserProductsAction,
+  USER_PRODUCTS_PAGE_SIZE,
+  type Product,
 } from '@/features/products';
-import { softAccentFromSeed } from '@/shared/lib/placeholder-accent';
 import {
   listSocialLinksAction,
   type SocialLink,
@@ -13,54 +13,11 @@ import {
   listUserExperiencesAction,
   type UserExperience,
 } from '@/features/user-experiences';
-import { apiFetch } from '@/shared/api/client';
-import { toApiFile, type FileResponse } from '@/shared/types/user';
+import { toApiFile } from '@/shared/types/user';
 
-import type { PublicProfileProduct, PublicUserProfile } from '../model/types';
+import type { PublicUserProfile } from '../model/types';
 
 import { fetchUser } from './_shared';
-
-type ProductSchemaResponse = {
-  oid: string;
-  type: ProductShowcaseType;
-  status: 'draft' | 'published' | 'archived' | 'banned';
-  name: string;
-  description: string | null;
-  total_duration_in_hours: number | null;
-  author: { oid: string; full_name: string; email: string };
-  cover: FileResponse | null;
-  /** Not in the spec's `required` list — guard against absence. */
-  tags?: { oid: string; name: string; color: string }[];
-  published_at: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-function durationLabel(hours: number | null): string | null {
-  // Unset / non-positive → null so the card hides the stat entirely
-  // rather than rendering a "—" placeholder.
-  if (hours == null || hours <= 0) return null;
-  // Russian short hour suffix; matches the rest of the catalog UI.
-  return `${hours} ч`;
-}
-
-function toProduct(raw: ProductSchemaResponse): PublicProfileProduct {
-  return {
-    id: raw.oid,
-    type: raw.type,
-    title: raw.name,
-    description: raw.description,
-    durationLabel: durationLabel(raw.total_duration_in_hours),
-    dueLabel: null,
-    accent: softAccentFromSeed(raw.oid) as ProductShowcaseAccent,
-    cover: raw.cover !== null ? toApiFile(raw.cover) : null,
-    tags: (raw.tags ?? []).map((tag) => ({
-      id: tag.oid,
-      name: tag.name,
-      color: tag.color,
-    })),
-  };
-}
 
 async function fetchSocials(id: string): Promise<SocialLink[]> {
   // Secondary data — degrade silently to an empty list rather than
@@ -82,21 +39,22 @@ async function fetchExperiences(id: string): Promise<UserExperience[]> {
   }
 }
 
-async function fetchUserProducts(id: string): Promise<PublicProfileProduct[]> {
-  // Backend has no per-author endpoint yet — pull the public catalog
-  // and filter locally. Limit caps at 100 so this is bounded; revisit
-  // once `/users/{user_id}/products` lands.
-  let res: Response;
+async function fetchUserProducts(id: string): Promise<Product[]> {
+  // First page of the user's PUBLISHED products via the dedicated
+  // per-author endpoint (`GET /users/{id}/products`). Seeds the
+  // profile's load-more list. Secondary content — degrade silently to
+  // an empty list rather than throwing, so a transient products outage
+  // doesn't take the whole profile down.
   try {
-    res = await apiFetch('/products?limit=100', { method: 'GET' });
+    const result = await getUserProductsAction({
+      userId: id,
+      offset: 0,
+      limit: USER_PRODUCTS_PAGE_SIZE,
+    });
+    return result.ok ? result.products : [];
   } catch {
     return [];
   }
-  if (!res.ok) return [];
-  const raw = (await res.json()) as ProductSchemaResponse[];
-  return raw
-    .filter((p) => p.author.oid === id && p.status === 'published')
-    .map(toProduct);
 }
 
 export type GetPublicUserProfileResult =

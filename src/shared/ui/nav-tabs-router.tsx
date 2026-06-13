@@ -12,8 +12,12 @@ export type NavTabRoute = NavTab & { href: string };
 
 export type NavTabsRouterProps = {
   tabs: NavTabRoute[];
-  /** Override the auto-derived active key (longest matching href against the current pathname). */
-  activeKey?: string;
+  /**
+   * Override the auto-derived active key (longest matching href against the
+   * current pathname). `null` → force NO active tab (skip the pathname
+   * fallback) for leaf routes that share a tab's href prefix.
+   */
+  activeKey?: string | null;
   variant?: NavTabsVariant;
   /** Stable identifier so multiple instances on a page don't share `layoutId`. */
   layoutId: string;
@@ -36,7 +40,10 @@ export function NavTabsRouter({
   const router = useRouter();
   const pathname = usePathname();
 
-  const resolvedActiveKey = activeKey ?? findActiveTabKey(tabs, pathname);
+  // `undefined` → derive from pathname; an explicit key or `null` (no active
+  // tab) is honoured as-is.
+  const resolvedActiveKey =
+    activeKey === undefined ? findActiveTabKey(tabs, pathname) : activeKey;
 
   return (
     <NavTabs

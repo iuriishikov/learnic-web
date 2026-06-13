@@ -164,6 +164,9 @@ export type FunctionGraphProps = {
   className?: string;
   /** Tailwind aspect-ratio classes for the plot box. */
   aspectClassName?: string;
+  /** Drop the plot's own card chrome (border/bg/shadow) so it can sit flush
+   *  inside a host container — used by the editor to merge graph + controls. */
+  bare?: boolean;
 };
 
 export function FunctionGraph({
@@ -175,6 +178,7 @@ export function FunctionGraph({
   labels,
   className,
   aspectClassName = DEFAULT_ASPECT,
+  bare = false,
 }: FunctionGraphProps) {
   const reduceMotion = useReducedMotion();
   const plotRef = useRef<HTMLDivElement>(null);
@@ -231,7 +235,8 @@ export function FunctionGraph({
         role="img"
         aria-label={ariaLabel || undefined}
         className={cn(
-          'relative w-full overflow-hidden rounded-xl border border-border bg-card shadow-sm',
+          'relative w-full overflow-hidden rounded-xl',
+          bare ? 'bg-muted/20' : 'border border-border bg-card shadow-sm',
           aspectClassName,
         )}
       >
@@ -256,7 +261,14 @@ export function FunctionGraph({
       </motion.div>
 
       {showSliders ? (
-        <div className="grid grid-cols-1 gap-x-8 gap-y-4 rounded-xl border border-border bg-card px-4 py-4 shadow-sm sm:grid-cols-2">
+        <div
+          className={cn(
+            'grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2',
+            bare
+              ? 'px-1 py-1'
+              : 'rounded-xl border border-border bg-card px-4 py-4 shadow-sm',
+          )}
+        >
           {parameters.map((parameter) => (
             <ParameterControl
               key={parameter.name}

@@ -11,10 +11,11 @@ import type {
 } from './draft';
 
 /**
- * Learner-facing note content tree, read from the published release via
- * `GET /notes/{id}/content` (optional auth). Used by the public product
- * landing AND the in-product reader to render the full curriculum —
- * modules → lessons → block payloads.
+ * Learner-facing lesson read from the published release via
+ * `GET /notes/{note_id}/release-lessons/{lesson_id}` (optional auth). The
+ * scheme (`model/public-scheme.ts`) is the structure-only skeleton; this is
+ * the on-demand payload of a single lesson — the in-product reader loads one
+ * lesson's blocks at a time.
  *
  * Distinct from {@link import('./draft').NoteDraft}, which is the authoring
  * view behind `READ_PRODUCT`. Both carry full, renderable block payloads;
@@ -26,9 +27,9 @@ import type {
  *  - text input exposes only the normalisation flags (`caseSensitive`,
  *    `trimWhitespace`), never the accepted-answer list.
  *
- * The 7 non-interactive block types (html, katex, rutube_video, code, file,
- * video_file, photo_collage) are structurally identical to their draft
- * counterparts, so they are reused verbatim from `model/draft.ts`.
+ * The 8 non-interactive block types (html, katex, rutube_video, code, file,
+ * video_file, photo_collage, function_graph) are structurally identical to
+ * their draft counterparts, so they are reused verbatim from `model/draft.ts`.
  */
 
 export type PublicSingleChoiceBlock = {
@@ -71,18 +72,4 @@ export type PublicLesson = {
   title: string;
   position: number;
   blocks: PublicLessonBlock[];
-};
-
-export type PublicModule = {
-  id: string;
-  title: string;
-  description: string | null;
-  position: number;
-  lessons: PublicLesson[];
-};
-
-export type PublicNoteContent = {
-  noteId: string;
-  releaseId: string;
-  modules: PublicModule[];
 };

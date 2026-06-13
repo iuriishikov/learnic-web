@@ -1,4 +1,34 @@
+import { cn } from '@/shared/lib/utils';
 import { Skeleton } from '@/shared/ui/skeleton';
+
+/* Block-row shapes, cycled so a taller media-like row breaks up the stack. */
+const LESSON_BLOCK_ROW_CLASSES = [
+  'h-24 w-full',
+  'h-40 w-full',
+  'h-24 w-3/4',
+] as const;
+
+/**
+ * Placeholder for one lesson's blocks region while the on-demand payload
+ * loads. Rendered under the (already painted) lesson header inside the
+ * reading column; `rows` mirrors the scheme's `blockCount` (clamped by the
+ * caller) so the shape roughly matches the incoming content.
+ */
+export function LessonBlocksSkeleton({ rows }: { rows: number }) {
+  return (
+    <div className="mt-8 space-y-8">
+      {Array.from({ length: rows }).map((_, index) => (
+        <Skeleton
+          key={index}
+          className={cn(
+            'rounded-xl',
+            LESSON_BLOCK_ROW_CLASSES[index % LESSON_BLOCK_ROW_CLASSES.length],
+          )}
+        />
+      ))}
+    </div>
+  );
+}
 
 /**
  * Loading placeholder for {@link import('./product-reader-view').ProductReaderView}.
@@ -41,11 +71,7 @@ export function ProductReaderSkeleton() {
               <Skeleton className="h-3 w-24" />
               <Skeleton className="h-8 w-2/3" />
             </div>
-            <div className="mt-8 space-y-8">
-              <Skeleton className="h-24 w-full rounded-xl" />
-              <Skeleton className="h-40 w-full rounded-xl" />
-              <Skeleton className="h-24 w-3/4 rounded-xl" />
-            </div>
+            <LessonBlocksSkeleton rows={3} />
           </div>
         </div>
       </div>

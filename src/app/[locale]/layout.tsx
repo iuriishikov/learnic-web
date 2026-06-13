@@ -4,6 +4,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { AuthProvider } from '@/features/auth';
 import { getCurrentUser, getMyAdminStatus } from '@/features/auth/server';
+import { CookieConsentBanner } from '@/features/cookie-consent';
 import { PresenceProvider } from '@/features/presence';
 import { QueryProvider } from '@/shared/api/query-provider';
 import { routing } from '@/shared/config/i18n/routing';
@@ -84,6 +85,13 @@ export default async function LocaleLayout({
         <QueryProvider>
           <PresenceProvider>
             <BannerProvider>
+              {/*
+                Site-wide cookie-consent notice — shown to every
+                visitor (anonymous and authenticated) until accepted,
+                so it lives at the root layout rather than in the
+                authenticated ``(app)`` shell where ``PushBanner`` sits.
+              */}
+              <CookieConsentBanner />
               {/*
                 Header / sub-header / breadcrumb config providers
                 live at the root locale layout so public-shell

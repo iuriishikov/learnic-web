@@ -4,8 +4,6 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { buildPageMetadata } from '@/shared/lib/page-metadata';
 import { PagePlaceholder } from '@/shared/ui/page-placeholder';
 
-import { TeachSubHeader } from '../../teach-sub-header';
-
 type PageProps = {
   params: Promise<{ locale: string }>;
 };
@@ -27,13 +25,10 @@ export default async function TeachProductsCatalogPage({ params }: PageProps) {
   const t = await getTranslations('teach.catalog');
 
   return (
-    <>
-      <TeachSubHeader locale={locale} />
-      <PagePlaceholder
-        title={t('title')}
-        description={t('description')}
-        body={t('body')}
-      />
-    </>
+    <PagePlaceholder
+      title={t('title')}
+      description={t('description')}
+      body={t('body')}
+    />
   );
 }
