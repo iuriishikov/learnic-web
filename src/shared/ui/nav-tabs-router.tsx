@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter, usePathname } from '@/shared/config/i18n/navigation';
+import { resolveActiveNavKey } from '@/shared/lib/nav-active-key';
 
 import {
   NavTabs,
@@ -8,7 +9,15 @@ import {
   type NavTabsVariant,
 } from './nav-tabs';
 
-export type NavTabRoute = NavTab & { href: string };
+export type NavTabRoute = NavTab & {
+  href: string;
+  /**
+   * Optional override for the default pathname-prefix active rule — for a tab
+   * whose `href` prefix is shared by an unrelated route. See
+   * `resolveActiveNavKey`.
+   */
+  isActivePath?: (pathname: string) => boolean;
+};
 
 export type NavTabsRouterProps = {
   tabs: NavTabRoute[];
@@ -43,7 +52,7 @@ export function NavTabsRouter({
   // `undefined` → derive from pathname; an explicit key or `null` (no active
   // tab) is honoured as-is.
   const resolvedActiveKey =
-    activeKey === undefined ? findActiveTabKey(tabs, pathname) : activeKey;
+    activeKey === undefined ? resolveActiveNavKey(tabs, pathname) : activeKey;
 
   return (
     <NavTabs
@@ -59,27 +68,4 @@ export function NavTabsRouter({
       className={className}
     />
   );
-}
-
-function findActiveTabKey(
-  tabs: NavTabRoute[],
-  pathname: string,
-): string | undefined {
-  let bestKey: string | undefined;
-  let bestLength = -1;
-  for (const tab of tabs) {
-    if (tab.href === pathname && tab.href.length > bestLength) {
-      bestKey = tab.key;
-      bestLength = tab.href.length;
-      continue;
-    }
-    if (
-      pathname.startsWith(`${tab.href}/`) &&
-      tab.href.length > bestLength
-    ) {
-      bestKey = tab.key;
-      bestLength = tab.href.length;
-    }
-  }
-  return bestKey;
 }

@@ -1330,7 +1330,7 @@ function ContentNavItem({
             style={{ overflow: 'hidden' }}
             className="mt-1"
           >
-            <div className="max-h-[min(60vh,520px)] overflow-x-hidden overflow-y-auto pr-1 [scrollbar-gutter:stable]">
+            <div className="max-h-[min(60vh,520px)] overflow-x-hidden overflow-y-auto pr-1 [scrollbar-gutter:stable] [scrollbar-color:color-mix(in_oklch,var(--muted-foreground)_35%,transparent)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/35 [&::-webkit-scrollbar-thumb]:transition-colors [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-2 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/55">
               {children}
             </div>
           </motion.div>

@@ -37,7 +37,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/shared/ui/hover-card';
 import { TextInput } from '@/shared/ui/input-extended';
 import { NavTabs } from '@/shared/ui/nav-tabs';
 import { Skeleton } from '@/shared/ui/skeleton';
@@ -50,6 +49,7 @@ import {
   TableRow,
 } from '@/shared/ui/table';
 import { UserAvatar, type AvatarUser } from '@/shared/ui/user-avatar';
+import { UserLink } from '@/shared/ui/user-link';
 
 import { useProductPermissions } from '../../api/use-product-permissions';
 import {
@@ -76,6 +76,8 @@ type RoleFilter = 'all' | string;
 
 type DisplayMember = {
   id: string;
+  /** Real platform user id, or `null` for an account-less email invite. */
+  userId: string | null;
   name: string;
   email: string;
   status: 'active' | 'invited' | 'owner';
@@ -137,6 +139,7 @@ export function TeamMembersTab({
 
     list.push({
       id: `owner:${product.author.id}`,
+      userId: product.author.id,
       name: ownerName.length > 0 ? ownerName : tRoles('owner'),
       email: product.author.email,
       status: 'owner',
@@ -183,6 +186,7 @@ export function TeamMembersTab({
 
       list.push({
         id: c.id,
+        userId: c.collaborator?.id ?? null,
         name,
         email,
         status: c.status === 'active' ? 'active' : 'invited',
@@ -556,22 +560,12 @@ function MemberRow({
     <ContextMenu>
       <ContextMenuTrigger render={<TableRow className="group/row" />}>
         <TableCell>
-          <MemberHoverCard member={member}>
-            <div className="flex cursor-default items-center gap-3">
-              <UserAvatar user={member.avatar} size="default" />
-              <div className="flex min-w-0 flex-col">
-                <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                  <span className="truncate">{member.name}</span>
-                  {member.isOwner ? (
-                    <CrownIcon
-                      aria-hidden
-                      className="size-3.5 shrink-0 text-brand"
-                    />
-                  ) : null}
-                </span>
-              </div>
+          <div className="flex items-center gap-3">
+            <UserAvatar user={member.avatar} size="default" />
+            <div className="flex min-w-0 flex-col">
+              <MemberName member={member} />
             </div>
-          </MemberHoverCard>
+          </div>
         </TableCell>
         <TableCell>
           <StatusBadge status={member.status} />
@@ -645,12 +639,7 @@ function MemberCard({
       <UserAvatar user={member.avatar} size="default" />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex min-w-0 items-center justify-between gap-2">
-          <span className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-foreground">
-            <span className="truncate">{member.name}</span>
-            {member.isOwner ? (
-              <CrownIcon aria-hidden className="size-3.5 shrink-0 text-brand" />
-            ) : null}
-          </span>
+          <MemberName member={member} />
           <RowMenu
             member={member}
             roles={roles}
@@ -675,68 +664,76 @@ function MemberCard({
   );
 }
 
-function MemberHoverCard({
-  member,
-  children,
-}: {
-  member: DisplayMember;
-  children: ReactNode;
-}) {
+/**
+ * Member name cell. Real platform users (owner + accepted collaborators) get a
+ * `UserLink` — brand-underlined link to their public page with the shared hover
+ * preview, enriched here with a team-context footer ({@link MemberTenure}).
+ * Account-less email invites have no profile, so they render as plain text.
+ */
+function MemberName({ member }: { member: DisplayMember }) {
+  return (
+    <span className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-foreground">
+      {member.userId ? (
+        <UserLink
+          userId={member.userId}
+          seed={member.avatar}
+          previewExtra={<MemberTenure member={member} />}
+          className="truncate"
+        >
+          {member.name}
+        </UserLink>
+      ) : (
+        <span className="truncate">{member.name}</span>
+      )}
+      {member.isOwner ? (
+        <CrownIcon aria-hidden className="size-3.5 shrink-0 text-brand" />
+      ) : null}
+    </span>
+  );
+}
+
+/**
+ * Team-context footer for the `UserLink` hover preview: the member's role
+ * (with a "full access" note for the owner) and when they joined the team —
+ * data the public profile doesn't carry.
+ */
+function MemberTenure({ member }: { member: DisplayMember }) {
   const t = useTranslations('teach-products.editor.team');
   const tRoles = useTranslations('teach-products.editor.team.roles');
   const formatter = useFormatter();
 
   return (
-    <HoverCard>
-      <HoverCardTrigger render={<div>{children}</div>} />
-      <HoverCardContent className="w-72 p-0" sideOffset={8}>
-        <div className="flex flex-col gap-3 p-4">
-          <div className="flex items-center gap-3">
-            <UserAvatar user={member.avatar} size="lg" />
-            <div className="flex min-w-0 flex-col">
-              <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                <span className="truncate">{member.name}</span>
-                {member.isOwner ? (
-                  <CrownIcon className="size-3.5 shrink-0 text-brand" />
-                ) : null}
-              </span>
-              <span className="truncate text-xs text-muted-foreground">
-                {member.email || '—'}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 rounded-lg bg-muted/40 p-2.5">
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-brand/10 ring-1 ring-foreground/10">
-              <KeyRoundIcon className="size-3.5 text-brand" />
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2 rounded-lg bg-muted/40 p-2.5">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-brand/10 ring-1 ring-foreground/10">
+          <KeyRoundIcon className="size-3.5 text-brand" />
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate text-xs font-semibold text-foreground">
+            {member.roleName}
+          </span>
+          {member.isOwner ? (
+            <span className="text-[11px] text-muted-foreground">
+              {tRoles('fullAccess')}
             </span>
-            <div className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-xs font-semibold text-foreground">
-                {member.roleName}
-              </span>
-              {member.isOwner ? (
-                <span className="text-[11px] text-muted-foreground">
-                  {tRoles('fullAccess')}
-                </span>
-              ) : null}
-            </div>
-          </div>
-          <dl className="grid grid-cols-1 gap-2 text-xs">
-            <div className="flex flex-col gap-0.5 rounded-lg border border-border px-2.5 py-1.5">
-              <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                {t('table.joinedAt')}
-              </dt>
-              <dd className="font-medium text-foreground">
-                {member.joinedAt
-                  ? formatter.dateTime(new Date(member.joinedAt), {
-                      dateStyle: 'medium',
-                    })
-                  : '—'}
-              </dd>
-            </div>
-          </dl>
+          ) : null}
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      </div>
+      <dl className="grid grid-cols-1 gap-2 text-xs">
+        <div className="flex flex-col gap-0.5 rounded-lg border border-border px-2.5 py-1.5">
+          <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            {t('table.joinedAt')}
+          </dt>
+          <dd className="font-medium text-foreground">
+            {member.joinedAt
+              ? formatter.dateTime(new Date(member.joinedAt), {
+                  dateStyle: 'medium',
+                })
+              : '—'}
+          </dd>
+        </div>
+      </dl>
+    </div>
   );
 }
 

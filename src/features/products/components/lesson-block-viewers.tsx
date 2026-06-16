@@ -172,7 +172,7 @@ function PhotoCollageView({ block }: { block: PhotoCollageBlock }) {
       ) : null}
       <PhotoGallery
         photos={photos}
-        rounded="lg"
+        sizing="natural"
         lightbox
         unoptimized
         prevLabel={tGallery('prev')}

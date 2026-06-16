@@ -2,6 +2,7 @@ import { setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
 import { DefaultHeaderConfig } from '@/widgets/app-header';
+import { CommandPalette } from '@/widgets/command-palette';
 import { PageHeader, PageHeaderConfigProvider } from '@/widgets/page-header';
 
 type ShellLayoutProps = {
@@ -45,6 +46,7 @@ export default async function ShellLayout({
       <PageHeaderConfigProvider>
         <DefaultHeaderConfig />
         <PageHeader />
+        <CommandPalette />
         {children}
       </PageHeaderConfigProvider>
     </div>

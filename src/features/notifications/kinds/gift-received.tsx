@@ -38,6 +38,7 @@ export const giftReceivedDescriptor: KindDescriptor<
   Action: ({ details, onResolved }) => (
     <NotificationGiftActions
       giftId={details.giftId}
+      productId={details.product.oid}
       gift={details.gift}
       onResolved={onResolved}
     />

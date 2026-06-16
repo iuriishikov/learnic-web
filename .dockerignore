@@ -1,0 +1,40 @@
+# Deps & build output — reinstalled / regenerated inside the image.
+node_modules
+.next
+out
+build
+
+# Version control & editor cruft.
+.git
+.gitignore
+.vscode
+.idea
+
+# Env files — never bake secrets or stale config into the image; runtime env
+# comes from the compose service, build-time NEXT_PUBLIC_* come from build args.
+.env*
+
+# Logs & debug.
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# OS / misc.
+.DS_Store
+*.pem
+*.tsbuildinfo
+
+# Playwright + visual-verification scratch.
+.playwright-mcp
+*.png
+*.jpeg
+*.jpg
+
+# Docker meta.
+Dockerfile
+.dockerignore
+
+# The other lockfile — pnpm (pnpm-lock.yaml) is authoritative; keep it out so
+# it can never influence the image build.
+package-lock.json

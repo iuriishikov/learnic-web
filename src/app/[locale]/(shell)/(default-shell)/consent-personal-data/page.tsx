@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 
+import { getCurrentUser } from '@/features/auth/server';
 import { LegalDocumentScreen, legalDocumentMetadata } from '@/features/legal';
 import { SiteFooter } from '@/widgets/site-footer';
 
@@ -17,11 +18,12 @@ export default async function ConsentPersonalDataPage({
 }: ConsentPersonalDataPageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const user = await getCurrentUser();
 
   return (
     <>
       <main className="flex-1">
-        <LegalDocumentScreen slug="consent-personal-data" />
+        <LegalDocumentScreen slug="consent-personal-data" loggedIn={Boolean(user)} />
       </main>
       <SiteFooter />
     </>

@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 
 import {
   BreadcrumbConfig,
-  ModeTracker,
   SubHeaderConfig,
   type AppSubHeaderTab,
 } from '@/widgets/app-header';
@@ -31,7 +30,6 @@ export default async function LearnLayout({
 
   return (
     <>
-      <ModeTracker mode="learn" />
       <SubHeaderConfig
         sectionKey="learn"
         ariaLabel={t('subHeader.ariaLabel')}

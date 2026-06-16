@@ -25,6 +25,8 @@ type InitialResolution = {
 
 type NotificationGiftActionsProps = {
   giftId: string;
+  /** Product the gift grants — accept routes the recipient to its reader. */
+  productId: string;
   /**
    * Live snapshot of the gift, hydrated server-side. Single source of
    * truth for the initial Accept / Decline UI state — a reload picks
@@ -69,10 +71,11 @@ function deriveInitialResolution(
  * gift row, which the notification reader joins on every fetch. Initial
  * status is derived from the live gift snapshot rather than from local
  * component state — that's what survives a page reload. On accept the
- * recipient is enrolled, so we route them to the catalogue.
+ * recipient is enrolled, so we route them straight to the product reader.
  */
 export function NotificationGiftActions({
   giftId,
+  productId,
   gift,
   onResolved,
 }: NotificationGiftActionsProps) {
@@ -86,7 +89,7 @@ export function NotificationGiftActions({
   );
   const [isNavigating, startNavigating] = useTransition();
 
-  const noteHref = '/marketplace';
+  const productHref = `/products/${productId}`;
   const disabled =
     status === 'pending' || status === 'accepted' || status === 'unavailable';
 
@@ -97,7 +100,7 @@ export function NotificationGiftActions({
     if (result.ok) {
       setStatus('accepted');
       onResolved?.();
-      startNavigating(() => router.push(noteHref));
+      startNavigating(() => router.push(productHref));
       return;
     }
     if (result.reason === 'not-found' || result.reason === 'forbidden') {
@@ -149,7 +152,7 @@ export function NotificationGiftActions({
           type="button"
           size="sm"
           variant="outline"
-          onClick={() => router.push(noteHref)}
+          onClick={() => router.push(productHref)}
           disabled={isNavigating}
           className="h-8 gap-1.5"
         >

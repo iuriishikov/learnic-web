@@ -8,6 +8,11 @@ const withNextIntl = createNextIntlPlugin(
 const API_URL = process.env.API_URL ?? 'http://127.0.0.1:8000';
 
 const nextConfig: NextConfig = {
+  // Self-contained server output for Docker: Next traces the minimal set of
+  // files needed at runtime and emits `.next/standalone/server.js`, so the
+  // production image doesn't ship the full node_modules. See the multi-stage
+  // build in `learnic-web/Dockerfile`.
+  output: 'standalone',
   devIndicators: false,
   experimental: {
     serverActions: {
@@ -19,7 +24,7 @@ const nextConfig: NextConfig = {
       // `presentation/http/common/upload_limits.py` on the backend.
       bodySizeLimit: '1100mb',
     },
-    // Next 16: with a middleware/proxy present (`src/middleware.ts`,
+    // Next 16: with a proxy present (`src/proxy.ts`,
     // next-intl), the server buffers every request body and truncates
     // it at 10 MB by default — a truncated multipart upload then dies
     // in the Server Action parser with "Unexpected end of form". Must

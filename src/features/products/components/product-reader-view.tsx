@@ -39,7 +39,7 @@ import type { Product } from '../model/types';
 
 import { LessonBlockViewer } from './lesson-block-viewers';
 import { ProductReaderGuestBanner } from './product-reader-guest-banner';
-import { ProductReaderNav } from './product-reader-nav';
+import { ProductReaderSearchableNav } from './product-reader-search';
 import { ProductReaderActionsMenu } from './product-reader-actions-menu';
 import {
   LessonBlocksSkeleton,
@@ -64,6 +64,189 @@ type ProductReaderViewProps = {
 
 const LESSON_PARAM = 'lesson';
 const EASE = [0.32, 0.72, 0, 1] as const;
+
+// Prose / formula blocks get a real text selection on a search jump;
+// every other block type ("element": code, graph, media, quiz, …) gets
+// the pencil-hatch sweep (see `[data-hl='hatch']` in globals.css).
+const TEXT_BLOCK_TYPES: ReadonlySet<string> = new Set(['html', 'katex']);
+
+/** A search hit to reveal: which block, and the matched terms to select. */
+type SearchTarget = { blockId: string; terms: string[] };
+
+/** Highlighted terms (`<<hl>>…<</hl>>`) from a result snippet, lowercased. */
+function extractHighlightTerms(snippet: string): string[] {
+  const terms: string[] = [];
+  for (const match of snippet.matchAll(/<<hl>>([\s\S]*?)<<\/hl>>/g)) {
+    const term = match[1].trim().toLowerCase();
+    if (term.length >= 2) terms.push(term);
+  }
+  return [...new Set(terms)];
+}
+
+type TextSegments = {
+  el: HTMLElement;
+  segments: { node: Text; start: number; len: number }[];
+  total: number;
+};
+
+/** Walk the block's CURRENT text nodes from the live DOM (by id). */
+function resolveTextSegments(blockId: string): TextSegments | null {
+  const el = document.getElementById(blockId);
+  if (!el) return null;
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  const segments: TextSegments['segments'] = [];
+  let total = 0;
+  for (
+    let node = walker.nextNode();
+    node !== null;
+    node = walker.nextNode()
+  ) {
+    const len = node.textContent?.length ?? 0;
+    if (len > 0) {
+      segments.push({ node: node as Text, start: total, len });
+      total += len;
+    }
+  }
+  return total > 0 ? { el, segments, total } : null;
+}
+
+/** Map a global character index to a (text node, offset) within segments. */
+function locateChar(
+  segments: TextSegments['segments'],
+  index: number,
+): { node: Text; offset: number } {
+  const last = segments[segments.length - 1];
+  const clamped = Math.max(0, Math.min(index, last.start + last.len));
+  for (const seg of segments) {
+    if (clamped <= seg.start + seg.len) {
+      return { node: seg.node, offset: clamped - seg.start };
+    }
+  }
+  return { node: last.node, offset: last.len };
+}
+
+/**
+ * Locate the matched span in the block's plain text: the earliest
+ * matched term, extended to cover any other matched terms that sit close
+ * after it (so a multi-word match reads as one phrase). Returns global
+ * char offsets, or `null` if none of the terms are present.
+ */
+function findMatchRange(
+  text: string,
+  terms: string[],
+): { start: number; end: number } | null {
+  if (terms.length === 0) return null;
+  const lower = text.toLowerCase();
+  const firsts = terms
+    .map((term) => ({ term, index: lower.indexOf(term) }))
+    .filter((hit) => hit.index >= 0);
+  if (firsts.length === 0) return null;
+
+  const start = Math.min(...firsts.map((hit) => hit.index));
+  const WINDOW = 160; // bundle nearby terms; leave distant repeats out
+  let end = start;
+  for (const { term } of firsts) {
+    const index = lower.indexOf(term, start);
+    if (index >= 0 && index <= start + WINDOW) {
+      end = Math.max(end, index + term.length);
+    }
+  }
+  return { start, end: Math.max(end, start + 1) };
+}
+
+/**
+ * Highlight a search hit inside a text block like a mouse drag — but
+ * only over the MATCHED span (`terms`), not the whole block. Scrolls the
+ * match into view, sweeps the selection across it in real time, holds,
+ * then releases. Nodes are RE-RESOLVED from the live DOM every frame:
+ * React can replace the block's subtree around the jump (lesson remount
+ * / entry animation), and `addRange` silently no-ops on a detached range
+ * ("isn't in document"); re-resolving keeps it painting. The Selection
+ * API isn't a CSS property, so rAF — not Framer Motion — drives it.
+ */
+function flashTextSelection(
+  blockId: string,
+  terms: string[],
+  reduceMotion: boolean,
+) {
+  const selection = window.getSelection();
+  if (!selection) return;
+  const initial = resolveTextSegments(blockId);
+  if (!initial) return;
+
+  const fullText = initial.segments.map((s) => s.node.textContent).join('');
+  const match = findMatchRange(fullText, terms);
+  // Fall back to the whole block if the terms aren't found verbatim
+  // (e.g. entity / whitespace normalisation differences).
+  const start = match ? match.start : 0;
+  const span = Math.max(1, (match ? match.end : initial.total) - start);
+
+  // Bring the match itself into view (a deep match can sit below the
+  // block's top). Centre it, clear of the sticky header.
+  locateChar(initial.segments, start).node.parentElement?.scrollIntoView({
+    behavior: reduceMotion ? 'auto' : 'smooth',
+    block: 'center',
+  });
+
+  const paint = (chars: number) => {
+    const live = resolveTextSegments(blockId);
+    if (!live) return;
+    const a = locateChar(live.segments, start);
+    const b = locateChar(live.segments, start + chars);
+    try {
+      const range = document.createRange();
+      range.setStart(a.node, a.offset);
+      range.setEnd(b.node, b.offset);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    } catch {
+      /* node moved this frame — the next frame re-resolves. */
+    }
+  };
+
+  // Lifecycle: sweep IN (grow the selection over the match) → a long
+  // HOLD so it lingers → sweep OUT (retract the highlight back to the
+  // start, the reverse of the entry — native selection can't fade, so
+  // the "exit animation" is this shrink) → clear. Bail at any point if
+  // the viewer took over the selection (anchor left the block), so we
+  // don't fight a manual selection during the long hold.
+  const sweepInMs = Math.min(600, Math.max(220, span * 14));
+  const holdMs = 2600;
+  const sweepOutMs = Math.min(750, Math.max(450, span * 18));
+  const holdEnd = sweepInMs + holdMs;
+  const exitEnd = holdEnd + sweepOutMs;
+
+  const stillOurs = () => {
+    const active = window.getSelection();
+    const el = document.getElementById(blockId);
+    return Boolean(active?.anchorNode && el?.contains(active.anchorNode));
+  };
+  const easeInOut = (p: number) =>
+    p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
+
+  let startTs: number | null = null;
+  const step = (ts: number) => {
+    if (startTs === null) startTs = ts;
+    const elapsed = ts - startTs;
+    if (elapsed < sweepInMs) {
+      const p = elapsed / sweepInMs;
+      paint(Math.round((1 - (1 - p) * (1 - p)) * span)); // easeOutQuad
+      requestAnimationFrame(step);
+    } else if (elapsed < holdEnd) {
+      if (!stillOurs()) return; // viewer took over — leave their selection
+      paint(span);
+      requestAnimationFrame(step);
+    } else if (elapsed < exitEnd) {
+      if (!stillOurs()) return;
+      const p = (elapsed - holdEnd) / sweepOutMs;
+      paint(Math.round((1 - easeInOut(p)) * span)); // retract to the start
+      requestAnimationFrame(step);
+    } else if (stillOurs()) {
+      window.getSelection()?.removeAllRanges();
+    }
+  };
+  requestAnimationFrame(step);
+}
 
 type FlatLesson = {
   lesson: PublicSchemeLesson;
@@ -199,9 +382,12 @@ function ReaderContent({
   }, [flat, product.id, queryClient, selectedIndex]);
 
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // Search hit to reveal once its lesson loads: the block to scroll to +
+  // the matched terms to select within it (from the result snippet).
+  const [target, setTarget] = useState<SearchTarget | null>(null);
 
   const selectLesson = useCallback(
-    (lessonId: string) => {
+    (lessonId: string, options?: { skipScrollTop?: boolean }) => {
       // Shallow update: a router.replace would re-run the whole RSC
       // page (product + enrollments + scheme + lesson seed) on every
       // click, duplicating the client-side lesson fetch. The native
@@ -210,7 +396,9 @@ function ReaderContent({
       const url = new URL(window.location.href);
       url.searchParams.set(LESSON_PARAM, lessonId);
       window.history.replaceState(null, '', url);
-      window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+      if (!options?.skipScrollTop) {
+        window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+      }
     },
     [reduceMotion],
   );
@@ -231,6 +419,24 @@ function ReaderContent({
     [selectLesson],
   );
 
+  const onSelectResult = useCallback(
+    (lessonId: string, blockId: string | null, snippet: string) => {
+      setMobileNavOpen(false);
+      if (blockId) {
+        // Jump straight to the hit — skip the scroll-to-top so we don't
+        // bounce to the top first; `LessonBlocks` scrolls to the match.
+        selectLesson(lessonId, { skipScrollTop: true });
+        setTarget({ blockId, terms: extractHighlightTerms(snippet) });
+      } else {
+        selectLesson(lessonId);
+        setTarget(null);
+      }
+    },
+    [selectLesson],
+  );
+
+  const consumeTarget = useCallback(() => setTarget(null), []);
+
   const isGuest = viewer.kind === 'guest';
   const canAnswer = viewer.kind === 'enrolled';
   // Anonymous visitors get the floating `SiteHeader` card (taller, with a top
@@ -245,11 +451,13 @@ function ReaderContent({
   const hasNext = selectedIndex >= 0 && selectedIndex < flat.length - 1;
 
   const nav = (
-    <ProductReaderNav
+    <ProductReaderSearchableNav
+      noteId={product.id}
       modules={scheme.modules}
       selectedLessonId={current?.lesson.id ?? null}
       selectedModuleId={current?.module.id ?? null}
       onSelectLesson={onSelectFromNav}
+      onSelectResult={onSelectResult}
     />
   );
 
@@ -270,20 +478,31 @@ function ReaderContent({
         'mx-auto w-full max-w-[1200px] px-5 md:px-6 lg:px-8',
         // Clear the floating SiteHeader card for anonymous visitors; the solid
         // app header sits flush, so signed-in viewers keep the tighter offset.
+        // NB: this top padding feeds the sidebar's sticky `top` below — keep
+        // them in sync (sidebar top = header height + this padding) or the
+        // sidebar gets a pre-pin "travel" zone that Chrome jerks through.
         loggedIn ? 'pt-6 md:pt-8' : 'pt-12 md:pt-16',
         isGuest && 'pb-24',
       )}
     >
       <div className="grid lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-10">
-        {/* Sidebar (desktop only) */}
+        {/* Sidebar (desktop only). Its sticky `top` MUST equal where it
+            naturally starts in flow — header height + this column's top
+            padding — so it pins with ZERO travel. Any gap between that start
+            and the sticky line is the pre-pin "travel" zone Chrome renders as a
+            1-2px jerk on scroll start (same invariant as the legal docs TOC).
+              • signed-in: 73px flush app header + md:pt-8 (32px) = 105px
+              • anon:      72px floating SiteHeader flow box + md:pt-16 (64px) = 136px
+            max-h keeps a 24px bottom gap (top + 24). Keep top / padding / max-h
+            in sync if any of them change. */}
         <aside
           className={cn(
             'hidden self-start lg:block lg:sticky',
-            loggedIn ? 'lg:top-[88px]' : 'lg:top-[112px]',
+            loggedIn ? 'lg:top-[105px]' : 'lg:top-[136px]',
           )}
         >
           <ScrollArea
-            className={loggedIn ? 'max-h-[calc(100vh-112px)]' : 'max-h-[calc(100vh-136px)]'}
+            className={loggedIn ? 'max-h-[calc(100vh-129px)]' : 'max-h-[calc(100vh-160px)]'}
           >
             <div className="flex flex-col gap-4 px-3">
               <CoverImage
@@ -395,6 +614,8 @@ function ReaderContent({
                     lesson={current.lesson}
                     canAnswer={canAnswer}
                     savedAnswerMap={savedAnswerMap}
+                    target={target}
+                    onTargetConsumed={consumeTarget}
                   />
                 </motion.article>
               ) : (
@@ -445,11 +666,16 @@ function LessonBlocks({
   lesson,
   canAnswer,
   savedAnswerMap,
+  target,
+  onTargetConsumed,
 }: {
   noteId: string;
   lesson: PublicSchemeLesson;
   canAnswer: boolean;
   savedAnswerMap: Map<string, SavedBlockAnswer>;
+  /** A content-search hit to reveal once this lesson loads. */
+  target: SearchTarget | null;
+  onTargetConsumed: () => void;
 }) {
   const t = useTranslations('product-reader');
   const isEmpty = lesson.blockCount === 0;
@@ -457,6 +683,36 @@ function LessonBlocks({
     noteId,
     isEmpty ? null : lesson.id,
   );
+
+  const reduceMotion = useReducedMotion();
+
+  // Once the targeted lesson's blocks are in the DOM, reveal the hit —
+  // imperatively (the sanctioned "effect updates the DOM" path). Prose /
+  // formulae get a real text selection over the MATCH, "как через мышку"
+  // (it scrolls to + selects the matched terms); everything else gets
+  // the pencil-hatch sweep driven by `data-hl='hatch'`. `onTargetConsumed`
+  // resets the parent so a later tree navigation back here doesn't
+  // re-fire a stale target.
+  useEffect(() => {
+    if (!target || !data) return;
+    const block = data.blocks.find((b) => b.id === target.blockId);
+    if (!block) return;
+    const el = document.getElementById(target.blockId);
+    if (!el) return;
+    onTargetConsumed();
+    if (TEXT_BLOCK_TYPES.has(block.type)) {
+      flashTextSelection(target.blockId, target.terms, reduceMotion ?? false);
+    } else {
+      // Element block: scroll the whole block in, then a ~3s pencil-hatch
+      // (see `pencil-hatch` in globals.css) so it's easy to notice.
+      el.scrollIntoView({
+        behavior: reduceMotion ? 'auto' : 'smooth',
+        block: 'start',
+      });
+      el.setAttribute('data-hl', 'hatch');
+      window.setTimeout(() => el.removeAttribute('data-hl'), 3200);
+    }
+  }, [target, data, onTargetConsumed, reduceMotion]);
 
   if (isEmpty) {
     return (
@@ -479,15 +735,24 @@ function LessonBlocks({
   return (
     <div className="mt-8 space-y-8">
       {data.blocks.map((block) => (
-        <LessonBlockViewer
+        // `id` is the jump-to-match anchor; `scroll-mt-28` clears the
+        // sticky header. `data-hl='hatch'` (set in the effect) overlays
+        // the layout-neutral pencil-hatch sweep on element blocks.
+        <div
           key={block.id}
-          block={block}
-          ctx={{
-            noteId,
-            canAnswer,
-            savedAnswer: savedAnswerMap.get(block.id) ?? null,
-          }}
-        />
+          id={block.id}
+          data-block-type={block.type}
+          className="scroll-mt-28 rounded-xl"
+        >
+          <LessonBlockViewer
+            block={block}
+            ctx={{
+              noteId,
+              canAnswer,
+              savedAnswer: savedAnswerMap.get(block.id) ?? null,
+            }}
+          />
+        </div>
       ))}
     </div>
   );

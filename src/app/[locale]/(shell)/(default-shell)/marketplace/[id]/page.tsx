@@ -4,7 +4,11 @@ import { setRequestLocale } from 'next-intl/server';
 
 import { getCurrentUser } from '@/features/auth/server';
 import { ProductInfoView } from '@/features/products';
-import { getMyEnrollments, getProductById } from '@/features/products/server';
+import {
+  getMyEffectivePermissions,
+  getMyEnrollments,
+  getProductById,
+} from '@/features/products/server';
 import { getUserPreview } from '@/features/user-profile';
 import { httpStatusForReason } from '@/shared/lib/http-error';
 import { buildPageMetadata } from '@/shared/lib/page-metadata';
@@ -54,15 +58,25 @@ export default async function ProductLandingPage({ params }: PageProps) {
   const authorIsVerified =
     authorPreview.ok ? authorPreview.preview.isVerified : false;
 
-  // Secondary load: resolve whether the viewer is already enrolled so the hero
-  // CTA can switch from «Записаться» to «Продолжить изучение». Anonymous
-  // visitors are never enrolled; for signed-in users we read their enrollment
-  // list and look for an active enrollment on this product. A failure here must
-  // not break the page — we fall back to the un-enrolled CTA.
+  // Secondary load: resolve the viewer's relationship to this product so the
+  // hero CTA reflects access they already hold instead of always offering an
+  // enroll / request affordance. Two independent signals, both best-effort
+  // (a failure must not break the page — we just fall back to the
+  // un-enrolled, no-access CTA):
+  //   • `viewerEnrolled` — an active enrollment ⇒ «Продолжить изучение» (reader).
+  //   • `viewerCanManage` — owner or collaborator (a resolved rank, i.e.
+  //     `hierarchyPosition !== null`) ⇒ «Открыть» (editor). This is what fixed
+  //     a collaborator/owner being shown «Запросить доступ» on their own
+  //     invite-only note: collaboration is NOT an enrollment, so the enrollment
+  //     probe alone never saw them. Anonymous visitors hold neither.
   const user = await getCurrentUser();
   let viewerEnrolled = false;
+  let viewerCanManage = false;
   if (user) {
-    const enrollments = await getMyEnrollments();
+    const [enrollments, permissions] = await Promise.all([
+      getMyEnrollments(),
+      getMyEffectivePermissions(id),
+    ]);
     viewerEnrolled =
       enrollments.ok &&
       enrollments.enrollments.some(
@@ -70,6 +84,8 @@ export default async function ProductLandingPage({ params }: PageProps) {
           enrollment.productId === product.id &&
           enrollment.status === 'active',
       );
+    viewerCanManage =
+      permissions.ok && permissions.data.hierarchyPosition !== null;
   }
 
   return (
@@ -80,6 +96,7 @@ export default async function ProductLandingPage({ params }: PageProps) {
           authorAvatarUrl={authorAvatarUrl}
           authorIsVerified={authorIsVerified}
           viewerEnrolled={viewerEnrolled}
+          viewerCanManage={viewerCanManage}
         />
       </main>
       <SiteFooter />

@@ -7,6 +7,8 @@ import { LegalDocumentView } from './legal-document-view';
 
 type LegalDocumentScreenProps = {
   slug: LegalDocumentSlug;
+  /** Forwarded to the view; sizes the sticky-TOC offset to the header. */
+  loggedIn: boolean;
 };
 
 /**
@@ -16,9 +18,12 @@ type LegalDocumentScreenProps = {
  * composition. The page is responsible for the surrounding shell
  * (`<main>` + `SiteFooter`), which lives in the app/widget layers.
  */
-export async function LegalDocumentScreen({ slug }: LegalDocumentScreenProps) {
+export async function LegalDocumentScreen({
+  slug,
+  loggedIn,
+}: LegalDocumentScreenProps) {
   const doc = await getLegalDocument(slug);
   if (!doc) notFound();
 
-  return <LegalDocumentView document={doc} />;
+  return <LegalDocumentView document={doc} loggedIn={loggedIn} />;
 }

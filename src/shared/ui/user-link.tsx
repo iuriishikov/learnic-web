@@ -4,7 +4,7 @@ import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { BriefcaseIcon, GlobeIcon, RotateCwIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 // The hover preview needs real profile data, which is feature territory.
 // Reaching into `user-profile` from `shared/ui/` is a deliberate exception to
@@ -26,7 +26,7 @@ import {
   HoverCardTrigger,
 } from '@/shared/ui/hover-card';
 import { Skeleton } from '@/shared/ui/skeleton';
-import { UserAvatar } from '@/shared/ui/user-avatar';
+import { UserAvatar, type AvatarUser } from '@/shared/ui/user-avatar';
 
 export type UserLinkPreviewLoader = (userId: string) => Promise<UserPreview>;
 
@@ -35,6 +35,27 @@ const defaultLoader: UserLinkPreviewLoader = async (userId) => {
   if (!result.ok) throw new Error(result.reason);
   return result.preview;
 };
+
+/**
+ * Project the caller-supplied {@link AvatarUser} seed into a full
+ * {@link UserPreview} used as the hover card's placeholder. Only identity is
+ * known up front (id / name / avatar / verified) — email, bio, cover and links
+ * stay `null` until the real fetch fills them in on top.
+ */
+function seedToPreview(seed: AvatarUser): UserPreview {
+  return {
+    id: seed.id,
+    fullName: seed.fullName,
+    email: null,
+    publicEmail: null,
+    avatar: seed.avatar,
+    cover: null,
+    isVerified: seed.isVerified ?? false,
+    description: null,
+    websiteUrl: null,
+    portfolioUrl: null,
+  };
+}
 
 /**
  * Sliding 1px underline mirroring the global `.link` affordance (220ms,
@@ -63,6 +84,23 @@ type UserLinkProps = {
    * don't mix different loaders under the same id).
    */
   loadPreview?: UserLinkPreviewLoader;
+  /**
+   * Extra content appended at the bottom of the preview card, below the
+   * public-profile section and separated by a divider. Use it for context the
+   * public profile doesn't carry — e.g. a team member's role and tenure. It
+   * shows as soon as the card opens (even while the profile lazy-loads), so
+   * caller-known context is instant. No effect on touch (no preview there).
+   */
+  previewExtra?: React.ReactNode;
+  /**
+   * Identity the caller already has on hand, shown as the preview header's
+   * instant placeholder so the avatar + name paint immediately on first hover
+   * instead of flashing a skeleton over data we already know. The lazy fetch
+   * still runs and fills in email / bio / links on top. `AvatarUser` is the
+   * same shape callers already pass to `<UserAvatar>`, so there's no extra
+   * wiring.
+   */
+  seed?: AvatarUser;
 };
 
 /**
@@ -83,6 +121,8 @@ export function UserLink({
   children,
   className,
   loadPreview,
+  previewExtra,
+  seed,
 }: UserLinkProps) {
   const hasHover = useHasHover();
   // Latched on the first hover/focus so the fetch starts during the
@@ -91,10 +131,19 @@ export function UserLink({
   const [intent, setIntent] = useState(false);
   const markIntent = () => setIntent(true);
 
+  const placeholderData = useMemo(
+    () => (seed ? seedToPreview(seed) : undefined),
+    [seed],
+  );
+
   const query = useQuery<UserPreview, Error>({
     queryKey: ['user-preview', userId],
     queryFn: () => (loadPreview ?? defaultLoader)(userId),
     enabled: hasHover && intent,
+    // Paint the header from the caller's seed while the real profile loads,
+    // so a hovered list never flashes a skeleton over identity we already
+    // have. Not written to cache — the `/users/{id}` page still fetches fresh.
+    placeholderData,
   });
 
   const link = (
@@ -115,13 +164,30 @@ export function UserLink({
     <HoverCard>
       <HoverCardTrigger render={link} />
       <HoverCardContent className="w-72 p-0" sideOffset={8}>
-        <UserLinkPreviewBody query={query} />
+        <UserLinkPreviewBody query={query} previewExtra={previewExtra} />
       </HoverCardContent>
     </HoverCard>
   );
 }
 
 function UserLinkPreviewBody({
+  query,
+  previewExtra,
+}: {
+  query: UseQueryResult<UserPreview, Error>;
+  previewExtra?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col">
+      <UserLinkPreviewProfile query={query} />
+      {previewExtra ? (
+        <div className="border-t border-border px-4 py-3">{previewExtra}</div>
+      ) : null}
+    </div>
+  );
+}
+
+function UserLinkPreviewProfile({
   query,
 }: {
   query: UseQueryResult<UserPreview, Error>;
@@ -139,7 +205,10 @@ function UserLinkPreviewBody({
     if (query.isError && !query.isFetching) void query.refetch();
   }, [query]);
 
-  if (query.isError) {
+  // With a `seed`, `query.data` is the placeholder even on a failed fetch —
+  // prefer showing that known identity (+ the previewExtra footer) over an
+  // error card. The retry-on-mount effect above still re-tries on re-open.
+  if (query.isError && !query.data) {
     return (
       <div className="flex flex-col items-start gap-2.5 p-4">
         <p className="text-xs text-muted-foreground">{t('userLink.error')}</p>

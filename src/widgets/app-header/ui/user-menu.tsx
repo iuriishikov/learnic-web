@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  BookOpenIcon,
   GraduationCapIcon,
   HelpCircleIcon,
   LayersIcon,
@@ -15,13 +14,14 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
-import { useState, useSyncExternalStore, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 
 import { logoutAction, type User } from '@/features/auth';
 import { StorageQuotaIndicator, useStorageQuotaWs } from '@/features/billing';
 import { useHasReleasedProducts } from '@/features/products';
 import { useAuth } from '@/shared/auth';
-import { Link, useRouter, usePathname } from '@/shared/config/i18n/navigation';
+import { Link, useRouter } from '@/shared/config/i18n/navigation';
+import { useIsMac } from '@/shared/lib/platform';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,40 +53,17 @@ import {
   type AvatarUser,
 } from '@/shared/ui/user-avatar';
 
-import { APP_MODE_COOKIE, DEFAULT_APP_MODE, isAppMode } from './app-mode';
-
 type UserMenuProps = {
   user: User;
 };
-
-const TEACH_PATH_PREFIXES = ['/products'] as const;
-const LEARN_PATH_PREFIXES = [
-  '/marketplace',
-  '/learning',
-  '/community',
-] as const;
-const MODE_NEUTRAL_PREFIXES = ['/settings'] as const;
-
-function readModeCookie(): 'teach' | 'learn' | null {
-  if (typeof document === 'undefined') return null;
-  const match = document.cookie
-    .split('; ')
-    .find((row) => row.startsWith(`${APP_MODE_COOKIE}=`));
-  if (!match) return null;
-  const value = decodeURIComponent(match.slice(APP_MODE_COOKIE.length + 1));
-  return isAppMode(value) ? value : null;
-}
-
-const subscribeNoop = () => () => {};
-const getServerSnapshot = (): 'teach' | 'learn' | null => null;
 
 export function UserMenu({ user }: UserMenuProps) {
   const t = useTranslations('app-header');
   const tMenu = useTranslations('app-header.userMenu');
   const tConfirm = useTranslations('app-header.userMenu.confirmSignOut');
-  const pathname = usePathname();
   const router = useRouter();
   const { isAdmin } = useAuth();
+  const isMac = useIsMac();
   const { theme, setTheme } = useTheme();
   const [isSigningOut, startSignOut] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -103,30 +80,6 @@ export function UserMenu({ user }: UserMenuProps) {
   // dropdown unmounts on close, which would reopen the socket on every
   // open. One persistent connection; the meter renders instantly.
   const storageQuota = useStorageQuotaWs(hasReleasedProducts);
-
-  const matchesPrefix = (prefix: string) =>
-    pathname === prefix || pathname.startsWith(`${prefix}/`);
-  const isInTeachPath = TEACH_PATH_PREFIXES.some(matchesPrefix);
-  const isInLearnPath = LEARN_PATH_PREFIXES.some(matchesPrefix);
-  const isModeNeutral = MODE_NEUTRAL_PREFIXES.some(matchesPrefix);
-  // On mode-neutral routes (`/settings`) the cookie set by `ModeTracker`
-  // remembers which shell the user came from. Server snapshot is `null`
-  // so the first client render matches SSR; the post-mount client snapshot
-  // reads the cookie and re-renders with the correct mode.
-  const cookieMode = useSyncExternalStore(
-    subscribeNoop,
-    readModeCookie,
-    getServerSnapshot,
-  );
-  const resolvedCookieMode = isModeNeutral ? cookieMode : null;
-  const isInTeach = isInTeachPath
-    ? true
-    : isInLearnPath
-      ? false
-      : (resolvedCookieMode ?? DEFAULT_APP_MODE) === 'teach';
-  const modeTarget = isInTeach ? '/marketplace' : '/products';
-  const modeLabel = isInTeach ? tMenu('openLearn') : tMenu('openStudio');
-  const ModeIcon = isInTeach ? BookOpenIcon : GraduationCapIcon;
 
   const displayName = buildUserDisplayName(user) || user.email;
   const avatarUser: AvatarUser = {
@@ -187,20 +140,23 @@ export function UserMenu({ user }: UserMenuProps) {
             <MenuItem
               render={<Link href={profileHref} />}
               leading={<UserIcon />}
-              shortcut="⌘K→P"
             >
               {tMenu('myProfile')}
             </MenuItem>
+            {/* Studio entry point — the only two-line row in the menu. Its
+                quiet subtitle gives it presence without a colour accent, so
+                it reads as distinct but not loud. */}
             <MenuItem
-              render={<Link href={modeTarget} />}
-              leading={<ModeIcon />}
+              render={<Link href="/products" />}
+              leading={<GraduationCapIcon />}
+              description={tMenu('teachDescription')}
             >
-              {modeLabel}
+              {tMenu('teach')}
             </MenuItem>
             <MenuItem
               render={<Link href="/settings" />}
               leading={<SettingsIcon />}
-              shortcut="⌘S"
+              shortcut={isMac ? '⌘S' : 'Ctrl S'}
             >
               {tMenu('settings')}
             </MenuItem>

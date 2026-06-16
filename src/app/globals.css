@@ -379,6 +379,67 @@
 }
 
 @layer components {
+  /* Jump-to-search-match highlight for "element" blocks (code, graphs,
+   * media, quizzes): a pencil-hatch sweep — diagonal strokes revealed
+   * one after another by a left-to-right clip wipe, then fading out.
+   * Text blocks use a real text selection instead (driven in JS via the
+   * Selection API). Toggled imperatively through the `data-hl` attribute
+   * on the block wrapper; Framer Motion can't drive a pseudo-element +
+   * repeating-gradient mask, so a keyframe is the right tool here. */
+  [data-hl='hatch'] {
+    position: relative;
+  }
+  [data-hl='hatch']::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border-radius: inherit;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--brand) 55%, transparent) 0,
+      color-mix(in oklch, var(--brand) 55%, transparent) 2px,
+      transparent 2px,
+      transparent 9px
+    );
+    /* Quick directional "drawing" of the strokes, then a long hold so
+     * the user notices it, then a gentle fade. */
+    animation: pencil-hatch 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  @keyframes pencil-hatch {
+    0% {
+      clip-path: inset(0 100% 0 0);
+      opacity: 1;
+    }
+    24%,
+    82% {
+      clip-path: inset(0 0 0 0);
+      opacity: 1;
+    }
+    100% {
+      clip-path: inset(0 0 0 0);
+      opacity: 0;
+    }
+  }
+  /* Reduced motion: skip the directional "drawing" wipe — just a static
+   * hatch that holds, then fades. */
+  @keyframes pencil-hatch-reduced {
+    0%,
+    82% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-hl='hatch']::after {
+      clip-path: none;
+      animation: pencil-hatch-reduced 2.8s ease-out forwards;
+    }
+  }
+
   .rich-editor-content :where(p) {
     margin-block: 0.5em;
   }

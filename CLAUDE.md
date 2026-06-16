@@ -853,7 +853,7 @@ For self-contained components whose layout depends on their *own* width (e.g. a 
 ### Routing
 
 - Locale is in the URL path: `/en/...` and `/ru/...`. No cookie-only or header-only locale detection.
-- Routing is defined in `src/shared/config/i18n/routing.ts`; middleware lives at `src/middleware.ts`. Default locale: `ru`.
+- Routing is defined in `src/shared/config/i18n/routing.ts`; the proxy (formerly middleware) lives at `src/proxy.ts`. Default locale: `ru`.
 - The Next.js root segment is `app/[locale]/...` — every page/layout sits under this segment.
 - Internal links must go through `next-intl`'s `Link` / `useRouter` / `redirect` (re-exported from `@/shared/config/i18n/navigation`) so locale prefixes are preserved. Never use raw `next/link` for app navigation.
 

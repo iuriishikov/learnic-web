@@ -1,0 +1,78 @@
+# Frontend HTTPS edge — used in the split/standalone deploy where the frontend
+# owns :443 for its own domain. In a co-located single-host deploy this Caddy
+# is NOT started (omit the `edge` compose profile); the backend's Caddy fronts
+# both domains instead. Mirrors the structure of learnic/deploy/caddy/Caddyfile.
+
+{
+	email {$ACME_EMAIL}
+	# rate_limit is a third-party HTTP handler (caddy-ratelimit); order it explicitly.
+	order rate_limit before basicauth
+}
+
+# Host-agnostic internal health endpoint for the Docker healthcheck. A probe to
+# the public domain can't match the site block when sent to 127.0.0.1, so expose
+# a dedicated plaintext listener the container healthcheck can always reach.
+http://:8081 {
+	respond /healthz "ok" 200
+}
+
+{$SITE_DOMAIN} {
+	log {
+		output stdout
+		format json
+	}
+
+	header {
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	encode zstd gzip
+
+	# Edge liveness for the compose healthcheck (answered by Caddy itself).
+	respond /healthz "ok" 200
+
+	# Per-user throttle (anti-scraping). The browser hits this edge directly, so
+	# {remote_host} is the real visitor IP. Static/asset paths are excluded so a
+	# normal page load (many chunk requests) doesn't trip it. Per-IP — raise
+	# SITE_RATE_LIMIT_EVENTS if real users sit behind a shared NAT.
+	@throttled {
+		not path /_next/* /healthz /favicon.ico /icon* /apple-icon* /opengraph-image* /twitter-image* /manifest.webmanifest
+	}
+	# Tight zone for auth-form submits. The browser hits this edge directly, so
+	# {remote_host} is the real visitor IP — this is where in-UI login/register/
+	# reset brute force shows up (the Server Action POSTs to the page path). Only
+	# POSTs count, so page loads don't trip it. A login POST is also counted by
+	# the loose `site` zone below; that's fine — the tight 10/min bites first.
+	rate_limit @throttled {
+		zone auth {
+			match {
+				method POST
+				path */login */register */forgot-password */reset-password
+			}
+			key {remote_host}
+			events {$SITE_AUTH_RATE_LIMIT_EVENTS:10}
+			window {$SITE_AUTH_RATE_LIMIT_WINDOW:1m}
+		}
+		zone site {
+			key {remote_host}
+			events {$SITE_RATE_LIMIT_EVENTS:300}
+			window {$SITE_RATE_LIMIT_WINDOW:1m}
+		}
+	}
+
+	# All app traffic — SSR/RSC, Server Actions (incl. large uploads), and the
+	# Next.js WS-proxy rewrites — flows through the Next server. Caddy streams
+	# request bodies with no size cap, so the 1.1 GB upload path is unaffected.
+	reverse_proxy web:3000 {
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+
+		health_uri /healthz
+		health_interval 10s
+		health_timeout 5s
+	}
+}

@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
-import { BreadcrumbConfig, ModeTracker } from '@/widgets/app-header';
+import { BreadcrumbConfig } from '@/widgets/app-header';
 
 type TeachLayoutProps = {
   children: ReactNode;
@@ -21,7 +21,6 @@ export default async function TeachLayout({
   // breadcrumb trail below instead.
   return (
     <>
-      <ModeTracker mode="teach" />
       <BreadcrumbConfig
         slot="teach-root"
         order={1}

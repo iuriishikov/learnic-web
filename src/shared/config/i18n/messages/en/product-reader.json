@@ -4,7 +4,13 @@
     "summary": "{modules, plural, one {# модуль} few {# модуля} many {# модулей} other {# модулей}} · {lessons, plural, one {# урок} few {# урока} many {# уроков} other {# уроков}}",
     "empty": "В этом выпуске пока нет уроков",
     "about": "О конспекте",
-    "ariaLabel": "Навигация по конспекту"
+    "ariaLabel": "Навигация по конспекту",
+    "searchPlaceholder": "Поиск по конспекту",
+    "searchEmpty": "Ничего не найдено",
+    "searchError": "Не удалось выполнить поиск",
+    "searchRetry": "Повторить",
+    "searchResultsLabel": "Результаты поиска",
+    "searchPageStatus": "Страница {current} из {total}"
   },
   "lesson": {
     "position": "Урок {current} из {total}",

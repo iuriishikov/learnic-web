@@ -9,6 +9,8 @@ import { LegalTocSheet } from './legal-toc-sheet';
 
 type LegalDocumentViewProps = {
   document: LegalDocument;
+  /** Drives the sticky-TOC top offset, which differs by header height. */
+  loggedIn: boolean;
   className?: string;
 };
 
@@ -22,6 +24,7 @@ type LegalDocumentViewProps = {
  */
 export async function LegalDocumentView({
   document,
+  loggedIn,
   className,
 }: LegalDocumentViewProps) {
   const t = await getTranslations('legal');
@@ -50,10 +53,23 @@ export async function LegalDocumentView({
         >
           {hasToc ? (
             <aside className="hidden lg:block">
-              {/* `top-32` clears the floating anonymous SiteHeader (whose
-                  inset bottom sits ~96px down) with breathing room; on the
-                  edge-to-edge app header it just reads as a roomier gap. */}
-              <div className="sticky top-32 max-h-[calc(100vh-9rem)] overflow-y-auto py-1">
+              {/* Sticky TOC. Its `top` must equal where it naturally starts —
+                  the header's flow height + this column's lg:pt-16 (64px) — so
+                  it pins with ZERO travel. Any gap between the start and the
+                  sticky line is the pre-pin "travel" zone Chrome renders as a
+                  1-2px jerk on scroll start. The header height differs by auth:
+                  the 73px edge-to-edge app header for signed-in viewers
+                  (73 + 64 = 137px), vs the floating SiteHeader for anons whose
+                  flow height is 72px (72 + 64 = 136px). max-h keeps a 1rem
+                  bottom gap in each case. */}
+              <div
+                className={cn(
+                  'sticky overflow-y-auto py-1',
+                  loggedIn
+                    ? 'top-[137px] max-h-[calc(100vh-153px)]'
+                    : 'top-[136px] max-h-[calc(100vh-152px)]',
+                )}
+              >
                 <OutlineNav items={navItems} ariaLabel={tocAriaLabel} scrollSpy />
               </div>
             </aside>

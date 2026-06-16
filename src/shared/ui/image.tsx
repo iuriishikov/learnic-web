@@ -9,6 +9,7 @@ import {
   useCallback,
   useState,
   type CSSProperties,
+  type SyntheticEvent,
 } from 'react';
 
 import { cn } from '@/shared/lib/utils';
@@ -70,6 +71,12 @@ export type ImageProps = NextImageInherited & {
   errorSize?: ImageErrorDensity;
   /** Optional callback fired alongside the internal retry. */
   onRetry?: () => void;
+  /**
+   * Fired once the image loads, with its intrinsic pixel size. Lets callers
+   * lay out by the photo's real proportions when no dimensions are known
+   * ahead of time (e.g. natural-height galleries).
+   */
+  onNaturalSize?: (size: { width: number; height: number }) => void;
 };
 
 const ROUND_CLASS: Record<ImageRoundness, string> = {
@@ -106,6 +113,7 @@ export const Image = forwardRef<HTMLDivElement, ImageProps>(function Image(
     caption,
     errorSize = 'auto',
     onRetry,
+    onNaturalSize,
     fill,
     width,
     height,
@@ -135,7 +143,16 @@ export const Image = forwardRef<HTMLDivElement, ImageProps>(function Image(
     setRetryCounter(0);
   }
 
-  const handleLoad = useCallback(() => setStatus('loaded'), []);
+  const handleLoad = useCallback(
+    (event: SyntheticEvent<HTMLImageElement>) => {
+      setStatus('loaded');
+      const img = event.currentTarget;
+      if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+        onNaturalSize?.({ width: img.naturalWidth, height: img.naturalHeight });
+      }
+    },
+    [onNaturalSize],
+  );
   const handleError = useCallback(() => setStatus('error'), []);
 
   const handleRetry = useCallback(() => {

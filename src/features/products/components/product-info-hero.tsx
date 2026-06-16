@@ -41,6 +41,14 @@ type ProductInfoHeroProps = {
    * «Продолжить изучение» (→ reader) instead of «Записаться».
    */
   viewerEnrolled?: boolean;
+  /**
+   * Whether the viewer is the owner or a collaborator (i.e. has a resolved
+   * rank — `EffectivePermissions.hierarchyPosition !== null`), resolved
+   * server-side at the page level. They already have access, so the CTA
+   * becomes «Открыть» (→ editor) instead of «Запросить доступ»/«Записаться» —
+   * even for an invite-only (`private`) note.
+   */
+  viewerCanManage?: boolean;
 };
 
 /**
@@ -55,6 +63,7 @@ export function ProductInfoHero({
   authorAvatarUrl,
   authorIsVerified,
   viewerEnrolled,
+  viewerCanManage,
 }: ProductInfoHeroProps) {
   const t = useTranslations('marketplace.detail');
   const reduceMotion = useReducedMotion();
@@ -151,7 +160,11 @@ export function ProductInfoHero({
           ) : null}
 
           <div className="mt-1 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-5">
-            <HeroEnroll product={product} viewerEnrolled={viewerEnrolled} />
+            <HeroEnroll
+              product={product}
+              viewerEnrolled={viewerEnrolled}
+              viewerCanManage={viewerCanManage}
+            />
             <AuthorRow
               product={product}
               authorAvatarUrl={authorAvatarUrl}
@@ -165,13 +178,20 @@ export function ProductInfoHero({
 }
 
 /**
- * Enroll CTA, moved from the old sidebar rail into the hero. Three flows:
+ * Enroll CTA, moved from the old sidebar rail into the hero. Flows, in
+ * priority order (a viewer who already has access never sees an enroll /
+ * request affordance — that was the «Запросить доступ»-shown-to-a-collaborator
+ * bug):
  *
- * - **Invite-only (`private`)** — «Запросить доступ»; still an honest
- *   placeholder ("in development" toast) since the access-request flow isn't
- *   built yet.
+ * - **Owner / collaborator (`viewerCanManage`)** — «Открыть»; routes to the
+ *   editor (`/products/{id}/editor`), their actual workspace. Wins over the
+ *   `private` branch, so an invite-only note no longer offers them
+ *   «Запросить доступ» when they already hold a role on it.
  * - **Already enrolled** — «Продолжить изучение»; routes straight to the
  *   reader (`/products/{id}`), no enroll call.
+ * - **Invite-only (`private`), no access** — «Запросить доступ»; still an
+ *   honest placeholder ("in development" toast) since the access-request flow
+ *   isn't built yet.
  * - **Open (`public`), not enrolled** — «Записаться». Anonymous viewers go
  *   straight to the reader (it owns its own guest/login affordance). Signed-in
  *   viewers fire {@link enrollIntoProductAction}; on success (or an
@@ -181,9 +201,11 @@ export function ProductInfoHero({
 function HeroEnroll({
   product,
   viewerEnrolled,
+  viewerCanManage,
 }: {
   product: Product;
   viewerEnrolled?: boolean;
+  viewerCanManage?: boolean;
 }) {
   const t = useTranslations('marketplace.detail');
   const notify = useNotify();
@@ -198,17 +220,25 @@ function HeroEnroll({
 
   const isPrivate = product.visibility === 'private';
   const readerHref = `/products/${product.id}`;
+  const editorHref = `/products/${product.id}/editor`;
 
   const onEnroll = () => {
-    if (isPrivate) {
-      notify.info(t('enroll.requestSoonTitle'), {
-        description: t('enroll.requestSoonDescription'),
-      });
+    // Owner / collaborator — they already have access; «Запросить доступ» /
+    // «Записаться» never applies. Straight to their workspace (the editor).
+    if (viewerCanManage) {
+      router.push(editorHref);
       return;
     }
 
     if (viewerEnrolled) {
       router.push(readerHref);
+      return;
+    }
+
+    if (isPrivate) {
+      notify.info(t('enroll.requestSoonTitle'), {
+        description: t('enroll.requestSoonDescription'),
+      });
       return;
     }
 
@@ -250,11 +280,17 @@ function HeroEnroll({
     });
   };
 
+  // «Запросить доступ» (and its lock glyph) is the no-access invite-only case
+  // only — a viewer who can manage or is enrolled already has access.
+  const showRequestAccess = isPrivate && !viewerCanManage && !viewerEnrolled;
+
   let label: string;
-  if (isPrivate) {
-    label = t('enroll.requestCta');
+  if (viewerCanManage) {
+    label = t('enroll.openCta');
   } else if (viewerEnrolled) {
     label = t('enroll.continueCta');
+  } else if (isPrivate) {
+    label = t('enroll.requestCta');
   } else {
     label = t('enroll.cta');
   }
@@ -271,7 +307,7 @@ function HeroEnroll({
         {isPending ? (
           <Loader2Icon className="size-4 animate-spin" aria-hidden />
         ) : null}
-        {!isPending && isPrivate ? (
+        {!isPending && showRequestAccess ? (
           <LockIcon className="size-4" aria-hidden />
         ) : null}
         {label}

@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useAuth } from '@/shared/auth';
 import { NotificationsBell } from '@/features/notifications';
 import { Link, usePathname } from '@/shared/config/i18n/navigation';
+import { resolveActiveNavKey } from '@/shared/lib/nav-active-key';
 import { cn } from '@/shared/lib/utils';
 import { BrandMark } from '@/shared/ui/brand-mark';
 import { Button } from '@/shared/ui/button';
@@ -29,6 +30,13 @@ export type AppHeaderNavItem = {
   key: string;
   href: string;
   label: string;
+  /**
+   * Optional override for the default pathname-prefix active rule. Use it for a
+   * tab whose `href` prefix is shared by an unrelated surface (e.g. `/products`
+   * owns the teaching studio, but the public note reader also lives at
+   * `/products/[id]`). See `resolveActiveNavKey`.
+   */
+  isActivePath?: (pathname: string) => boolean;
 };
 
 export type AppHeaderProps = {
@@ -65,7 +73,7 @@ export function AppHeader({
   // `undefined` → derive from pathname; an explicit key or `null` (no active
   // tab) is honoured as-is.
   const resolvedActiveKey =
-    activeKey === undefined ? findLongestMatchKey(navItems, pathname) : activeKey;
+    activeKey === undefined ? resolveActiveNavKey(navItems, pathname) : activeKey;
 
   function isActive(item: AppHeaderNavItem): boolean {
     return resolvedActiveKey === item.key;
@@ -196,28 +204,4 @@ export function AppHeader({
       </div>
     </header>
   );
-}
-
-function findLongestMatchKey(
-  items: AppHeaderNavItem[],
-  pathname: string,
-): string | undefined {
-  let bestKey: string | undefined;
-  let bestLength = -1;
-  for (const item of items) {
-    if (item.href === '/') {
-      if (pathname === '/' && bestLength < 1) {
-        bestKey = item.key;
-        bestLength = 1;
-      }
-      continue;
-    }
-    const matches =
-      pathname === item.href || pathname.startsWith(`${item.href}/`);
-    if (matches && item.href.length > bestLength) {
-      bestKey = item.key;
-      bestLength = item.href.length;
-    }
-  }
-  return bestKey;
 }

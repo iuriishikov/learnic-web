@@ -1,0 +1,95 @@
+name: learnic-web
+
+x-default: &default
+  restart: unless-stopped
+  init: true
+  networks:
+    - learnic-edge
+
+x-healthcheck-defaults: &healthcheck-defaults
+  interval: 30s
+  timeout: 5s
+  retries: 3
+  start_period: 15s
+
+services:
+  web:
+    <<: *default
+    build:
+      context: .
+      args:
+        # API_URL is baked into next.config.ts `rewrites()` at BUILD time (the
+        # WS-proxy destinations) and also read by apiFetch at runtime, so it is
+        # supplied as both a build arg and a runtime env. Set it in .env per
+        # topology — the image is rebuilt for the target on `up --build`:
+        #   co-located (one host): http://learnic-app:8000  (backend container on the shared edge net)
+        #   split (two hosts)     : https://api.learnic.ru    (backend's public Caddy)
+        API_URL: ${API_URL}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+        NEXT_PUBLIC_DEFAULT_THEME: ${NEXT_PUBLIC_DEFAULT_THEME:-system}
+    container_name: learnic-web
+    env_file:
+      - .env
+    environment:
+      API_URL: ${API_URL}
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+    expose:
+      - "3000"
+    healthcheck:
+      <<: *healthcheck-defaults
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      start_period: 20s
+
+  # Frontend's own HTTPS edge. Started ONLY with `--profile edge` (split /
+  # standalone deploy where the frontend owns :443). In a co-located single-host
+  # deploy this is omitted and the backend's Caddy fronts both domains.
+  caddy:
+    <<: *default
+    # Custom build: stock Caddy + caddy-ratelimit (for the per-user throttle).
+    build:
+      context: ./deploy/caddy
+    container_name: learnic-web-caddy
+    profiles: ["edge"]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+      SITE_RATE_LIMIT_EVENTS: ${SITE_RATE_LIMIT_EVENTS:-300}
+      SITE_RATE_LIMIT_WINDOW: ${SITE_RATE_LIMIT_WINDOW:-1m}
+      # Tight zone for auth-form submits (login/register/reset), per visitor IP.
+      SITE_AUTH_RATE_LIMIT_EVENTS: ${SITE_AUTH_RATE_LIMIT_EVENTS:-10}
+      SITE_AUTH_RATE_LIMIT_WINDOW: ${SITE_AUTH_RATE_LIMIT_WINDOW:-1m}
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:8081/healthz"]
+
+volumes:
+  caddy-data:
+    name: learnic-web-caddy-data
+  caddy-config:
+    name: learnic-web-caddy-config
+
+# Shared external network so that — when co-located on one host — the frontend
+# `web` and the backend `app` (separate compose projects) can reach each other
+# by container name across project boundaries. Created once via `just _net`
+# (or `docker network create learnic-edge`). In a split deploy it simply holds
+# this stack's services and nothing else.
+networks:
+  learnic-edge:
+    external: true
+    name: learnic-edge

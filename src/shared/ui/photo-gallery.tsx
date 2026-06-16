@@ -2,7 +2,7 @@
 
 import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react';
 import { motion, useReducedMotion, type Variants } from 'motion/react';
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 
 import { Button } from '@/shared/ui/button';
 import {
@@ -47,6 +47,22 @@ export type PhotoGalleryProps = {
    * Below `md:` the strip scales down to 72% automatically.
    */
   height?: number;
+  /**
+   * How items are sized.
+   * - `'fixed-height'` (default): every photo shares the strip height; width
+   *   follows its `aspectRatio` / `heightFactor` (magazine strip).
+   * - `'natural'`: the FIRST photo is a full-`height` hero; every later photo
+   *   shares a slightly shorter height (`restHeightFactor` × `height`). Each
+   *   photo keeps its real proportions (width = height × measured ratio), so
+   *   nothing is cropped — heights vary only between the hero and the rest.
+   */
+  sizing?: 'fixed-height' | 'natural';
+  /**
+   * For `sizing="natural"`: height of every photo after the first, as a
+   * fraction of `height` (the first photo is always the full-`height` hero).
+   * Keep it close to 1 for a small hero/rest difference. Default 0.85.
+   */
+  restHeightFactor?: number;
   /** Corner radius forwarded to every photo's `Image`. */
   rounded?: ImageRoundness;
   /** Click any photo to open it fullscreen (with its `caption`, if set). */
@@ -72,6 +88,8 @@ export type PhotoGalleryProps = {
 export function PhotoGallery({
   photos,
   height = 480,
+  sizing = 'fixed-height',
+  restHeightFactor = 0.85,
   rounded = 'none',
   lightbox = false,
   unoptimized = false,
@@ -81,6 +99,9 @@ export function PhotoGallery({
   className,
 }: PhotoGalleryProps) {
   const reduceMotion = useReducedMotion();
+  // Natural-mode only: index → measured naturalWidth / naturalHeight, so each
+  // item box can adopt the photo's real proportions once it loads.
+  const [naturalRatios, setNaturalRatios] = useState<Record<number, number>>({});
 
   if (photos.length === 0) return null;
 
@@ -96,13 +117,62 @@ export function PhotoGallery({
         opts={{ align: 'start' }}
         aria-label={ariaLabel}
         className="flex flex-col gap-6 [--photo-gallery-h:calc(var(--photo-gallery-base)*0.72)] md:[--photo-gallery-h:var(--photo-gallery-base)]"
-        style={{ '--photo-gallery-base': `${height}px` } as CSSProperties}
+        style={
+          {
+            '--photo-gallery-base': `${height}px`,
+            '--photo-gallery-h-rest': `calc(var(--photo-gallery-h) * ${restHeightFactor})`,
+          } as CSSProperties
+        }
       >
-        <CarouselContent className="-ml-6">
+        {/* `items-start` top-aligns the varying-height photos in natural mode;
+            harmless in fixed-height mode where every item is the same height. */}
+        <CarouselContent className="-ml-6 items-start">
           {photos.map((photo, index) => {
-            const aspectRatio = photo.aspectRatio ?? DEFAULT_ASPECT_RATIO;
+            const fallbackRatio = photo.aspectRatio ?? DEFAULT_ASPECT_RATIO;
             const heightFactor = photo.heightFactor ?? 1;
 
+            if (sizing === 'natural') {
+              // The first photo is the full-height hero; every later photo
+              // shares a slightly shorter height (`--photo-gallery-h-rest`).
+              // Each keeps its real proportions (width = height × ratio), so
+              // nothing is cropped and the only height difference is hero-vs-
+              // rest. Until the image loads we hold a placeholder ratio so the
+              // skeleton has a box; it snaps to the true ratio on load.
+              const ratio = naturalRatios[index] ?? fallbackRatio;
+              const itemHeight =
+                index === 0 ? 'var(--photo-gallery-h)' : 'var(--photo-gallery-h-rest)';
+              return (
+                <CarouselItem key={`${photo.src}-${index}`} className="basis-auto pl-6">
+                  <motion.div
+                    variants={ITEM_VARIANTS}
+                    className="relative"
+                    style={{ height: itemHeight, aspectRatio: ratio }}
+                  >
+                    <Image
+                      src={photo.src}
+                      alt={photo.alt}
+                      fill
+                      sizes={`${Math.round(height * Math.max(ratio, 0.75))}px`}
+                      rounded={rounded}
+                      fit="contain"
+                      lightbox={lightbox}
+                      caption={photo.caption}
+                      unoptimized={unoptimized}
+                      draggable={false}
+                      onNaturalSize={({ width, height: h }) =>
+                        setNaturalRatios((prev) => {
+                          const next = width / h;
+                          return prev[index] === next ? prev : { ...prev, [index]: next };
+                        })
+                      }
+                    />
+                  </motion.div>
+                </CarouselItem>
+              );
+            }
+
+            // Fixed-height (default): every photo shares the strip height; width
+            // follows its aspect ratio (magazine strip).
             return (
               <CarouselItem key={`${photo.src}-${index}`} className="basis-auto pl-6">
                 <motion.div
@@ -110,14 +180,14 @@ export function PhotoGallery({
                   className="relative"
                   style={{
                     height: `calc(var(--photo-gallery-h) * ${heightFactor})`,
-                    aspectRatio,
+                    aspectRatio: fallbackRatio,
                   }}
                 >
                   <Image
                     src={photo.src}
                     alt={photo.alt}
                     fill
-                    sizes={`${Math.round(height * heightFactor * aspectRatio)}px`}
+                    sizes={`${Math.round(height * heightFactor * fallbackRatio)}px`}
                     rounded={rounded}
                     lightbox={lightbox}
                     caption={photo.caption}

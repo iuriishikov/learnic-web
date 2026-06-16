@@ -6,13 +6,15 @@ import type { AppHeaderNavItem } from './app-header';
 import { HeaderConfig } from './header-config';
 
 /**
- * The app-wide header nav — three mode-entry tabs that let an
- * authenticated user jump into the catalog, into their learning
- * area, or into the teaching studio. Mounted once by the shared
- * `(shell)` layout that wraps both the auth-gated `(app)` group and
- * the public `(default-shell)` group, so the header is identical
- * everywhere. Route groups never override it — shell-specific
- * navigation goes into `SubHeaderConfig` instead.
+ * The app-wide header nav — two mode-entry tabs that let an
+ * authenticated user jump into the catalog or into their learning
+ * area. Mounted once by the shared `(shell)` layout that wraps both
+ * the auth-gated `(app)` group and the public `(default-shell)` group,
+ * so the header is identical everywhere. Route groups never override
+ * it — shell-specific navigation goes into `SubHeaderConfig` instead.
+ *
+ * The teaching studio (`/products`) is reached from the user menu
+ * («Преподавать»), not from a header tab.
  */
 export function DefaultHeaderConfig() {
   const t = useTranslations('default-shell');
@@ -27,11 +29,6 @@ export function DefaultHeaderConfig() {
       key: 'learning',
       href: '/learning',
       label: t('nav.myLearning'),
-    },
-    {
-      key: 'products',
-      href: '/products',
-      label: t('nav.teach'),
     },
   ];
 

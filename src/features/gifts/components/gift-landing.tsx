@@ -67,6 +67,10 @@ export function GiftLanding({ gift, action, token }: GiftLandingProps) {
   const [isNavigating, startNavigating] = useTransition();
 
   const gifterName = gift.gifter.fullName.trim() || gift.gifter.email;
+  // On accept the recipient is enrolled, so we send them straight to the
+  // product reader. The catalogue stays the destination only for the
+  // decline path (nothing to read).
+  const productHref = `/products/${gift.productId}`;
 
   async function handleConfirm() {
     if (status !== 'idle') return;
@@ -81,7 +85,7 @@ export function GiftLanding({ gift, action, token }: GiftLandingProps) {
       const result = await acceptGiftByTokenAction({ giftId: gift.id, token });
       if (result.ok) {
         setStatus('success');
-        startNavigating(() => router.push(NOTE_HREF));
+        startNavigating(() => router.push(productHref));
         return;
       }
       mapFailure(result.reason);
@@ -138,7 +142,7 @@ export function GiftLanding({ gift, action, token }: GiftLandingProps) {
         action={
           <Button
             className="h-11 w-full rounded-lg bg-brand text-[15px] font-semibold text-brand-foreground hover:bg-brand/90"
-            onClick={() => router.push(NOTE_HREF)}
+            onClick={() => router.push(productHref)}
             disabled={isNavigating}
           >
             {isNavigating ? (

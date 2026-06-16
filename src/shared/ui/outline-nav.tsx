@@ -1,8 +1,9 @@
 'use client';
 
-import { ChevronRightIcon } from 'lucide-react';
+import { ChevronRightIcon, SearchIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { Input } from '@/shared/ui/input';
 import { cn } from '@/shared/lib/utils';
 
 export type OutlineNavItem = {
@@ -12,6 +13,12 @@ export type OutlineNavItem = {
    */
   id: string;
   label: React.ReactNode;
+  /**
+   * Plain-text used by the `searchable` filter. Required for items whose
+   * `label` is a `ReactNode` (a string `label` is matched as-is). Disabled
+   * items never match on their own.
+   */
+  searchText?: string;
   /** Nested sub-items, to any depth. */
   children?: OutlineNavItem[];
   disabled?: boolean;
@@ -45,6 +52,17 @@ export type OutlineNavProps = {
   collapsible?: boolean;
   /** Ids expanded on first render. Defaults to every parent (all open). */
   defaultExpandedIds?: string[];
+  /**
+   * Show a filter input above the tree that narrows items by `searchText`
+   * (or a string `label`). A branch survives if it matches or holds a match;
+   * surviving branches auto-expand so every hit is visible. Pass the
+   * `search*` strings localised by the consumer.
+   */
+  searchable?: boolean;
+  /** Placeholder + accessible name for the filter input. */
+  searchPlaceholder?: string;
+  /** Shown in place of the tree when the filter matches nothing. */
+  searchEmptyText?: string;
   /** Fired on every item activation, with the item id and node. */
   onSelect?: (id: string, item: OutlineNavItem) => void;
   className?: string;
@@ -73,11 +91,26 @@ export function OutlineNav({
   scrollOnSelect,
   collapsible = false,
   defaultExpandedIds,
+  searchable = false,
+  searchPlaceholder,
+  searchEmptyText,
   onSelect,
   className,
 }: OutlineNavProps) {
   const allIds = useMemo(() => collectIds(items), [items]);
   const parentIds = useMemo(() => collectParentIds(items), [items]);
+
+  const [query, setQuery] = useState('');
+  const normalizedQuery = searchable ? query.trim().toLowerCase() : '';
+  const isSearching = normalizedQuery.length > 0;
+
+  // Filtered view of the tree while searching: a branch survives if it
+  // matches or holds a descendant match (a matching parent keeps its whole
+  // sub-tree so it stays browsable).
+  const visibleItems = useMemo(
+    () => (isSearching ? filterItems(items, normalizedQuery) : items),
+    [isSearching, items, normalizedQuery],
+  );
 
   const [spyActiveId, setSpyActiveId] = useState<string | null>(null);
   const activeId = controlledActiveId ?? spyActiveId;
@@ -135,6 +168,13 @@ export function OutlineNav({
     return next;
   }, [expanded, activeAncestors]);
 
+  // While searching, force every surviving parent open so each hit is
+  // visible regardless of its manual collapse state.
+  const searchExpanded = useMemo(
+    () => (isSearching ? new Set(collectParentIds(visibleItems)) : null),
+    [isSearching, visibleItems],
+  );
+
   const handleSelect = useCallback(
     (item: OutlineNavItem) => {
       if (item.disabled) return;
@@ -158,13 +198,34 @@ export function OutlineNav({
   const context: RowContext = {
     activeId,
     collapsible,
-    expanded: effectiveExpanded,
+    expanded: searchExpanded ?? effectiveExpanded,
     onSelect: handleSelect,
   };
 
   return (
     <nav aria-label={ariaLabel} className={cn('text-sm', className)}>
-      <NavList items={items} depth={0} context={context} />
+      {searchable ? (
+        <div className="mb-3">
+          {/* `type="text"` (not `search`) so no native WebKit clear "✕"
+              appears; there is intentionally no clear button. */}
+          <Input
+            type="text"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={searchPlaceholder}
+            aria-label={searchPlaceholder}
+            leadingIcon={<SearchIcon className="size-4" aria-hidden />}
+            className="h-9 bg-muted/40 shadow-none"
+          />
+        </div>
+      ) : null}
+      {isSearching && visibleItems.length === 0 ? (
+        <p className="px-1 py-6 text-center text-sm text-muted-foreground">
+          {searchEmptyText}
+        </p>
+      ) : (
+        <NavList items={visibleItems} depth={0} context={context} />
+      )}
     </nav>
   );
 }
@@ -258,6 +319,38 @@ function scrollToAnchor(id: string) {
     behavior: prefersReducedMotion ? 'auto' : 'smooth',
     block: 'start',
   });
+}
+
+/** Text the `searchable` filter matches against (explicit, else a string label). */
+function getSearchText(item: OutlineNavItem): string {
+  if (item.searchText != null) return item.searchText;
+  return typeof item.label === 'string' ? item.label : '';
+}
+
+/**
+ * Keep every branch that matches `query` or contains a match. A branch that
+ * matches by its own text keeps all of its children (the whole sub-tree stays
+ * browsable); otherwise only the matching descendants survive. `query` must
+ * already be trimmed + lowercased.
+ */
+function filterItems(
+  items: OutlineNavItem[],
+  query: string,
+): OutlineNavItem[] {
+  const result: OutlineNavItem[] = [];
+  for (const item of items) {
+    const selfMatch =
+      !item.disabled && getSearchText(item).toLowerCase().includes(query);
+    const filteredChildren = item.children
+      ? filterItems(item.children, query)
+      : [];
+    if (selfMatch) {
+      result.push(item);
+    } else if (filteredChildren.length > 0) {
+      result.push({ ...item, children: filteredChildren });
+    }
+  }
+  return result;
 }
 
 function collectIds(items: OutlineNavItem[]): string[] {

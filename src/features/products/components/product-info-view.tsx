@@ -24,6 +24,12 @@ type ProductInfoViewProps = {
    * shows «Продолжить изучение» (→ reader) instead of «Записаться».
    */
   viewerEnrolled?: boolean;
+  /**
+   * Whether the viewer is the owner or a collaborator on this product,
+   * resolved server-side at the page level. Threaded into the hero CTA so it
+   * shows «Открыть» (→ editor) instead of «Запросить доступ»/«Записаться».
+   */
+  viewerCanManage?: boolean;
 };
 
 /**
@@ -38,6 +44,7 @@ export function ProductInfoView({
   authorAvatarUrl,
   authorIsVerified,
   viewerEnrolled,
+  viewerCanManage,
 }: ProductInfoViewProps) {
   const t = useTranslations('marketplace.detail');
   const reduceMotion = useReducedMotion();
@@ -49,6 +56,7 @@ export function ProductInfoView({
         authorAvatarUrl={authorAvatarUrl}
         authorIsVerified={authorIsVerified}
         viewerEnrolled={viewerEnrolled}
+        viewerCanManage={viewerCanManage}
       />
 
       <motion.div
