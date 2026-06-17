@@ -15,28 +15,8 @@
     },
     "logIn": "Войти",
     "signUp": "Регистрация",
-    "openMenu": "Consectetur",
-    "closeMenu": "Adipiscing",
-    "mobileFooter": {
-      "columns": [
-        {
-          "items": [
-            "Lorem",
-            "Ipsum",
-            "Dolor",
-            "Sit"
-          ]
-        },
-        {
-          "items": [
-            "Amet",
-            "Consectetur",
-            "Elit",
-            "Sed"
-          ]
-        }
-      ]
-    },
+    "openMenu": "Открыть меню",
+    "closeMenu": "Закрыть меню",
     "theme": {
       "toggle": "Сменить тему",
       "light": "Светлая",
