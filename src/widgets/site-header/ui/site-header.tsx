@@ -102,8 +102,6 @@ const TAG_SKELETON_WIDTHS = [
   'w-16',
 ] as const;
 
-type MobileFooterColumn = { items: string[] };
-
 /** Lifecycle of the lazily-fetched popular-tags request. */
 type TagsStatus = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -236,9 +234,6 @@ export function SiteHeader({
 
   const showChrome = bordered && (!transparent || scrolled);
 
-  const mobileFooterColumns = t.raw(
-    'mobileFooter.columns',
-  ) as MobileFooterColumn[];
   const isLight = tone === 'light';
 
   const navTriggerToneClasses = isLight
@@ -370,7 +365,6 @@ export function SiteHeader({
           <MobileMenuContent srTitle={t('openMenu')}>
             <SiteMobileMenuContent
               brand={t('brand')}
-              mobileFooterColumns={mobileFooterColumns}
               popularTags={tags}
               tagsStatus={tagsStatus}
               featuredPost={featuredPost}
@@ -391,7 +385,6 @@ export function SiteHeader({
 
 type SiteMobileMenuContentProps = {
   brand: string;
-  mobileFooterColumns: MobileFooterColumn[];
   popularTags: Tag[] | null;
   tagsStatus: TagsStatus;
   featuredPost: BlogPostCardData | null;
@@ -409,7 +402,6 @@ const EASE_IN_QUAD = [0.4, 0, 1, 1] as const;
 
 function SiteMobileMenuContent({
   brand,
-  mobileFooterColumns,
   popularTags,
   tagsStatus,
   featuredPost,
@@ -527,26 +519,6 @@ function SiteMobileMenuContent({
             }
           })}
         </nav>
-
-        <Separator />
-
-        <div className="grid grid-cols-2 gap-x-6 gap-y-3 px-5 py-5">
-          {mobileFooterColumns.map((col, ci) => (
-            <ul key={ci} className="flex flex-col gap-3">
-              {col.items.map((label) => (
-                <li key={label}>
-                  <a
-                    href="#"
-                    onClick={onNavigate}
-                    className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    {label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          ))}
-        </div>
       </MobileMenuBody>
 
       <MobileMenuFooter>
