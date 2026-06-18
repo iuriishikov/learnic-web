@@ -42,6 +42,7 @@ export { ProductInfoView } from './components/product-info-view';
 export { ProductInfoSkeleton } from './components/product-info-skeleton';
 export { ProductReaderView } from './components/product-reader-view';
 export { ProductReaderSkeleton } from './components/product-reader-skeleton';
+export { CollaborationInviteLanding } from './components/team/collaboration-invite-landing';
 export { MyLearningView } from './components/my-learning-view';
 export { MyLearningSkeleton } from './components/my-learning-skeleton';
 export { enrollIntoProductAction } from './api/enrollment-action';
