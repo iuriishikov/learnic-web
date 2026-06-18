@@ -2,9 +2,10 @@
 
 import { CheckCircle2Icon, Loader2Icon, XCircleIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 
-import { Link } from '@/shared/config/i18n/navigation';
+import { useAuth } from '@/shared/auth';
+import { useRouter } from '@/shared/config/i18n/navigation';
 import { Button } from '@/shared/ui/button';
 
 import { verifyTokenAction } from '../api/confirm';
@@ -32,8 +33,28 @@ type GenericConfirmClientProps = {
  */
 export function GenericConfirmClient({ token }: GenericConfirmClientProps) {
   const t = useTranslations('confirm.generic');
+  const router = useRouter();
+  const { refresh } = useAuth();
   const [status, setStatus] = useState<Status>(token ? 'pending' : 'invalid');
+  const [isContinuing, startContinue] = useTransition();
   const firedRef = useRef(false);
+
+  // `/auth/verify-token` only marks the email verified — it does NOT
+  // install auth cookies on this tab. For the signup flow the cookies
+  // are installed out-of-band by the original "waiting" tab via
+  // `/auth/email-verification/wait`, landing in the shared cookie jar.
+  // So on "continue" we re-read the session (`refresh()` → `/auth/me`)
+  // before navigating: if the cookie is now present the user lands home
+  // already authenticated, otherwise on login. Without this re-read the
+  // auth context keeps its server-seeded `null` user (the root layout
+  // ran while still anonymous and a soft `<Link>` navigation never
+  // re-runs it) until a full page reload — which is the bug this fixes.
+  const handleContinue = () => {
+    startContinue(async () => {
+      const user = await refresh();
+      router.push(user ? '/' : '/login');
+    });
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -74,10 +95,14 @@ export function GenericConfirmClient({ token }: GenericConfirmClientProps) {
         description={t('success.description')}
         action={
           <Button
+            type="button"
             className="h-11 rounded-lg bg-brand text-[15px] font-semibold text-brand-foreground hover:bg-brand/90"
-            render={<Link href="/login" />}
-            nativeButton={false}
+            onClick={handleContinue}
+            disabled={isContinuing}
           >
+            {isContinuing ? (
+              <Loader2Icon className="size-4 animate-spin" aria-hidden />
+            ) : null}
             {t('success.continue')}
           </Button>
         }
