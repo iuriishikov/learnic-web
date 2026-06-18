@@ -43,7 +43,7 @@ export function LoginForm() {
       const result = await loginAction(values);
       if (result.ok) {
         const safeFrom = sanitizeRedirectTarget(fromParam);
-        router.replace(safeFrom ?? '/marketplace');
+        router.replace(safeFrom ?? '/');
         return;
       }
       setFormError(result.error);

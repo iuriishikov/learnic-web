@@ -30,7 +30,7 @@ export default async function LoginPage({
   const safeFrom = sanitizeRedirectTarget(from);
 
   const user = await getCurrentUser();
-  if (user) redirect({ href: safeFrom ?? '/dashboard', locale });
+  if (user) redirect({ href: safeFrom ?? '/', locale });
 
   const t = await getTranslations('auth');
 
