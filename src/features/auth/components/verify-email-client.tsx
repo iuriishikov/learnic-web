@@ -88,7 +88,7 @@ export function VerifyEmailClient({
     finalizingRef.current = true;
     const result = await waitForEmailVerificationAction();
     if (result === 'verified') {
-      router.push(safeFrom ?? '/marketplace');
+      router.push(safeFrom ?? '/');
       router.refresh();
       return;
     }
